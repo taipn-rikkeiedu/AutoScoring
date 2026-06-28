@@ -14,19 +14,6 @@ GEMINI_MODELS = [
     "gemini-1.5-flash",
 ]
 
-TEMPLATES_DIR = r"C:\AutoScoring\HomeworkAssignment"
-TEMPLATES_FILE = os.path.join(TEMPLATES_DIR, "templates.json")
-CONFIG_FILE = os.path.join(TEMPLATES_DIR, "config.json")
-
-# Dynamic environment detection
-IS_LOCAL = False
-if os.name == "nt":  # Windows OS
-    try:
-        os.makedirs(TEMPLATES_DIR, exist_ok=True)
-        IS_LOCAL = True
-    except Exception:
-        pass
-
 # Default templates structure
 DEFAULT_TEMPLATES = {
     "Chương [ IT211 - K24 ] Java Web Service": {
@@ -41,67 +28,19 @@ DEFAULT_TEMPLATES = {
 
 
 def _load_templates():
-    if IS_LOCAL:
-        if os.path.exists(TEMPLATES_FILE):
-            try:
-                with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                pass
-        # Initialize default on local disk if missing
-        _save_templates(DEFAULT_TEMPLATES)
-        return DEFAULT_TEMPLATES
-    else:
-        # On Cloud, load from session state
-        if "cloud_templates" not in st.session_state:
-            st.session_state.cloud_templates = DEFAULT_TEMPLATES.copy()
-        return st.session_state.cloud_templates
+    if "cloud_templates" not in st.session_state:
+        st.session_state.cloud_templates = DEFAULT_TEMPLATES.copy()
+    return st.session_state.cloud_templates
 
 
 def _save_templates(templates):
-    if IS_LOCAL:
-        try:
-            os.makedirs(TEMPLATES_DIR, exist_ok=True)
-            with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
-                json.dump(templates, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception:
-            return False
-    else:
-        # On Cloud, save to session state
-        st.session_state.cloud_templates = templates
-        return True
-
-
-def _load_local_config():
-    if IS_LOCAL and os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return None
-
-
-def _save_local_config(config):
-    if IS_LOCAL:
-        try:
-            os.makedirs(TEMPLATES_DIR, exist_ok=True)
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception:
-            return False
-    return False
+    st.session_state.cloud_templates = templates
+    return True
 
 
 def _get_ai_config():
     if "ai_config" in st.session_state:
         return st.session_state.ai_config
-    local_config = _load_local_config()
-    if local_config:
-        st.session_state.ai_config = local_config
-        return local_config
     return {
         "provider": Settings.AI_PROVIDER or "gemini",
         "api_key": Settings.GEMINI_API_KEY,
@@ -688,7 +627,6 @@ def main():
                         api_base_url=api_base_url if provider == "custom" else "",
                     )
                     st.session_state.ai_config = new_settings_config
-                    _save_local_config(new_settings_config)
                     st.success("✅ Đã cập nhật và đồng bộ cấu hình AI thành công!")
                 except ValueError as ve:
                     st.error(f"Cấu hình không hợp lệ: {str(ve)}")
@@ -711,7 +649,6 @@ def main():
                     uploaded_config = json.load(uploaded_config_file)
                     if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
                         st.session_state.ai_config = uploaded_config
-                        _save_local_config(uploaded_config)
                         st.success("✅ Đã nạp cấu hình AI thành công!")
                         st.rerun()
                     else:
