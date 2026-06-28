@@ -63,6 +63,42 @@ def main():
         page_title="AI GitHub Grader v1.0", page_icon="🤖", layout="wide"
     )
 
+    def apply_uploaded_config():
+        uploaded_file = st.session_state.get("settings_config_uploader")
+        if uploaded_file is not None:
+            try:
+                uploaded_config = json.load(uploaded_file)
+                if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
+                    st.session_state.ai_config = uploaded_config
+                    
+                    # Force sync values directly to widget keys in session state to update inputs
+                    st.session_state.settings_provider_select = uploaded_config.get("provider", "gemini")
+                    st.session_state.settings_api_key = uploaded_config.get("api_key", "")
+                    st.session_state.settings_api_base_url = uploaded_config.get("api_base_url", "")
+                    st.session_state.settings_model_name = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                    st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
+                    st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
+                    st.session_state.settings_gemini_model_select = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                    
+                    st.session_state.config_upload_success = "✅ Đã nạp cấu hình AI thành công!"
+                else:
+                    st.session_state.config_upload_error = "Cấu trúc file config.json không hợp lệ."
+            except Exception as e:
+                st.session_state.config_upload_error = f"Lỗi đọc file: {str(e)}"
+
+    def apply_uploaded_templates():
+        uploaded_file = st.session_state.get("tab2_templates_uploader")
+        if uploaded_file is not None:
+            try:
+                uploaded_templates = json.load(uploaded_file)
+                if isinstance(uploaded_templates, dict):
+                    _save_templates(uploaded_templates)
+                    st.session_state.templates_upload_success = "✅ Đã nạp danh sách bài tập thành công!"
+                else:
+                    st.session_state.templates_upload_error = "Cấu trúc file templates.json không hợp lệ."
+            except Exception as e:
+                st.session_state.templates_upload_error = f"Lỗi đọc file: {str(e)}"
+
     # Initialize input values in session state if not present
     if "assignment_val" not in st.session_state:
         st.session_state.assignment_val = ""
@@ -533,20 +569,18 @@ def main():
                 type=["json"], 
                 key="tab2_templates_uploader"
             )
-            if st.button("🔌 Áp dụng danh sách bài tập vừa tải lên", use_container_width=True):
-                if uploaded_templates_file is not None:
-                    try:
-                        uploaded_templates = json.load(uploaded_templates_file)
-                        if isinstance(uploaded_templates, dict):
-                            _save_templates(uploaded_templates)
-                            st.success("✅ Đã nạp danh sách bài tập thành công!")
-                            st.rerun()
-                        else:
-                            st.error("Cấu trúc file templates.json không hợp lệ.")
-                    except Exception as e:
-                        st.error(f"Lỗi đọc file: {str(e)}")
-                else:
-                    st.warning("Vui lòng chọn tệp tin templates.json trước khi bấm nút áp dụng.")
+            st.button(
+                "🔌 Áp dụng danh sách bài tập vừa tải lên", 
+                use_container_width=True, 
+                on_click=apply_uploaded_templates
+            )
+            if st.session_state.get("templates_upload_success"):
+                st.success(st.session_state.templates_upload_success)
+                del st.session_state.templates_upload_success
+                st.rerun()
+            if st.session_state.get("templates_upload_error"):
+                st.error(st.session_state.templates_upload_error)
+                del st.session_state.templates_upload_error
         
         with col_tpl_export:
             st.subheader("📤 Sao lưu danh sách bài tập")
@@ -663,30 +697,18 @@ def main():
                 key="settings_config_uploader"
             )
             
-            if st.button("🔌 Áp dụng cấu hình AI vừa tải lên", use_container_width=True):
-                if uploaded_config_file is not None:
-                    try:
-                        uploaded_config = json.load(uploaded_config_file)
-                        if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
-                            st.session_state.ai_config = uploaded_config
-                            
-                            # Force sync values directly to widget keys in session state to update inputs
-                            st.session_state.settings_provider_select = uploaded_config.get("provider", "gemini")
-                            st.session_state.settings_api_key = uploaded_config.get("api_key", "")
-                            st.session_state.settings_api_base_url = uploaded_config.get("api_base_url", "")
-                            st.session_state.settings_model_name = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
-                            st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
-                            st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
-                            st.session_state.settings_gemini_model_select = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
-                            
-                            st.success("✅ Đã nạp cấu hình AI thành công!")
-                            st.rerun()
-                        else:
-                            st.error("Cấu trúc file config.json không hợp lệ.")
-                    except Exception as e:
-                        st.error(f"Lỗi đọc file: {str(e)}")
-                else:
-                    st.warning("Vui lòng chọn tệp tin config.json trước khi bấm nút áp dụng.")
+            st.button(
+                "🔌 Áp dụng cấu hình AI vừa tải lên", 
+                use_container_width=True, 
+                on_click=apply_uploaded_config
+            )
+            if st.session_state.get("config_upload_success"):
+                st.success(st.session_state.config_upload_success)
+                del st.session_state.config_upload_success
+                st.rerun()
+            if st.session_state.get("config_upload_error"):
+                st.error(st.session_state.config_upload_error)
+                del st.session_state.config_upload_error
                     
             st.markdown("---")
             st.markdown("**2. Tải xuống máy tính (Sao lưu cấu hình hiện tại):**")
