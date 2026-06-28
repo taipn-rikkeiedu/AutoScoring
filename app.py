@@ -225,6 +225,31 @@ def main():
         col_config, col_monitor = st.columns([2, 3])
         with col_config:
             st.subheader("📋 Thiết lập phòng chấm")
+            
+            # --- Quick template selector (moved from Tab 2) ---
+            st.markdown("**Nạp nhanh đề bài bài tập mẫu:**")
+            if templates:
+                chapters = list(templates.keys())
+                selected_chapter = st.selectbox("Chọn Chương", chapters, key="grader_select_chapter")
+                
+                sessions = list(templates[selected_chapter].keys()) if selected_chapter else []
+                selected_session = st.selectbox("Chọn Session", sessions, key="grader_select_session")
+                
+                assignments_list = list(templates[selected_chapter][selected_session].keys()) if selected_chapter and selected_session else []
+                selected_assignment = st.selectbox("Chọn Bài tập", assignments_list, key="grader_select_assignment")
+                
+                if st.button("📥 Nạp Mẫu Đã Chọn Vào Phòng Chấm", use_container_width=True, key="grader_load_template_btn"):
+                    if selected_chapter and selected_session and selected_assignment:
+                        data = templates[selected_chapter][selected_session][selected_assignment]
+                        st.session_state.assignment_val = data["assignment"]
+                        st.session_state.criteria_val = data["criteria"]
+                        st.success("✅ Đã nạp đề bài và tiêu chí thành công!")
+                        st.rerun()
+            else:
+                st.info("Chưa có dữ liệu bài tập mẫu nào.")
+            
+            st.markdown("---")
+            
             repo_url = st.text_input(
                 "🔗 URL GitHub Repository:",
                 placeholder="https://github.com/username/repository-name",
@@ -420,109 +445,83 @@ def main():
     # TAB 2: TEMPLATE & EXERCISE MANAGER
     # ══════════════════════════════════════════════════════════════════
     with tab_manager:
-        col_select, col_crud = st.columns([1, 1])
+        st.subheader("🛠️ Thêm / Sửa / Xóa Danh mục bài tập")
+        action = st.radio("Chọn thao tác bạn muốn thực hiện:", ["Thêm mới đề bài", "Chỉnh sửa đề bài", "Xóa đề bài"], horizontal=True)
         
-        with col_select:
-            st.subheader("🔍 Lựa chọn nạp mẫu nhanh")
-            st.caption("Lọc bài tập theo từng chương và chủ đề có sẵn trong danh sách:")
+        st.markdown('<div class="manager-section">', unsafe_allow_html=True)
+        if action == "Thêm mới đề bài":
+            new_chapter = st.text_input("Tên Chương *", placeholder="Ví dụ: Chương [ IT211 - K24 ] Java Web Service")
+            new_session = st.text_input("Tên Session *", placeholder="Ví dụ: Session 19: Spring Security")
+            new_title = st.text_input("Tên Bài tập *", placeholder="Ví dụ: Bài tập 1 (JWT & Security)")
+            new_assignment = st.text_area("Đề bài bài tập *", height=120)
+            new_criteria = st.text_area("Tiêu chí chấm điểm *", height=100)
             
+            if st.button("➕ Thêm bài tập mới", use_container_width=True):
+                if new_chapter and new_session and new_title and new_assignment and new_criteria:
+                    if new_chapter not in templates:
+                        templates[new_chapter] = {}
+                    if new_session not in templates[new_chapter]:
+                        templates[new_chapter][new_session] = {}
+                    
+                    templates[new_chapter][new_session][new_title] = {
+                        "assignment": new_assignment,
+                        "criteria": new_criteria
+                    }
+                    if _save_templates(templates):
+                        st.success("✅ Đã thêm mẫu bài tập thành công!")
+                        st.rerun()
+                    else:
+                        st.error("Lỗi khi lưu tệp dữ liệu.")
+                else:
+                    st.warning("Vui lòng điền đầy đủ các thông tin bắt buộc (*).")
+        
+        elif action == "Chỉnh sửa đề bài":
             if templates:
-                chapters = list(templates.keys())
-                selected_chapter = st.selectbox("Chọn Chương", chapters, key="mgr_select_chapter")
+                edit_chapter = st.selectbox("Chọn Chương muốn chỉnh sửa", list(templates.keys()), key="mgr_edit_c")
+                edit_session = st.selectbox("Chọn Session muốn chỉnh sửa", list(templates[edit_chapter].keys()) if edit_chapter else [], key="mgr_edit_s")
+                edit_title = st.selectbox("Chọn Bài tập muốn chỉnh sửa", list(templates[edit_chapter][edit_session].keys()) if edit_chapter and edit_session else [], key="mgr_edit_t")
                 
-                sessions = list(templates[selected_chapter].keys()) if selected_chapter else []
-                selected_session = st.selectbox("Chọn Session", sessions, key="mgr_select_session")
-                
-                assignments_list = list(templates[selected_chapter][selected_session].keys()) if selected_chapter and selected_session else []
-                selected_assignment = st.selectbox("Chọn Bài tập", assignments_list, key="mgr_select_assignment")
-                
-                if st.button("📥 Nạp Mẫu Đã Chọn Vào Phòng Chấm", use_container_width=True):
-                    if selected_chapter and selected_session and selected_assignment:
-                        data = templates[selected_chapter][selected_session][selected_assignment]
-                        st.session_state.assignment_val = data["assignment"]
-                        st.session_state.criteria_val = data["criteria"]
-                        st.success("✅ Đã nạp đề bài và tiêu chí vào tab '🚀 Chấm Điểm Bài Tập'!")
-            else:
-                st.info("Chưa có dữ liệu bài tập mẫu nào.")
-
-        with col_crud:
-            st.subheader("🛠️ Thêm / Sửa / Xóa Danh mục bài tập")
-            action = st.radio("Chọn thao tác bạn muốn thực hiện:", ["Thêm mới đề bài", "Chỉnh sửa đề bài", "Xóa đề bài"], horizontal=True)
-            
-            st.markdown('<div class="manager-section">', unsafe_allow_html=True)
-            if action == "Thêm mới đề bài":
-                new_chapter = st.text_input("Tên Chương *", placeholder="Ví dụ: Chương [ IT211 - K24 ] Java Web Service")
-                new_session = st.text_input("Tên Session *", placeholder="Ví dụ: Session 19: Spring Security")
-                new_title = st.text_input("Tên Bài tập *", placeholder="Ví dụ: Bài tập 1 (JWT & Security)")
-                new_assignment = st.text_area("Đề bài bài tập *", height=120)
-                new_criteria = st.text_area("Tiêu chí chấm điểm *", height=100)
-                
-                if st.button("➕ Thêm bài tập mới", use_container_width=True):
-                    if new_chapter and new_session and new_title and new_assignment and new_criteria:
-                        if new_chapter not in templates:
-                            templates[new_chapter] = {}
-                        if new_session not in templates[new_chapter]:
-                            templates[new_chapter][new_session] = {}
-                        
-                        templates[new_chapter][new_session][new_title] = {
-                            "assignment": new_assignment,
-                            "criteria": new_criteria
+                if edit_chapter and edit_session and edit_title:
+                    current_data = templates[edit_chapter][edit_session][edit_title]
+                    updated_assignment = st.text_area("Đề bài mới", value=current_data["assignment"], height=120)
+                    updated_criteria = st.text_area("Tiêu chí chấm điểm mới", value=current_data["criteria"], height=100)
+                    
+                    if st.button("💾 Lưu thay đổi", use_container_width=True):
+                        templates[edit_chapter][edit_session][edit_title] = {
+                            "assignment": updated_assignment,
+                            "criteria": updated_criteria
                         }
                         if _save_templates(templates):
-                            st.success("✅ Đã thêm mẫu bài tập thành công!")
+                            st.success("✅ Đã cập nhật mẫu bài tập thành công!")
                             st.rerun()
                         else:
                             st.error("Lỗi khi lưu tệp dữ liệu.")
-                    else:
-                        st.warning("Vui lòng điền đầy đủ các thông tin bắt buộc (*).")
-            
-            elif action == "Chỉnh sửa đề bài":
-                if templates:
-                    edit_chapter = st.selectbox("Chọn Chương muốn chỉnh sửa", list(templates.keys()), key="mgr_edit_c")
-                    edit_session = st.selectbox("Chọn Session muốn chỉnh sửa", list(templates[edit_chapter].keys()) if edit_chapter else [], key="mgr_edit_s")
-                    edit_title = st.selectbox("Chọn Bài tập muốn chỉnh sửa", list(templates[edit_chapter][edit_session].keys()) if edit_chapter and edit_session else [], key="mgr_edit_t")
-                    
-                    if edit_chapter and edit_session and edit_title:
-                        current_data = templates[edit_chapter][edit_session][edit_title]
-                        updated_assignment = st.text_area("Đề bài mới", value=current_data["assignment"], height=120)
-                        updated_criteria = st.text_area("Tiêu chí chấm điểm mới", value=current_data["criteria"], height=100)
+            else:
+                st.info("Chưa có mẫu nào để sửa.")
+                
+        elif action == "Xóa đề bài":
+            if templates:
+                del_chapter = st.selectbox("Chọn Chương muốn xóa", list(templates.keys()), key="mgr_del_c")
+                del_session = st.selectbox("Chọn Session muốn xóa", list(templates[del_chapter].keys()) if del_chapter else [], key="mgr_del_s")
+                del_title = st.selectbox("Chọn Bài tập muốn xóa", list(templates[del_chapter][del_session].keys()) if del_chapter and del_session else [], key="mgr_del_t")
+                
+                if st.button("🗑️ Xác nhận xóa bài tập này", use_container_width=True):
+                    if del_chapter and del_session and del_title:
+                        del templates[del_chapter][del_session][del_title]
+                        # Clean up empty sub-levels
+                        if not templates[del_chapter][del_session]:
+                            del templates[del_chapter][del_session]
+                        if not templates[del_chapter]:
+                            del templates[del_chapter]
                         
-                        if st.button("💾 Lưu thay đổi", use_container_width=True):
-                            templates[edit_chapter][edit_session][edit_title] = {
-                                "assignment": updated_assignment,
-                                "criteria": updated_criteria
-                            }
-                            if _save_templates(templates):
-                                st.success("✅ Đã cập nhật mẫu bài tập thành công!")
-                                st.rerun()
-                            else:
-                                st.error("Lỗi khi lưu tệp dữ liệu.")
-                else:
-                    st.info("Chưa có mẫu nào để sửa.")
-                    
-            elif action == "Xóa đề bài":
-                if templates:
-                    del_chapter = st.selectbox("Chọn Chương muốn xóa", list(templates.keys()), key="mgr_del_c")
-                    del_session = st.selectbox("Chọn Session muốn xóa", list(templates[del_chapter].keys()) if del_chapter else [], key="mgr_del_s")
-                    del_title = st.selectbox("Chọn Bài tập muốn xóa", list(templates[del_chapter][del_session].keys()) if del_chapter and del_session else [], key="mgr_del_t")
-                    
-                    if st.button("🗑️ Xác nhận xóa bài tập này", use_container_width=True):
-                        if del_chapter and del_session and del_title:
-                            del templates[del_chapter][del_session][del_title]
-                            # Clean up empty sub-levels
-                            if not templates[del_chapter][del_session]:
-                                del templates[del_chapter][del_session]
-                            if not templates[del_chapter]:
-                                del templates[del_chapter]
-                            
-                            if _save_templates(templates):
-                                st.success("✅ Đã xóa mẫu bài tập thành công!")
-                                st.rerun()
-                            else:
-                                st.error("Lỗi khi lưu tệp dữ liệu.")
-                else:
-                    st.info("Chưa có mẫu nào để xóa.")
-            st.markdown('</div>', unsafe_allow_html=True)
+                        if _save_templates(templates):
+                            st.success("✅ Đã xóa mẫu bài tập thành công!")
+                            st.rerun()
+                        else:
+                            st.error("Lỗi khi lưu tệp dữ liệu.")
+            else:
+                st.info("Chưa có mẫu nào để xóa.")
+        st.markdown('</div>', unsafe_allow_html=True)
             
         st.markdown("---")
         col_tpl_import, col_tpl_export = st.columns([1, 1])
@@ -670,6 +669,16 @@ def main():
                         uploaded_config = json.load(uploaded_config_file)
                         if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
                             st.session_state.ai_config = uploaded_config
+                            
+                            # Force sync values directly to widget keys in session state to update inputs
+                            st.session_state.settings_provider_select = uploaded_config.get("provider", "gemini")
+                            st.session_state.settings_api_key = uploaded_config.get("api_key", "")
+                            st.session_state.settings_api_base_url = uploaded_config.get("api_base_url", "")
+                            st.session_state.settings_model_name = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                            st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
+                            st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
+                            st.session_state.settings_gemini_model_select = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                            
                             st.success("✅ Đã nạp cấu hình AI thành công!")
                             st.rerun()
                         else:
