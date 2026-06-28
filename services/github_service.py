@@ -15,6 +15,11 @@ class GitHubService:
             self.headers["Authorization"] = f"token {Settings.GITHUB_TOKEN}"
 
     def _parse_url(self, repo_url: str) -> tuple[str, str]:
+        # Validate that the domain is strictly github.com
+        clean_input = repo_url.strip().lower()
+        if not ("github.com" in clean_input or clean_input.startswith("git@github.com:")):
+            raise ValueError("Chỉ chấp nhận các liên kết từ tên miền chính thức github.com")
+            
         try:
             clean_url = repo_url.strip().rstrip("/")
             if clean_url.startswith("git@github.com:"):
@@ -28,9 +33,9 @@ class GitHubService:
             if len(parts) < 2:
                 raise ValueError()
             return parts[0], parts[1]
-        except Exception:
+        except Exception as e:
             raise ValueError(
-                "Đường dẫn sai. Định dạng chuẩn: https://github.com/user/repo-name"
+                str(e) if "tên miền" in str(e) else "Đường dẫn sai. Định dạng chuẩn: https://github.com/user/repo-name"
             )
 
     def _get_default_branch(self, username: str, repo: str) -> str | None:
@@ -106,6 +111,14 @@ class GitHubService:
                     payload += "=============================================\n"
                     payload += content
                     processed_files += 1
+                    if processed_files > Settings.MAX_PROJECT_FILES:
+                        raise ValueError(
+                            f"Dự án quá lớn! Số lượng tập tin mã nguồn vượt quá giới hạn {Settings.MAX_PROJECT_FILES}."
+                        )
+                    if len(payload) > Settings.MAX_PROJECT_CHARS:
+                        raise ValueError(
+                            f"Dự án quá lớn! Dung lượng mã nguồn vượt quá giới hạn {Settings.MAX_PROJECT_CHARS} ký tự."
+                        )
                     if on_progress:
                         on_progress(
                             "file_extracted",
@@ -207,6 +220,10 @@ class GitHubService:
                 eligible.append(item)
 
             total_eligible = len(eligible)
+            if total_eligible > Settings.MAX_PROJECT_FILES:
+                raise ValueError(
+                    f"Dự án quá lớn! Số lượng tập tin mã nguồn ({total_eligible}) vượt quá giới hạn {Settings.MAX_PROJECT_FILES}."
+                )
             if total_eligible > 0:
                 _progress("download_files", current=0, total=total_eligible)
 
@@ -241,6 +258,10 @@ class GitHubService:
                         "=============================================\n"
                     )
                     code_payload += file_response.text
+                    if len(code_payload) > Settings.MAX_PROJECT_CHARS:
+                        raise ValueError(
+                            f"Dự án quá lớn! Dung lượng mã nguồn vượt quá giới hạn {Settings.MAX_PROJECT_CHARS} ký tự."
+                        )
                     processed_files += 1
                     _progress(
                         "file_downloaded",

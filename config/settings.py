@@ -61,6 +61,8 @@ class Settings:
     GRADING_MAX_SCORE = int(os.getenv("GRADING_MAX_SCORE", "100"))
     GRADING_MAX_WORDS = int(os.getenv("GRADING_MAX_WORDS", "100"))
     GRADING_LANGUAGE = os.getenv("GRADING_LANGUAGE", "Tiếng Việt")
+    MAX_PROJECT_FILES = int(os.getenv("MAX_PROJECT_FILES", "100"))
+    MAX_PROJECT_CHARS = int(os.getenv("MAX_PROJECT_CHARS", "500000"))
     GEMINI_MODELS = [
         "gemini-2.5-flash",
         "gemini-2.5-pro",
