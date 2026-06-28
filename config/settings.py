@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -60,6 +61,24 @@ class Settings:
     GRADING_MAX_SCORE = int(os.getenv("GRADING_MAX_SCORE", "100"))
     GRADING_MAX_WORDS = int(os.getenv("GRADING_MAX_WORDS", "100"))
     GRADING_LANGUAGE = os.getenv("GRADING_LANGUAGE", "Tiếng Việt")
+    GEMINI_MODELS = [
+        "gemini-2.5-flash",
+        "gemini-2.5-pro",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash",
+    ]
+    DEFAULT_CRITERIA = "1. Đáp ứng yêu cầu nghiệp vụ của đề bài. (40 điểm)\n2. Logic xử lý chính xác và xử lý ngoại lệ tốt. (30 điểm)\n3. Cấu trúc mã nguồn sạch sẽ, dễ đọc, chuẩn hóa. (30 điểm)"
+    DEFAULT_TEMPLATES = {
+        "Chương [ IT211 - K24 ] Java Web Service": {
+            "Session 19: Spring Security với Access Token và Refresh token": {
+                "Bài tập 1 (JWT & Security)": {
+                    "assignment": "Viết một ứng dụng Spring Boot tích hợp Spring Security và JWT. Yêu cầu cấu hình đầy đủ SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter, và một tác vụ @Scheduled để tự động dọn dẹp các token đã hết hạn (purging expired refresh tokens) trong cơ sở dữ liệu sau mỗi 6 giờ.",
+                    "criteria": "1. Cấu hình Spring Security chính xác, phân quyền các endpoint hợp lý. (40 điểm)\n2. Viết tác vụ dọn dẹp token hết hạn dùng @Scheduled và @EnableScheduling chạy đúng tần suất. (30 điểm)\n3. Tổ chức cấu trúc thư mục chuẩn, sử dụng các annotation Spring Boot hợp lý. (30 điểm)"
+                }
+            }
+        }
+    }
 
     @classmethod
     def validate(cls, provider=None, api_key=None, api_base_url=None):
