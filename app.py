@@ -154,20 +154,52 @@ def main():
 
     @st.dialog("➕ Thêm đề bài mới")
     def show_add_assignment_dialog(templates):
-        new_chapter = st.text_input("Tên Chương *", placeholder="Ví dụ: Chương [ IT211 - K24 ] Java Web Service")
-        new_session = st.text_input("Tên Session *", placeholder="Ví dụ: Session 19: Spring Security")
+        # 1. Chapter Selection / Input
+        chapter_options = []
+        if templates:
+            chapter_options = ["Chọn chương hiện có", "Nhập chương mới"]
+        else:
+            chapter_options = ["Nhập chương mới"]
+            
+        chapter_mode = st.radio("Tùy chọn Chương:", chapter_options, horizontal=True)
+        if chapter_mode == "Chọn chương hiện có":
+            selected_chapter = st.selectbox("Chọn Chương hiện có *", list(templates.keys()), key="modal_add_select_chapter")
+            chapter_name = selected_chapter
+        else:
+            chapter_name = st.text_input("Tên Chương mới *", placeholder="Ví dụ: Chương [ IT211 - K24 ] Java Web Service")
+
+        # 2. Session Selection / Input
+        has_existing_sessions = templates and chapter_name in templates and templates[chapter_name]
+        session_options = []
+        if has_existing_sessions:
+            session_options = ["Chọn session hiện có", "Nhập session mới"]
+        else:
+            session_options = ["Nhập session mới"]
+            
+        session_mode = st.radio("Tùy chọn Session:", session_options, horizontal=True)
+        if session_mode == "Chọn session hiện có":
+            selected_session = st.selectbox("Chọn Session hiện có *", list(templates[chapter_name].keys()), key="modal_add_select_session")
+            session_name = selected_session
+        else:
+            session_name = st.text_input("Tên Session mới *", placeholder="Ví dụ: Session 19: Spring Security")
+
+        # 3. Exercise details
         new_title = st.text_input("Tên Bài tập *", placeholder="Ví dụ: Bài tập 1 (JWT & Security)")
         new_assignment = st.text_area("Đề bài bài tập *", height=120)
         new_criteria = st.text_area("Tiêu chí chấm điểm *", height=100)
         
         if st.button("Thêm bài tập", use_container_width=True, type="primary"):
-            if new_chapter and new_session and new_title and new_assignment and new_criteria:
-                if new_chapter not in templates:
-                    templates[new_chapter] = {}
-                if new_session not in templates[new_chapter]:
-                    templates[new_chapter][new_session] = {}
+            if chapter_name and session_name and new_title and new_assignment and new_criteria:
+                c_name = chapter_name.strip()
+                s_name = session_name.strip()
+                t_title = new_title.strip()
                 
-                templates[new_chapter][new_session][new_title] = {
+                if c_name not in templates:
+                    templates[c_name] = {}
+                if s_name not in templates[c_name]:
+                    templates[c_name][s_name] = {}
+                
+                templates[c_name][s_name][t_title] = {
                     "assignment": new_assignment,
                     "criteria": new_criteria
                 }
