@@ -14,20 +14,45 @@ GEMINI_MODELS = [
     "gemini-1.5-flash",
 ]
 
-TEMPLATES_FILE = "templates.json"
+TEMPLATES_DIR = r"C:\AutoScoring\HomeworkAssignment"
+TEMPLATES_FILE = os.path.join(TEMPLATES_DIR, "templates.json")
 
 
 def _load_templates():
+    if not os.path.exists(TEMPLATES_DIR):
+        try:
+            os.makedirs(TEMPLATES_DIR, exist_ok=True)
+        except Exception:
+            pass
+
     if os.path.exists(TEMPLATES_FILE):
         try:
             with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
-    return {}
+
+    # Default initial templates if file does not exist
+    default_data = {
+        "Chương [ IT211 - K24 ] Java Web Service": {
+            "Session 19: Spring Security với Access Token và Refresh token": {
+                "Bài tập 1 (JWT & Security)": {
+                    "assignment": "Viết một ứng dụng Spring Boot tích hợp Spring Security và JWT. Yêu cầu cấu hình đầy đủ SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter, và một tác vụ @Scheduled để tự động dọn dẹp các token đã hết hạn (purging expired refresh tokens) trong cơ sở dữ liệu sau mỗi 6 giờ.",
+                    "criteria": "1. Cấu hình Spring Security chính xác, phân quyền các endpoint hợp lý. (40 điểm)\n2. Viết tác vụ dọn dẹp token hết hạn dùng @Scheduled và @EnableScheduling chạy đúng tần suất. (30 điểm)\n3. Tổ chức cấu trúc thư mục chuẩn, sử dụng các annotation Spring Boot hợp lý. (30 điểm)"
+                }
+            }
+        }
+    }
+    _save_templates(default_data)
+    return default_data
 
 
 def _save_templates(templates):
+    if not os.path.exists(TEMPLATES_DIR):
+        try:
+            os.makedirs(TEMPLATES_DIR, exist_ok=True)
+        except Exception:
+            return False
     try:
         with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
             json.dump(templates, f, ensure_ascii=False, indent=2)
