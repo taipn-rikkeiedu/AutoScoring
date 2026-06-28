@@ -11,6 +11,12 @@ from services.storage_service import (
     provider_display_name,
 )
 from utils.helpers import parse_score
+from services.cache_service import (
+    get_cached_report,
+    save_cached_report,
+    get_cache_stats,
+    clear_cache,
+)
 from components.modals import (
     show_template_loader_dialog,
     show_add_assignment_dialog,
@@ -22,7 +28,7 @@ from components.modals import (
 
 def main():
     st.set_page_config(
-        page_title="AI GitHub Grader v1.0", page_icon="🤖", layout="wide"
+        page_title="AI GitHub Grader v2.0", page_icon="🤖", layout="wide"
     )
 
     def apply_uploaded_config():
@@ -332,7 +338,11 @@ def main():
                                 elif step == "try_archive":
                                     branch = details["branch"]
                                     log.write(
-                                        f"📦 Chuyển sang tải ZIP archive (nhánh `{branch}`)..."
+                                        f"📦 Tải ZIP archive (nhánh `{branch}`)..."
+                                    )
+                                elif step == "fallback_start":
+                                    log.write(
+                                        "⚠️ Archive không khả dụng — chuyển sang tải từng file..."
                                     )
                                 elif step == "file_extracted":
                                     current = details.get("current", 0)
@@ -365,56 +375,95 @@ def main():
 
                     if extracted_payload:
                         # ── PHASE 2: AI Grading ──────────────────────────
-                        ai_config = get_ai_config()
-                        display_name = provider_display_name(ai_config)
+                        # Check cache first
+                        cached_report = get_cached_report(
+                            assignment_val,
+                            criteria_val,
+                            extracted_payload["content"],
+                        )
 
-                        with st.status(
-                            f"🤖 Trợ giảng AI đang đánh giá ({display_name})...",
-                            expanded=True,
-                        ) as ai_status:
-                            try:
-                                ai_engine = AIService(config=ai_config)
-
-                                st.write(
-                                    f"🧠 Đang gửi **{extracted_payload['total_files']}** "
-                                    f"tập tin tới **{display_name}** để chấm điểm..."
+                        if cached_report:
+                            # Cache HIT → display instantly
+                            st.success(
+                                "⚡ **Cache HIT** — Kết quả được lấy từ bộ nhớ đệm "
+                                "(cùng đề bài, tiêu chí và mã nguồn đã chấm trước đó)."
+                            )
+                            st.markdown(cached_report)
+                            score = parse_score(cached_report)
+                            if score:
+                                st.markdown("### 🏆 Kết quả điểm số")
+                                st.metric(
+                                    label="Tổng điểm đánh giá",
+                                    value=f"{score} / 100",
                                 )
-                                st.write("⏳ Đang chờ phản hồi từ AI (có thể mất vài phút)...")
+                                st.markdown("---")
+                        else:
+                            # Cache MISS → call AI
+                            ai_config = get_ai_config()
+                            display_name = provider_display_name(ai_config)
 
-                                # Use streaming to show real-time output
-                                report_placeholder = st.empty()
-                                full_report = ""
+                            with st.status(
+                                f"🤖 Trợ giảng AI đang đánh giá ({display_name})...",
+                                expanded=True,
+                            ) as ai_status:
+                                try:
+                                    ai_engine = AIService(config=ai_config)
 
-                                for chunk in ai_engine.generate_grading_report_stream(
-                                    assignment_val,
-                                    criteria_val,
-                                    extracted_payload["content"],
-                                ):
-                                    full_report += chunk
-                                    report_placeholder.markdown(full_report + "▌")
+                                    st.write(
+                                        f"🧠 Đang gửi **{extracted_payload['total_files']}** "
+                                        f"tập tin tới **{display_name}** để chấm điểm..."
+                                    )
+                                    st.write(
+                                        "⏳ Đang chờ phản hồi từ AI (có thể mất vài phút)..."
+                                    )
 
-                                # Final render cleanup (remove cursor)
-                                report_placeholder.markdown(full_report)
-                                
-                                # Try to parse the score and display as a metric above the report
-                                score = parse_score(full_report)
-                                if score:
-                                    st.markdown("### 🏆 Kết quả điểm số")
-                                    st.metric(label="Tổng điểm đánh giá", value=f"{score} / 100")
-                                    st.markdown("---")
+                                    # Use streaming to show real-time output
+                                    report_placeholder = st.empty()
+                                    full_report = ""
 
-                                ai_status.update(
-                                    label="✅ AI đã hoàn tất đánh giá",
-                                    state="complete",
-                                    expanded=False,
-                                )
-                            except Exception as e:
-                                ai_status.update(
-                                    label="❌ Lỗi khi chấm điểm bằng AI",
-                                    state="error",
-                                    expanded=True,
-                                )
-                                st.error(f"Lỗi AI: {str(e)}")
+                                    for chunk in ai_engine.generate_grading_report_stream(
+                                        assignment_val,
+                                        criteria_val,
+                                        extracted_payload["content"],
+                                    ):
+                                        full_report += chunk
+                                        report_placeholder.markdown(
+                                            full_report + "▌"
+                                        )
+
+                                    # Final render cleanup (remove cursor)
+                                    report_placeholder.markdown(full_report)
+
+                                    # Save to cache for future lookups
+                                    save_cached_report(
+                                        assignment_val,
+                                        criteria_val,
+                                        extracted_payload["content"],
+                                        full_report,
+                                    )
+
+                                    # Try to parse the score and display as a metric
+                                    score = parse_score(full_report)
+                                    if score:
+                                        st.markdown("### 🏆 Kết quả điểm số")
+                                        st.metric(
+                                            label="Tổng điểm đánh giá",
+                                            value=f"{score} / 100",
+                                        )
+                                        st.markdown("---")
+
+                                    ai_status.update(
+                                        label="✅ AI đã hoàn tất đánh giá",
+                                        state="complete",
+                                        expanded=False,
+                                    )
+                                except Exception as e:
+                                    ai_status.update(
+                                        label="❌ Lỗi khi chấm điểm bằng AI",
+                                        state="error",
+                                        expanded=True,
+                                    )
+                                    st.error(f"Lỗi AI: {str(e)}")
 
     # ══════════════════════════════════════════════════════════════════
     # TAB 2: TEMPLATE & EXERCISE MANAGER
@@ -583,6 +632,28 @@ def main():
                 mime="application/json",
                 use_container_width=True
             )
+
+        # ── Cache Management Section ─────────────────────────────────
+        st.markdown("---")
+        st.subheader("🗄️ Bộ nhớ đệm kết quả chấm (Response Cache)")
+        st.caption(
+            "Khi bật, kết quả chấm sẽ được lưu lại. Nếu chấm lại cùng đề bài, "
+            "tiêu chí và mã nguồn, hệ thống sẽ trả kết quả ngay lập tức mà không gọi AI."
+        )
+        cache_stats = get_cache_stats()
+        col_cache_info, col_cache_action = st.columns([2, 1])
+        with col_cache_info:
+            st.info(
+                f"📊 Số lượng kết quả đã cache: **{cache_stats['total_entries']}** | "
+                f"TTL: **{Settings.GRADING_CACHE_TTL_MINUTES} phút**"
+            )
+        with col_cache_action:
+            if cache_stats["total_entries"] > 0:
+                if st.button("🗑️ Xóa toàn bộ cache", use_container_width=True):
+                    clear_cache()
+                    st.success("✅ Đã xóa toàn bộ cache!")
+                    st.rerun()
+
 
 
 if __name__ == "__main__":

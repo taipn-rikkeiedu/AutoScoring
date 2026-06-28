@@ -153,6 +153,10 @@ class GitHubService:
     def get_repo_contents(self, repo_url: str, on_progress=None) -> dict:
         """Fetch repository source code with optional progress callback.
 
+        The optimised flow tries to download the entire repository as a
+        single ZIP archive first (1 HTTP request) and only falls back to
+        the per-file approach when the archive is unavailable.
+
         Args:
             repo_url: GitHub repository URL.
             on_progress: Optional callback ``fn(step, **details)`` called at
@@ -160,12 +164,12 @@ class GitHubService:
                 Supported step names:
                   - ``"parse_url"``: URL parsed → ``username``, ``repo``
                   - ``"detect_branch"``: querying default branch → ``branch`` or None
-                  - ``"try_tree_api"``: trying Git Trees API → ``branch``, ``success``
-                  - ``"try_contents_api"``: trying Contents API → ``branch``, ``success``
-                  - ``"download_files"``: downloading individual files → ``current``, ``total``
-                  - ``"file_downloaded"``: single file fetched → ``file_path``, ``current``
-                  - ``"try_archive"``: falling back to ZIP archive → ``branch``
+                  - ``"try_archive"``: trying ZIP archive download → ``branch``
                   - ``"file_extracted"``: file extracted from ZIP → ``file_path``, ``current``
+                  - ``"try_tree_api"``: (fallback) trying Git Trees API → ``branch``, ``success``
+                  - ``"try_contents_api"``: (fallback) trying Contents API → ``branch``, ``success``
+                  - ``"download_files"``: (fallback) downloading individual files → ``current``, ``total``
+                  - ``"file_downloaded"``: (fallback) single file fetched → ``file_path``, ``current``
                   - ``"done"``: finished → ``total_files``
         """
         _progress = on_progress or (lambda step, **kw: None)
@@ -195,7 +199,24 @@ class GitHubService:
                 branches_to_try.append(branch)
                 seen_branches.add(branch)
 
-        # --- Step 3: Try Git Tree API ---
+        # --- Step 3: Try ZIP archive download FIRST (fastest path) ---
+        code_payload = ""
+        processed_files = 0
+
+        for branch in branches_to_try:
+            _progress("try_archive", branch=branch)
+            archive_payload = self._download_archive(
+                username, repo, branch, on_progress=on_progress
+            )
+            if archive_payload:
+                code_payload = archive_payload
+                processed_files = code_payload.count("FILE PATH: ")
+                _progress("done", total_files=processed_files)
+                return {"total_files": processed_files, "content": code_payload}
+
+        # --- Step 4 (FALLBACK): Tree API + individual file download ---
+        _progress("fallback_start")
+
         tree_data = None
         detected_branch = None
         for branch in branches_to_try:
@@ -207,7 +228,6 @@ class GitHubService:
                 break
             _progress("try_tree_api", branch=branch, success=False)
 
-        # --- Step 4: Fallback to Contents API ---
         if not tree_data:
             for branch in branches_to_try:
                 _progress("try_contents_api", branch=branch)
@@ -218,12 +238,7 @@ class GitHubService:
                     break
                 _progress("try_contents_api", branch=branch, success=False)
 
-        # --- Step 5: Download individual files ---
-        code_payload = ""
-        processed_files = 0
-
         if isinstance(tree_data, list):
-            # Count eligible files for progress tracking
             eligible = []
             for item in tree_data:
                 if not isinstance(item, dict):
@@ -291,21 +306,6 @@ class GitHubService:
                         current=processed_files,
                         total=total_eligible,
                     )
-
-        # --- Step 6: Fallback to ZIP archive ---
-        if processed_files == 0:
-            archive_branches = [detected_branch] if detected_branch else candidate_branches
-            for branch in archive_branches:
-                if not branch:
-                    continue
-                _progress("try_archive", branch=branch)
-                archive_payload = self._download_archive(
-                    username, repo, branch, on_progress=on_progress
-                )
-                if archive_payload:
-                    code_payload = archive_payload
-                    processed_files = code_payload.count("FILE PATH: ")
-                    break
 
         if processed_files == 0:
             raise RuntimeError(

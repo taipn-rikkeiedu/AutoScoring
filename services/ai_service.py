@@ -96,8 +96,7 @@ class AIService:
         elif self.provider == "custom":
             yield from self._stream_custom_api(structured_prompt)
         else:
-            # Gemini REST API – no native streaming, yield full response
-            yield self._generate_with_gemini(structured_prompt)
+            yield from self._stream_gemini(structured_prompt)
 
     # ------------------------------------------------------------------
     # Local model (Ollama)
@@ -213,6 +212,49 @@ class AIService:
                 response.raise_for_status()
         data = response.json()
         return self._extract_text_from_payload(data)
+
+    def _stream_gemini(self, prompt: str):
+        """Stream tokens from Gemini's streamGenerateContent SSE endpoint."""
+        if not self.api_key:
+            raise ValueError("Thiếu API key cho Gemini")
+
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model_name}:streamGenerateContent?alt=sse&key={self.api_key}"
+        )
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2},
+        }
+        try:
+            response = requests.post(url, json=payload, timeout=300, stream=True)
+            if response.status_code != 200:
+                # Fallback to non-streaming if SSE endpoint fails
+                yield self._generate_with_gemini(prompt)
+                return
+
+            for line in response.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                if line.startswith("data: "):
+                    line = line[len("data: "):]
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    chunk = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                candidates = chunk.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    for part in parts:
+                        text = part.get("text", "")
+                        if text:
+                            yield text
+        except requests.exceptions.RequestException:
+            # Network error — fallback to non-streaming
+            yield self._generate_with_gemini(prompt)
 
     # ------------------------------------------------------------------
     # Response parsing helpers

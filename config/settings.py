@@ -1,30 +1,46 @@
 import os
 import json
+import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
+def _get_secret(key: str, default: str = "") -> str:
+    """Read a config value from Streamlit Cloud secrets first, then .env fallback.
+
+    - Streamlit Cloud: reads from st.secrets (set via dashboard)
+    - Local: reads from os.getenv (set via .env file)
+    """
+    try:
+        value = st.secrets[key]
+        if isinstance(value, str):
+            return value
+        return str(value)
+    except (KeyError, FileNotFoundError, AttributeError):
+        return os.getenv(key, default)
+
+
 def _get_bool_env(name: str, default: bool = False) -> bool:
-    value = os.getenv(name, "").strip().lower()
+    value = _get_secret(name, "").strip().lower()
     if value in {"1", "true", "yes", "on"}:
         return True
-    if value in {"0", "false", "no", "off", ""}:
+    if value in {"0", "false", "no", "off"}:
         return False
     return default
 
 
 class Settings:
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-    DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gemini-1.5-pro")
-    AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").strip().lower()
+    GEMINI_API_KEY = _get_secret("GEMINI_API_KEY", "")
+    GITHUB_TOKEN = _get_secret("GITHUB_TOKEN", "")
+    DEFAULT_MODEL = _get_secret("DEFAULT_MODEL", "gemini-1.5-pro")
+    AI_PROVIDER = _get_secret("AI_PROVIDER", "gemini").strip().lower()
     USE_LOCAL_MODEL = _get_bool_env("USE_LOCAL_MODEL", False)
-    LOCAL_MODEL_NAME = os.getenv("LOCAL_MODEL_NAME", "deepseek-r1:7b")
-    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-    CUSTOM_API_KEY = os.getenv("CUSTOM_API_KEY", "")
-    CUSTOM_API_BASE_URL = os.getenv("CUSTOM_API_BASE_URL", "").rstrip("/")
-    CUSTOM_MODEL_NAME = os.getenv("CUSTOM_MODEL_NAME", "")
+    LOCAL_MODEL_NAME = _get_secret("LOCAL_MODEL_NAME", "deepseek-r1:7b")
+    OLLAMA_BASE_URL = _get_secret("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    CUSTOM_API_KEY = _get_secret("CUSTOM_API_KEY", "")
+    CUSTOM_API_BASE_URL = _get_secret("CUSTOM_API_BASE_URL", "").rstrip("/")
+    CUSTOM_MODEL_NAME = _get_secret("CUSTOM_MODEL_NAME", "")
     ALLOWED_EXTENSIONS = (
         ".py",
         ".java",
@@ -59,11 +75,13 @@ class Settings:
         ".idea/",
         ".vscode/",
     )
-    GRADING_MAX_SCORE = int(os.getenv("GRADING_MAX_SCORE", "100"))
-    GRADING_MAX_WORDS = int(os.getenv("GRADING_MAX_WORDS", "100"))
-    GRADING_LANGUAGE = os.getenv("GRADING_LANGUAGE", "Tiếng Việt")
-    MAX_PROJECT_FILES = int(os.getenv("MAX_PROJECT_FILES", "100"))
-    MAX_PROJECT_CHARS = int(os.getenv("MAX_PROJECT_CHARS", "500000"))
+    GRADING_MAX_SCORE = int(_get_secret("GRADING_MAX_SCORE", "100"))
+    GRADING_MAX_WORDS = int(_get_secret("GRADING_MAX_WORDS", "100"))
+    GRADING_LANGUAGE = _get_secret("GRADING_LANGUAGE", "Tiếng Việt")
+    MAX_PROJECT_FILES = int(_get_secret("MAX_PROJECT_FILES", "100"))
+    MAX_PROJECT_CHARS = int(_get_secret("MAX_PROJECT_CHARS", "500000"))
+    GRADING_CACHE_ENABLED = _get_bool_env("GRADING_CACHE_ENABLED", True)
+    GRADING_CACHE_TTL_MINUTES = int(_get_secret("GRADING_CACHE_TTL_MINUTES", "120"))
     GEMINI_MODELS = [
         "gemini-3.5-flash",
         "gemini-3.5-pro",
