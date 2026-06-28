@@ -262,29 +262,27 @@ def main():
         with col_config:
             st.subheader("📋 Thiết lập phòng chấm")
             
-            # --- Quick template selector (moved from Tab 2) ---
-            st.markdown("**Nạp nhanh đề bài bài tập mẫu:**")
+            # --- Quick template selector inside an expander for a clean, space-saving UI ---
             if templates:
-                chapters = list(templates.keys())
-                selected_chapter = st.selectbox("Chọn Chương", chapters, key="grader_select_chapter")
-                
-                sessions = list(templates[selected_chapter].keys()) if selected_chapter else []
-                selected_session = st.selectbox("Chọn Session", sessions, key="grader_select_session")
-                
-                assignments_list = list(templates[selected_chapter][selected_session].keys()) if selected_chapter and selected_session else []
-                selected_assignment = st.selectbox("Chọn Bài tập", assignments_list, key="grader_select_assignment")
-                
-                if st.button("📥 Nạp Mẫu Đã Chọn Vào Phòng Chấm", use_container_width=True, key="grader_load_template_btn"):
-                    if selected_chapter and selected_session and selected_assignment:
-                        data = templates[selected_chapter][selected_session][selected_assignment]
-                        st.session_state.assignment_val = data["assignment"]
-                        st.session_state.criteria_val = data["criteria"]
-                        st.success("✅ Đã nạp đề bài và tiêu chí thành công!")
-                        st.rerun()
+                with st.expander("📚 Nạp đề bài & tiêu chí nhanh từ thư viện mẫu", expanded=False):
+                    chapters = list(templates.keys())
+                    selected_chapter = st.selectbox("Chọn Chương", chapters, key="grader_select_chapter")
+                    
+                    sessions = list(templates[selected_chapter].keys()) if selected_chapter else []
+                    selected_session = st.selectbox("Chọn Session", sessions, key="grader_select_session")
+                    
+                    assignments_list = list(templates[selected_chapter][selected_session].keys()) if selected_chapter and selected_session else []
+                    selected_assignment = st.selectbox("Chọn Bài tập", assignments_list, key="grader_select_assignment")
+                    
+                    if st.button("📥 Nạp Mẫu Đã Chọn Vào Phòng Chấm", use_container_width=True, key="grader_load_template_btn"):
+                        if selected_chapter and selected_session and selected_assignment:
+                            data = templates[selected_chapter][selected_session][selected_assignment]
+                            st.session_state.assignment_val = data["assignment"]
+                            st.session_state.criteria_val = data["criteria"]
+                            st.success("✅ Đã nạp đề bài và tiêu chí thành công!")
+                            st.rerun()
             else:
                 st.info("Chưa có dữ liệu bài tập mẫu nào.")
-            
-            st.markdown("---")
             
             repo_url = st.text_input(
                 "🔗 URL GitHub Repository:",
@@ -294,13 +292,13 @@ def main():
             assignment_input = st.text_area(
                 "📝 Đề bài bài tập:",
                 key="assignment_val",
-                height=180,
+                height=100,
                 placeholder="Mô tả các yêu cầu, đề bài giao cho học sinh..."
             )
             criteria_input = st.text_area(
                 "🎯 Tiêu chí chấm điểm (Tổng 100):",
                 key="criteria_val",
-                height=180,
+                height=100,
                 placeholder="Các tiêu chí chấm điểm và điểm số thành phần tương ứng..."
             )
             execute_trigger = st.button(
