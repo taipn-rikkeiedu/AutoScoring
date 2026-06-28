@@ -108,6 +108,26 @@ class GitHubServiceTest(unittest.TestCase):
         self.assertIn("detect_branch", progress_steps)
         self.assertIn("done", progress_steps)
 
+    def test_parse_docx_bytes(self):
+        service = GitHubService()
+        
+        buffer = io.BytesIO()
+        xml_content = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            '<w:body>'
+            '<w:p><w:r><w:t>Hello from docx parser!</w:t></w:r></w:p>'
+            '<w:p><w:r><w:t>Second paragraph.</w:t></w:r></w:p>'
+            '</w:body>'
+            '</w:document>'
+        )
+        with zipfile.ZipFile(buffer, "w") as zf:
+            zf.writestr("word/document.xml", xml_content)
+        docx_bytes = buffer.getvalue()
+        
+        parsed_text = service._parse_docx_bytes(docx_bytes)
+        self.assertEqual(parsed_text, "Hello from docx parser!\nSecond paragraph.")
+
 
 if __name__ == "__main__":
     unittest.main()

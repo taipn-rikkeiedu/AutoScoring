@@ -1,6 +1,7 @@
 import io
 import zipfile
 import requests
+import xml.etree.ElementTree as ET
 from urllib.parse import quote
 from config.settings import Settings
 
@@ -37,6 +38,21 @@ class GitHubService:
             raise ValueError(
                 str(e) if "tên miền" in str(e) else "Đường dẫn sai. Định dạng chuẩn: https://github.com/user/repo-name"
             )
+
+    def _parse_docx_bytes(self, content_bytes: bytes) -> str:
+        try:
+            with zipfile.ZipFile(io.BytesIO(content_bytes)) as docx:
+                xml_content = docx.read("word/document.xml")
+                root = ET.fromstring(xml_content)
+                ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+                paragraphs = []
+                for p in root.findall(".//w:p", ns):
+                    text_parts = [t.text for t in p.findall(".//w:t", ns) if t.text]
+                    if text_parts:
+                        paragraphs.append("".join(text_parts))
+                return "\n".join(paragraphs)
+        except Exception as e:
+            return f"\n[Lỗi đọc file docx: {str(e)}]\n"
 
     def _get_default_branch(self, username: str, repo: str) -> str | None:
         api_url = f"https://api.github.com/repos/{username}/{repo}"
@@ -101,7 +117,10 @@ class GitHubService:
                     if name.endswith("/"):
                         continue
                     try:
-                        content = archive.read(name).decode("utf-8")
+                        if name.endswith(".docx"):
+                            content = self._parse_docx_bytes(archive.read(name))
+                        else:
+                            content = archive.read(name).decode("utf-8")
                     except UnicodeDecodeError:
                         continue
                     # Strip top-level prefix for a clean path
@@ -257,7 +276,10 @@ class GitHubService:
                     code_payload += (
                         "=============================================\n"
                     )
-                    code_payload += file_response.text
+                    if item_path.endswith(".docx"):
+                        code_payload += self._parse_docx_bytes(file_response.content)
+                    else:
+                        code_payload += file_response.text
                     if len(code_payload) > Settings.MAX_PROJECT_CHARS:
                         raise ValueError(
                             f"Dự án quá lớn! Dung lượng mã nguồn vượt quá giới hạn {Settings.MAX_PROJECT_CHARS} ký tự."

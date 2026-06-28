@@ -45,6 +45,7 @@ class Settings:
         ".yaml",
         ".json",
         ".md",
+        ".docx",
     )
     EXCLUDED_DIRS = (
         "node_modules/",
