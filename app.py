@@ -1,9 +1,41 @@
 import re
 import json
+import requests
 import streamlit as st
 from config.settings import Settings
 from services.github_service import GitHubService
 from services.ai_service import AIService
+
+
+def _exchange_code_for_token(code: str) -> dict | None:
+    token_url = "https://oauth2.googleapis.com/token"
+    payload = {
+        "code": code,
+        "client_id": Settings.GOOGLE_CLIENT_ID,
+        "client_secret": Settings.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": Settings.GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code"
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    try:
+        response = requests.post(token_url, data=payload, headers=headers, timeout=15)
+        if response.status_code == 200:
+            return response.json()
+    except Exception:
+        pass
+    return None
+
+
+def _get_user_info(access_token: str) -> dict | None:
+    userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    try:
+        response = requests.get(userinfo_url, headers=headers, timeout=15)
+        if response.status_code == 200:
+            return response.json()
+    except Exception:
+        pass
+    return None
 
 
 def _load_templates():
@@ -62,6 +94,87 @@ def main():
     st.set_page_config(
         page_title="AI GitHub Grader v1.0", page_icon="🤖", layout="wide"
     )
+
+    # Initialize authentication state
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if "user_info" not in st.session_state:
+        st.session_state.user_info = None
+
+    # Handle Google Login if Client ID is configured
+    if Settings.GOOGLE_CLIENT_ID:
+        # Check query parameters for auth code
+        query_code = st.query_params.get("code")
+        if query_code and not st.session_state.authenticated:
+            with st.spinner("🔑 Đang đăng nhập bằng tài khoản Google..."):
+                tokens = _exchange_code_for_token(query_code)
+                if tokens and "access_token" in tokens:
+                    user_info = _get_user_info(tokens["access_token"])
+                    if user_info:
+                        st.session_state.authenticated = True
+                        st.session_state.user_info = user_info
+                        # Clear parameters to clean up URL
+                        st.query_params.clear()
+                        st.rerun()
+                st.error("❌ Đăng nhập thất bại. Vui lòng thử lại.")
+
+        if not st.session_state.authenticated:
+            # Render a beautiful premium login page
+            st.markdown(
+                """
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap');
+                body {
+                    font-family: 'Be Vietnam Pro', sans-serif !important;
+                }
+                .login-card {
+                    max-width: 450px;
+                    margin: 80px auto;
+                    padding: 40px;
+                    background-color: white;
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                    text-align: center;
+                }
+                .login-title {
+                    color: #1e3a8a;
+                    font-weight: 700;
+                    font-size: 1.8rem;
+                    margin-bottom: 10px;
+                }
+                .login-subtitle {
+                    color: #64748b;
+                    font-size: 0.95rem;
+                    margin-bottom: 30px;
+                }
+                </style>
+                <div class="login-card">
+                    <div class="login-title">🤖 AI GitHub Grader</div>
+                    <div class="login-subtitle">Hệ thống chấm bài tập lập trình tự động bằng AI. Vui lòng đăng nhập để sử dụng.</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            login_url = (
+                "https://accounts.google.com/o/oauth2/v2/auth"
+                f"?client_id={Settings.GOOGLE_CLIENT_ID}"
+                f"&redirect_uri={Settings.GOOGLE_REDIRECT_URI}"
+                "&response_type=code"
+                "&scope=openid%20email%20profile"
+            )
+            col_l, col_btn, col_r = st.columns([1, 2, 1])
+            with col_btn:
+                st.markdown(
+                    f'<a href="{login_url}" target="_self" style="text-decoration: none;">'
+                    '<div style="background-color: white; color: #1f2937; border: 1px solid #d1d5db; padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px 0 rgba(0,0,0,0.06); transition: all 0.2s;">'
+                    '<img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" style="width: 20px; height: 20px; margin-right: 12px;"/>'
+                    'Đăng nhập với Google'
+                    '</div>'
+                    '</a>',
+                    unsafe_allow_html=True
+                )
+            return
 
     # Initialize input values in session state if not present
     if "assignment_val" not in st.session_state:
@@ -200,6 +313,20 @@ def main():
 
     # ── Sidebar: Keep clean with only AI Connection status ───────────
     with st.sidebar:
+        # Display Google user profile info if logged in
+        if st.session_state.user_info:
+            user = st.session_state.user_info
+            st.markdown('<div class="sidebar-section">👤 TÀI KHOẢN</div>', unsafe_allow_html=True)
+            if user.get("picture"):
+                st.image(user["picture"], width=70)
+            st.write(f"Chào, **{user.get('name', 'User')}**!")
+            st.caption(user.get("email", ""))
+            if st.button("🚪 Đăng xuất", use_container_width=True):
+                st.session_state.authenticated = False
+                st.session_state.user_info = None
+                st.rerun()
+            st.markdown("---")
+
         st.markdown('<div class="sidebar-section">🔌 TRẠNG THÁI AI KẾT NỐI</div>', unsafe_allow_html=True)
         active_config = _get_ai_config()
         st.info(f"Đang kích hoạt:\n\n**{_provider_display_name(active_config)}**")

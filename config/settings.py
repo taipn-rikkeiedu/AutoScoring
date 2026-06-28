@@ -25,6 +25,9 @@ class Settings:
     CUSTOM_API_KEY = os.getenv("CUSTOM_API_KEY", "")
     CUSTOM_API_BASE_URL = os.getenv("CUSTOM_API_BASE_URL", "").rstrip("/")
     CUSTOM_MODEL_NAME = os.getenv("CUSTOM_MODEL_NAME", "")
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
     ALLOWED_EXTENSIONS = (
         ".py",
         ".java",
