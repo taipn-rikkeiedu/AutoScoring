@@ -64,6 +64,10 @@ class Settings:
     MAX_PROJECT_FILES = int(os.getenv("MAX_PROJECT_FILES", "100"))
     MAX_PROJECT_CHARS = int(os.getenv("MAX_PROJECT_CHARS", "500000"))
     GEMINI_MODELS = [
+        "gemini-3.5-flash",
+        "gemini-3.5-pro",
+        "gemini-3.0-flash",
+        "gemini-3.0-pro",
         "gemini-2.5-flash",
         "gemini-2.5-pro",
         "gemini-2.0-flash",
