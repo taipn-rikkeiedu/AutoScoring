@@ -67,8 +67,13 @@ class Settings:
         "gemini-2.5-flash",
         "gemini-2.5-pro",
         "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-preview-02-05",
+        "gemini-2.0-pro-exp-02-05",
         "gemini-1.5-pro",
         "gemini-1.5-flash",
+        "gemini-1.5-flash-8b",
+        "gemini-1.5-pro-latest",
+        "gemini-1.5-flash-latest",
     ]
     DEFAULT_CRITERIA = "1. Đáp ứng yêu cầu nghiệp vụ của đề bài. (40 điểm)\n2. Logic xử lý chính xác và xử lý ngoại lệ tốt. (30 điểm)\n3. Cấu trúc mã nguồn sạch sẽ, dễ đọc, chuẩn hóa. (30 điểm)"
     DEFAULT_TEMPLATES = {
