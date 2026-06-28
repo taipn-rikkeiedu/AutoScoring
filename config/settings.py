@@ -17,7 +17,7 @@ def _get_secret(key: str, default: str = "") -> str:
         if isinstance(value, str):
             return value
         return str(value)
-    except (KeyError, FileNotFoundError, AttributeError):
+    except Exception:
         return os.getenv(key, default)
 
 
