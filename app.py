@@ -523,6 +523,43 @@ def main():
                 else:
                     st.info("Chưa có mẫu nào để xóa.")
             st.markdown('</div>', unsafe_allow_html=True)
+            
+        st.markdown("---")
+        col_tpl_import, col_tpl_export = st.columns([1, 1])
+        with col_tpl_import:
+            st.subheader("📥 Nhập danh sách bài tập mới")
+            st.caption("Nạp danh sách bài tập từ tệp templates.json của bạn:")
+            uploaded_templates_file = st.file_uploader(
+                "Chọn tệp templates.json", 
+                type=["json"], 
+                key="tab2_templates_uploader"
+            )
+            if st.button("🔌 Áp dụng danh sách bài tập vừa tải lên", use_container_width=True):
+                if uploaded_templates_file is not None:
+                    try:
+                        uploaded_templates = json.load(uploaded_templates_file)
+                        if isinstance(uploaded_templates, dict):
+                            _save_templates(uploaded_templates)
+                            st.success("✅ Đã nạp danh sách bài tập thành công!")
+                            st.rerun()
+                        else:
+                            st.error("Cấu trúc file templates.json không hợp lệ.")
+                    except Exception as e:
+                        st.error(f"Lỗi đọc file: {str(e)}")
+                else:
+                    st.warning("Vui lòng chọn tệp tin templates.json trước khi bấm nút áp dụng.")
+        
+        with col_tpl_export:
+            st.subheader("📤 Sao lưu danh sách bài tập")
+            st.caption("Tải về toàn bộ danh sách mẫu bài tập hiện tại để lưu trữ:")
+            templates_data = json.dumps(templates, ensure_ascii=False, indent=2)
+            st.download_button(
+                label="📥 Tải xuống templates.json",
+                data=templates_data,
+                file_name="templates.json",
+                mime="application/json",
+                use_container_width=True
+            )
 
     # ══════════════════════════════════════════════════════════════════
     # TAB 3: AI SYSTEM SETTINGS
@@ -615,59 +652,35 @@ def main():
                     st.error(f"Cấu hình không hợp lệ: {str(ve)}")
 
         with col_files:
-            st.subheader("📁 Sao lưu & Đồng bộ tệp cấu hình")
+            st.subheader("📁 Nhập / Xuất cấu hình AI (config.json)")
             st.caption(
-                "Tải lên cấu hình sẵn có hoặc sao lưu cấu hình từ hệ thống của bạn:"
+                "Cấu hình nhanh API key bằng cách tải lên tệp config.json có sẵn:"
             )
             
-            st.markdown("**1. Tải lên từ máy tính (Nạp tệp cấu hình):**")
-            
+            st.markdown("**1. Tải lên từ máy tính (Nạp cấu hình):**")
             uploaded_config_file = st.file_uploader(
-                "Nạp tệp cấu hình AI (config.json)", 
+                "Chọn tệp config.json", 
                 type=["json"], 
                 key="settings_config_uploader"
             )
-            if uploaded_config_file is not None:
-                try:
-                    uploaded_config = json.load(uploaded_config_file)
-                    if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
-                        st.session_state.ai_config = uploaded_config
-                        st.success("✅ Đã nạp cấu hình AI thành công!")
-                        st.rerun()
-                    else:
-                        st.error("Cấu trúc file config.json không hợp lệ.")
-                except Exception as e:
-                    st.error(f"Lỗi đọc file: {str(e)}")
-                    
-            uploaded_templates_file = st.file_uploader(
-                "Nạp tệp danh sách bài tập (templates.json)", 
-                type=["json"], 
-                key="settings_templates_uploader"
-            )
-            if uploaded_templates_file is not None:
-                try:
-                    uploaded_templates = json.load(uploaded_templates_file)
-                    if isinstance(uploaded_templates, dict):
-                        _save_templates(uploaded_templates)
-                        st.success("✅ Đã nạp danh sách bài tập thành công!")
-                        st.rerun()
-                    else:
-                        st.error("Cấu trúc file templates.json không hợp lệ.")
-                except Exception as e:
-                    st.error(f"Lỗi đọc file: {str(e)}")
+            
+            if st.button("🔌 Áp dụng cấu hình AI vừa tải lên", use_container_width=True):
+                if uploaded_config_file is not None:
+                    try:
+                        uploaded_config = json.load(uploaded_config_file)
+                        if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
+                            st.session_state.ai_config = uploaded_config
+                            st.success("✅ Đã nạp cấu hình AI thành công!")
+                            st.rerun()
+                        else:
+                            st.error("Cấu trúc file config.json không hợp lệ.")
+                    except Exception as e:
+                        st.error(f"Lỗi đọc file: {str(e)}")
+                else:
+                    st.warning("Vui lòng chọn tệp tin config.json trước khi bấm nút áp dụng.")
                     
             st.markdown("---")
-            st.markdown("**2. Tải xuống máy tính (Sao lưu cục bộ):**")
-            
-            # Download Buttons
-            templates_data = json.dumps(templates, ensure_ascii=False, indent=2)
-            st.download_button(
-                label="📥 Tải xuống templates.json hiện tại",
-                data=templates_data,
-                file_name="templates.json",
-                mime="application/json",
-                use_container_width=True
-            )
+            st.markdown("**2. Tải xuống máy tính (Sao lưu cấu hình hiện tại):**")
             
             config_data = json.dumps(active_config, ensure_ascii=False, indent=2)
             st.download_button(
