@@ -16,54 +16,92 @@ GEMINI_MODELS = [
 
 TEMPLATES_DIR = r"C:\AutoScoring\HomeworkAssignment"
 TEMPLATES_FILE = os.path.join(TEMPLATES_DIR, "templates.json")
+CONFIG_FILE = os.path.join(TEMPLATES_DIR, "config.json")
 
+# Dynamic environment detection
+IS_LOCAL = False
+if os.name == "nt":  # Windows OS
+    try:
+        os.makedirs(TEMPLATES_DIR, exist_ok=True)
+        IS_LOCAL = True
+    except Exception:
+        pass
 
-def _load_templates():
-    if not os.path.exists(TEMPLATES_DIR):
-        try:
-            os.makedirs(TEMPLATES_DIR, exist_ok=True)
-        except Exception:
-            pass
-
-    if os.path.exists(TEMPLATES_FILE):
-        try:
-            with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-
-    # Default initial templates if file does not exist
-    default_data = {
-        "Chương [ IT211 - K24 ] Java Web Service": {
-            "Session 19: Spring Security với Access Token và Refresh token": {
-                "Bài tập 1 (JWT & Security)": {
-                    "assignment": "Viết một ứng dụng Spring Boot tích hợp Spring Security và JWT. Yêu cầu cấu hình đầy đủ SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter, và một tác vụ @Scheduled để tự động dọn dẹp các token đã hết hạn (purging expired refresh tokens) trong cơ sở dữ liệu sau mỗi 6 giờ.",
-                    "criteria": "1. Cấu hình Spring Security chính xác, phân quyền các endpoint hợp lý. (40 điểm)\n2. Viết tác vụ dọn dẹp token hết hạn dùng @Scheduled và @EnableScheduling chạy đúng tần suất. (30 điểm)\n3. Tổ chức cấu trúc thư mục chuẩn, sử dụng các annotation Spring Boot hợp lý. (30 điểm)"
-                }
+# Default templates structure
+DEFAULT_TEMPLATES = {
+    "Chương [ IT211 - K24 ] Java Web Service": {
+        "Session 19: Spring Security với Access Token và Refresh token": {
+            "Bài tập 1 (JWT & Security)": {
+                "assignment": "Viết một ứng dụng Spring Boot tích hợp Spring Security và JWT. Yêu cầu cấu hình đầy đủ SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter, và một tác vụ @Scheduled để tự động dọn dẹp các token đã hết hạn (purging expired refresh tokens) trong cơ sở dữ liệu sau mỗi 6 giờ.",
+                "criteria": "1. Cấu hình Spring Security chính xác, phân quyền các endpoint hợp lý. (40 điểm)\n2. Viết tác vụ dọn dẹp token hết hạn dùng @Scheduled và @EnableScheduling chạy đúng tần suất. (30 điểm)\n3. Tổ chức cấu trúc thư mục chuẩn, sử dụng các annotation Spring Boot hợp lý. (30 điểm)"
             }
         }
     }
-    _save_templates(default_data)
-    return default_data
+}
+
+
+def _load_templates():
+    if IS_LOCAL:
+        if os.path.exists(TEMPLATES_FILE):
+            try:
+                with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        # Initialize default on local disk if missing
+        _save_templates(DEFAULT_TEMPLATES)
+        return DEFAULT_TEMPLATES
+    else:
+        # On Cloud, load from session state
+        if "cloud_templates" not in st.session_state:
+            st.session_state.cloud_templates = DEFAULT_TEMPLATES.copy()
+        return st.session_state.cloud_templates
 
 
 def _save_templates(templates):
-    if not os.path.exists(TEMPLATES_DIR):
+    if IS_LOCAL:
         try:
             os.makedirs(TEMPLATES_DIR, exist_ok=True)
+            with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
+                json.dump(templates, f, ensure_ascii=False, indent=2)
+            return True
         except Exception:
             return False
-    try:
-        with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
-            json.dump(templates, f, ensure_ascii=False, indent=2)
+    else:
+        # On Cloud, save to session state
+        st.session_state.cloud_templates = templates
         return True
-    except Exception:
-        return False
+
+
+def _load_local_config():
+    if IS_LOCAL and os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return None
+
+
+def _save_local_config(config):
+    if IS_LOCAL:
+        try:
+            os.makedirs(TEMPLATES_DIR, exist_ok=True)
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception:
+            return False
+    return False
 
 
 def _get_ai_config():
     if "ai_config" in st.session_state:
         return st.session_state.ai_config
+    local_config = _load_local_config()
+    if local_config:
+        st.session_state.ai_config = local_config
+        return local_config
     return {
         "provider": Settings.AI_PROVIDER or "gemini",
         "api_key": Settings.GEMINI_API_KEY,
@@ -284,7 +322,7 @@ def main():
                         key="ai_gemini_model_select",
                     )
             # Auto-sync config to session state on every widget change
-            st.session_state.ai_config = {
+            new_config = {
                 "provider": provider,
                 "api_key": api_key,
                 "api_base_url": api_base_url,
@@ -292,6 +330,9 @@ def main():
                 "local_model_name": local_model_name,
                 "ollama_base_url": ollama_base_url,
             }
+            if st.session_state.get("ai_config") != new_config:
+                st.session_state.ai_config = new_config
+                _save_local_config(new_config)
 
         # Show active config summary
         active_config = _get_ai_config()
@@ -397,6 +438,67 @@ def main():
                                 st.error("Lỗi khi lưu tệp tin.")
                 else:
                     st.info("Chưa có mẫu nào để xóa.")
+
+        st.markdown("---")
+        with st.expander("📁 Nhập / Xuất dữ liệu cấu hình", expanded=False):
+            st.markdown("**Tải lên từ máy tính:**")
+            
+            uploaded_config_file = st.file_uploader(
+                "Nạp cấu hình AI (config.json)", 
+                type=["json"], 
+                key="config_uploader"
+            )
+            if uploaded_config_file is not None:
+                try:
+                    uploaded_config = json.load(uploaded_config_file)
+                    if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
+                        st.session_state.ai_config = uploaded_config
+                        _save_local_config(uploaded_config)
+                        st.success("✅ Đã nạp cấu hình AI thành công!")
+                        st.rerun()
+                    else:
+                        st.error("Cấu trúc file config.json không hợp lệ.")
+                except Exception as e:
+                    st.error(f"Lỗi đọc file: {str(e)}")
+                    
+            uploaded_templates_file = st.file_uploader(
+                "Nạp danh sách bài tập (templates.json)", 
+                type=["json"], 
+                key="templates_uploader"
+            )
+            if uploaded_templates_file is not None:
+                try:
+                    uploaded_templates = json.load(uploaded_templates_file)
+                    if isinstance(uploaded_templates, dict):
+                        _save_templates(uploaded_templates)
+                        st.success("✅ Đã nạp danh sách bài tập thành công!")
+                        st.rerun()
+                    else:
+                        st.error("Cấu trúc file templates.json không hợp lệ.")
+                except Exception as e:
+                    st.error(f"Lỗi đọc file: {str(e)}")
+                    
+            st.markdown("---")
+            st.markdown("**Tải xuống máy tính:**")
+            
+            # Download Buttons
+            templates_data = json.dumps(templates, ensure_ascii=False, indent=2)
+            st.download_button(
+                label="📥 Tải xuống templates.json",
+                data=templates_data,
+                file_name="templates.json",
+                mime="application/json",
+                use_container_width=True
+            )
+            
+            config_data = json.dumps(active_config, ensure_ascii=False, indent=2)
+            st.download_button(
+                label="📥 Tải xuống config.json",
+                data=config_data,
+                file_name="config.json",
+                mime="application/json",
+                use_container_width=True
+            )
 
     # ── Main area ────────────────────────────────────────────────────
     col_config, col_monitor = st.columns([2, 3])
