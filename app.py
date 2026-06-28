@@ -1,4 +1,6 @@
 import re
+import json
+import os
 import streamlit as st
 from config.settings import Settings
 from services.github_service import GitHubService
@@ -12,20 +14,26 @@ GEMINI_MODELS = [
     "gemini-1.5-flash",
 ]
 
-TEMPLATES = {
-    "☕ Java Spring Boot (Security & JWT)": {
-        "assignment": "Viết một ứng dụng Spring Boot tích hợp Spring Security và JWT. Yêu cầu cấu hình đầy đủ SecurityConfig, JwtTokenProvider, JwtAuthenticationFilter, và một tác vụ @Scheduled để tự động dọn dẹp các token đã hết hạn (purging expired refresh tokens) trong cơ sở dữ liệu sau mỗi 6 giờ.",
-        "criteria": "1. Cấu hình Spring Security chính xác, phân quyền các endpoint hợp lý. (40 điểm)\n2. Viết tác vụ dọn dẹp token hết hạn dùng @Scheduled và @EnableScheduling chạy đúng tần suất. (30 điểm)\n3. Tổ chức cấu trúc thư mục chuẩn, sử dụng các annotation Spring Boot hợp lý. (30 điểm)"
-    },
-    "🐍 Python OOP (Quản lý Học sinh & File)": {
-        "assignment": "Viết chương trình Python quản lý học sinh sử dụng lập trình hướng đối tượng (OOP). Yêu cầu định nghĩa class Student, lưu trữ danh sách học sinh vào file CSV hoặc JSON, hỗ trợ các chức năng: thêm học sinh mới, hiển thị danh sách học sinh, tính điểm trung bình và phân loại học lực học sinh.",
-        "criteria": "1. Áp dụng đúng lập trình hướng đối tượng (OOP), định nghĩa class rõ ràng. (40 điểm)\n2. Thực hiện đọc/ghi file CSV/JSON chính xác, xử lý ngoại lệ tốt khi thao tác file. (30 điểm)\n3. Thuật toán tính điểm trung bình, xếp loại học sinh đúng logic và code clean. (30 điểm)"
-    },
-    "🌐 Frontend HTML/CSS/JS (Landing Page)": {
-        "assignment": "Thiết kế một trang landing page giới thiệu sản phẩm có responsive layout (tương thích mọi màn hình). Trang web cần sử dụng CSS Grid/Flexbox, có hiệu ứng hover mượt mà và sử dụng JavaScript để tạo menu ẩn/hiển thị (hamburger menu) trên mobile.",
-        "criteria": "1. Bố cục HTML5 ngữ nghĩa và CSS Grid/Flexbox responsive tốt trên di động. (40 điểm)\n2. Menu mobile hoạt động trơn tru bằng JavaScript thuần (Vanilla JS). (30 điểm)\n3. Thiết kế thẩm mỹ, sử dụng hiệu ứng hover và transition đẹp mắt. (30 điểm)"
-    }
-}
+TEMPLATES_FILE = "templates.json"
+
+
+def _load_templates():
+    if os.path.exists(TEMPLATES_FILE):
+        try:
+            with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _save_templates(templates):
+    try:
+        with open(TEMPLATES_FILE, "w", encoding="utf-8") as f:
+            json.dump(templates, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
 
 
 def _get_ai_config():
@@ -266,12 +274,104 @@ def main():
         
         st.markdown("---")
         st.markdown('<div class="sidebar-section">📚 MẪU BÀI TẬP NHANH</div>', unsafe_allow_html=True)
-        st.caption("Nhấp chọn để tự động điền đề bài và tiêu chí mẫu:")
-        for name, data in TEMPLATES.items():
-            if st.button(name, use_container_width=True):
-                st.session_state.assignment_val = data["assignment"]
-                st.session_state.criteria_val = data["criteria"]
-                st.rerun()
+        
+        templates = _load_templates()
+        if templates:
+            chapters = list(templates.keys())
+            selected_chapter = st.selectbox("Chọn Chương", chapters, key="select_chapter")
+            
+            sessions = list(templates[selected_chapter].keys()) if selected_chapter else []
+            selected_session = st.selectbox("Chọn Session", sessions, key="select_session")
+            
+            assignments_list = list(templates[selected_chapter][selected_session].keys()) if selected_chapter and selected_session else []
+            selected_assignment = st.selectbox("Chọn Bài tập", assignments_list, key="select_assignment")
+            
+            if st.button("📥 Nạp Mẫu Đã Chọn", use_container_width=True):
+                if selected_chapter and selected_session and selected_assignment:
+                    data = templates[selected_chapter][selected_session][selected_assignment]
+                    st.session_state.assignment_val = data["assignment"]
+                    st.session_state.criteria_val = data["criteria"]
+                    st.success("✅ Đã nạp bài tập thành công!")
+                    st.rerun()
+        else:
+            st.info("Chưa có mẫu bài tập nào.")
+            
+        st.markdown("---")
+        with st.expander("🛠️ Quản lý Danh mục Mẫu", expanded=False):
+            action = st.radio("Thao tác", ["Thêm mới", "Chỉnh sửa", "Xóa mẫu"])
+            
+            if action == "Thêm mới":
+                new_chapter = st.text_input("Tên Chương *")
+                new_session = st.text_input("Tên Session *")
+                new_title = st.text_input("Tên Bài tập *")
+                new_assignment = st.text_area("Đề bài *", height=100)
+                new_criteria = st.text_area("Tiêu chí *", height=100)
+                
+                if st.button("Thêm vào danh sách", use_container_width=True):
+                    if new_chapter and new_session and new_title and new_assignment and new_criteria:
+                        if new_chapter not in templates:
+                            templates[new_chapter] = {}
+                        if new_session not in templates[new_chapter]:
+                            templates[new_chapter][new_session] = {}
+                        
+                        templates[new_chapter][new_session][new_title] = {
+                            "assignment": new_assignment,
+                            "criteria": new_criteria
+                        }
+                        if _save_templates(templates):
+                            st.success("✅ Đã thêm mẫu thành công!")
+                            st.rerun()
+                        else:
+                            st.error("Lỗi khi lưu tệp tin.")
+                    else:
+                        st.warning("Vui lòng điền đầy đủ thông tin gắn dấu *.")
+            
+            elif action == "Chỉnh sửa":
+                if templates:
+                    edit_chapter = st.selectbox("Chọn Chương để sửa", list(templates.keys()), key="edit_c")
+                    edit_session = st.selectbox("Chọn Session để sửa", list(templates[edit_chapter].keys()) if edit_chapter else [], key="edit_s")
+                    edit_title = st.selectbox("Chọn Bài tập để sửa", list(templates[edit_chapter][edit_session].keys()) if edit_chapter and edit_session else [], key="edit_t")
+                    
+                    if edit_chapter and edit_session and edit_title:
+                        current_data = templates[edit_chapter][edit_session][edit_title]
+                        updated_assignment = st.text_area("Đề bài", value=current_data["assignment"], height=100)
+                        updated_criteria = st.text_area("Tiêu chí", value=current_data["criteria"], height=100)
+                        
+                        if st.button("Lưu thay đổi", use_container_width=True):
+                            templates[edit_chapter][edit_session][edit_title] = {
+                                "assignment": updated_assignment,
+                                "criteria": updated_criteria
+                            }
+                            if _save_templates(templates):
+                                st.success("✅ Cập nhật thành công!")
+                                st.rerun()
+                            else:
+                                st.error("Lỗi khi lưu tệp tin.")
+                else:
+                    st.info("Chưa có mẫu nào để sửa.")
+                    
+            elif action == "Xóa mẫu":
+                if templates:
+                    del_chapter = st.selectbox("Chọn Chương để xóa", list(templates.keys()), key="del_c")
+                    del_session = st.selectbox("Chọn Session để xóa", list(templates[del_chapter].keys()) if del_chapter else [], key="del_s")
+                    del_title = st.selectbox("Chọn Bài tập để xóa", list(templates[del_chapter][del_session].keys()) if del_chapter and del_session else [], key="del_t")
+                    
+                    if st.button("Xóa bài tập này", use_container_width=True):
+                        if del_chapter and del_session and del_title:
+                            del templates[del_chapter][del_session][del_title]
+                            # Clean up empty keys
+                            if not templates[del_chapter][del_session]:
+                                del templates[del_chapter][del_session]
+                            if not templates[del_chapter]:
+                                del templates[del_chapter]
+                            
+                            if _save_templates(templates):
+                                st.success("✅ Đã xóa mẫu thành công!")
+                                st.rerun()
+                            else:
+                                st.error("Lỗi khi lưu tệp tin.")
+                else:
+                    st.info("Chưa có mẫu nào để xóa.")
 
     # ── Main area ────────────────────────────────────────────────────
     col_config, col_monitor = st.columns([2, 3])
