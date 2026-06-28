@@ -202,7 +202,15 @@ class AIService:
             "generationConfig": {"temperature": 0.2},
         }
         response = requests.post(url, json=payload, timeout=300)
-        response.raise_for_status()
+        if response.status_code != 200:
+            try:
+                err_data = response.json()
+                err_msg = err_data.get("error", {}).get("message", response.text)
+                raise ValueError(f"Google API Error: {err_msg}")
+            except ValueError:
+                raise
+            except Exception:
+                response.raise_for_status()
         data = response.json()
         return self._extract_text_from_payload(data)
 
