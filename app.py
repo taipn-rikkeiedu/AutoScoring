@@ -146,6 +146,9 @@ def main():
                     data = templates[selected_chapter][selected_session][selected_assignment]
                     st.session_state.assignment_val = data["assignment"]
                     st.session_state.criteria_val = data["criteria"]
+                    st.session_state.selected_chapter_name = selected_chapter
+                    st.session_state.selected_session_name = selected_session
+                    st.session_state.selected_assignment_name = selected_assignment
                     st.session_state.template_load_success_msg = "✅ Đã nạp đề bài và tiêu chí thành công!"
                     st.rerun()
         with col2:
@@ -438,18 +441,22 @@ def main():
                 placeholder="https://github.com/username/repository-name",
                 key="grader_repo_url"
             )
-            assignment_input = st.text_area(
-                "📝 Đề bài bài tập:",
-                key="assignment_val",
-                height=100,
-                placeholder="Mô tả các yêu cầu, đề bài giao cho học sinh..."
-            )
-            criteria_input = st.text_area(
-                "🎯 Tiêu chí chấm điểm (Tổng 100):",
-                key="criteria_val",
-                height=100,
-                placeholder="Các tiêu chí chấm điểm và điểm số thành phần tương ứng..."
-            )
+            # --- Render Selected Exercise Info (replacing text areas) ---
+            if st.session_state.get("selected_chapter_name"):
+                st.markdown(
+                    f"""
+                    <div style="background-color: var(--secondary-background-color); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 15px; margin-bottom: 15px;">
+                        📌 <b>Bài tập đang chọn:</b><br>
+                        • <b>Chương:</b> {st.session_state.selected_chapter_name}<br>
+                        • <b>Session:</b> {st.session_state.selected_session_name}<br>
+                        • <b>Bài tập:</b> {st.session_state.selected_assignment_name}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.warning("⚠️ Vui lòng chọn bài tập từ Thư viện mẫu ở trên để thiết lập đề bài và tiêu chí.")
+                
             execute_trigger = st.button(
                 "🚀 Bắt đầu thực thi Chấm điểm", type="primary", use_container_width=True
             )
@@ -467,8 +474,10 @@ def main():
                     unsafe_allow_html=True,
                 )
             else:
-                if not repo_url or not assignment_input or not criteria_input:
-                    st.error("⚠️ Vui lòng điền đầy đủ các thông tin bắt buộc trước khi thực hiện.")
+                assignment_val = st.session_state.get("assignment_val", "")
+                criteria_val = st.session_state.get("criteria_val", "")
+                if not repo_url or not assignment_val or not criteria_val:
+                    st.error("⚠️ Vui lòng điền đầy đủ các thông tin bắt buộc trước khi thực hiện (GitHub URL và đề bài từ thư viện).")
                 else:
                     # ── PHASE 1: Fetch source code from GitHub ───────────
                     extracted_payload = None
@@ -594,8 +603,8 @@ def main():
                                 full_report = ""
 
                                 for chunk in ai_engine.generate_grading_report_stream(
-                                    assignment_input,
-                                    criteria_input,
+                                    assignment_val,
+                                    criteria_val,
                                     extracted_payload["content"],
                                 ):
                                     full_report += chunk
