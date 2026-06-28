@@ -86,18 +86,41 @@ def main():
             except Exception as e:
                 st.session_state.config_upload_error = f"Lỗi đọc file: {str(e)}"
 
-    def apply_uploaded_templates():
-        uploaded_file = st.session_state.get("tab2_templates_uploader")
-        if uploaded_file is not None:
-            try:
-                uploaded_templates = json.load(uploaded_file)
-                if isinstance(uploaded_templates, dict):
-                    _save_templates(uploaded_templates)
-                    st.session_state.templates_upload_success = "✅ Đã nạp danh sách bài tập thành công!"
-                else:
-                    st.session_state.templates_upload_error = "Cấu trúc file templates.json không hợp lệ."
-            except Exception as e:
-                st.session_state.templates_upload_error = f"Lỗi đọc file: {str(e)}"
+    @st.dialog("📁 Sao lưu & Khôi phục Thư viện mẫu")
+    def show_backup_restore_dialog(templates):
+        st.subheader("📥 Khôi phục dữ liệu (Import)")
+        st.caption("Chọn tệp templates.json từ máy tính để nạp danh sách bài tập mới:")
+        uploaded_file = st.file_uploader(
+            "Chọn tệp templates.json",
+            type=["json"],
+            key="modal_templates_uploader"
+        )
+        if st.button("🔌 Áp dụng dữ liệu mới", use_container_width=True, type="primary"):
+            if uploaded_file is not None:
+                try:
+                    uploaded_templates = json.load(uploaded_file)
+                    if isinstance(uploaded_templates, dict):
+                        _save_templates(uploaded_templates)
+                        st.session_state.templates_crud_success = "✅ Đã nạp danh sách bài tập mới thành công!"
+                        st.rerun()
+                    else:
+                        st.error("Cấu trúc file templates.json không hợp lệ.")
+                except Exception as e:
+                    st.error(f"Lỗi đọc file: {str(e)}")
+            else:
+                st.warning("Vui lòng chọn tệp templates.json trước khi bấm áp dụng.")
+                
+        st.markdown("---")
+        st.subheader("📤 Sao lưu dữ liệu (Export)")
+        st.caption("Tải tệp templates.json hiện tại về máy tính để sao lưu:")
+        templates_data = json.dumps(templates, ensure_ascii=False, indent=2)
+        st.download_button(
+            label="📥 Tải xuống templates.json",
+            data=templates_data,
+            file_name="templates.json",
+            mime="application/json",
+            use_container_width=True
+        )
 
     @st.dialog("📚 Chọn đề bài từ Thư viện mẫu")
     def show_template_loader_dialog(templates):
@@ -577,7 +600,7 @@ def main():
             st.success(st.session_state.templates_crud_success)
             del st.session_state.templates_crud_success
             
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
         with col_btn1:
             if st.button("➕ Thêm bài tập mới", use_container_width=True):
                 show_add_assignment_dialog(templates)
@@ -587,6 +610,9 @@ def main():
         with col_btn3:
             if st.button("🗑️ Xóa bài tập", use_container_width=True):
                 show_delete_assignment_dialog(templates)
+        with col_btn4:
+            if st.button("📁 Sao lưu & Khôi phục", use_container_width=True):
+                show_backup_restore_dialog(templates)
 
         st.markdown('<div class="manager-section">', unsafe_allow_html=True)
         st.subheader("📋 Danh sách Chương & Bài tập hiện có")
@@ -594,47 +620,17 @@ def main():
             for ch_name, sessions in templates.items():
                 with st.expander(f"📁 {ch_name}", expanded=True):
                     for sess_name, ass_dict in sessions.items():
-                        st.markdown(f"**🔹 {sess_name}**")
-                        for ass_name in ass_dict.keys():
-                            st.write(f"  • {ass_name}")
+                        st.markdown(f"##### 🔹 {sess_name}")
+                        for ass_name, ass_data in ass_dict.items():
+                            with st.expander(f"📄 {ass_name}", expanded=False):
+                                st.markdown("**📝 Đề bài:**")
+                                st.write(ass_data.get("assignment", ""))
+                                st.markdown("**🎯 Tiêu chí chấm điểm:**")
+                                st.write(ass_data.get("criteria", ""))
+                        st.markdown("---")
         else:
-            st.info("Thư viện hiện đang trống. Hãy thêm đề bài mới hoặc tải lên tệp templates.json ở phía dưới.")
+            st.info("Thư viện hiện đang trống. Hãy thêm đề bài mới hoặc khôi phục dữ liệu qua nút '📁 Sao lưu & Khôi phục'.")
         st.markdown('</div>', unsafe_allow_html=True)
-            
-        st.markdown("---")
-        col_tpl_import, col_tpl_export = st.columns([1, 1])
-        with col_tpl_import:
-            st.subheader("📥 Nhập danh sách bài tập mới")
-            st.caption("Nạp danh sách bài tập từ tệp templates.json của bạn:")
-            uploaded_templates_file = st.file_uploader(
-                "Chọn tệp templates.json", 
-                type=["json"], 
-                key="tab2_templates_uploader"
-            )
-            st.button(
-                "🔌 Áp dụng danh sách bài tập vừa tải lên", 
-                use_container_width=True, 
-                on_click=apply_uploaded_templates
-            )
-            if st.session_state.get("templates_upload_success"):
-                st.success(st.session_state.templates_upload_success)
-                del st.session_state.templates_upload_success
-                st.rerun()
-            if st.session_state.get("templates_upload_error"):
-                st.error(st.session_state.templates_upload_error)
-                del st.session_state.templates_upload_error
-        
-        with col_tpl_export:
-            st.subheader("📤 Sao lưu danh sách bài tập")
-            st.caption("Tải về toàn bộ danh sách mẫu bài tập hiện tại để lưu trữ:")
-            templates_data = json.dumps(templates, ensure_ascii=False, indent=2)
-            st.download_button(
-                label="📥 Tải xuống templates.json",
-                data=templates_data,
-                file_name="templates.json",
-                mime="application/json",
-                use_container_width=True
-            )
 
     # ══════════════════════════════════════════════════════════════════
     # TAB 3: AI SYSTEM SETTINGS
