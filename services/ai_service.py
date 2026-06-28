@@ -1,0 +1,255 @@
+import json
+import requests
+from config.settings import Settings
+
+
+class AIService:
+    def __init__(self, config=None):
+        self.config = config or {}
+        self.provider = (
+            (self.config.get("provider") or Settings.AI_PROVIDER or "gemini")
+            .strip()
+            .lower()
+        )
+        self.use_local_model = self.provider == "local" or self.config.get(
+            "use_local_model", Settings.USE_LOCAL_MODEL
+        )
+
+        if self.provider == "local":
+            self.local_model_name = (
+                self.config.get("local_model_name") or Settings.LOCAL_MODEL_NAME
+            )
+            self.ollama_base_url = (
+                self.config.get("ollama_base_url") or Settings.OLLAMA_BASE_URL
+            )
+            self.api_key = ""
+            self.api_base_url = ""
+        elif self.provider == "custom":
+            self.api_key = self.config.get("api_key") or Settings.CUSTOM_API_KEY
+            self.api_base_url = (
+                self.config.get("api_base_url") or Settings.CUSTOM_API_BASE_URL
+            )
+            self.model_name = (
+                self.config.get("model_name")
+                or Settings.CUSTOM_MODEL_NAME
+                or Settings.DEFAULT_MODEL
+            )
+        else:
+            self.api_key = self.config.get("api_key") or Settings.GEMINI_API_KEY
+            self.model_name = self.config.get("model_name") or Settings.DEFAULT_MODEL
+            self.api_base_url = ""
+
+        Settings.validate(
+            provider=self.provider,
+            api_key=self.api_key,
+            api_base_url=self.api_base_url,
+        )
+
+    def _build_prompt(self, assignment: str, criteria: str, code_content: str) -> str:
+        max_score = Settings.GRADING_MAX_SCORE
+        max_words = Settings.GRADING_MAX_WORDS
+        lang = Settings.GRADING_LANGUAGE
+        return (
+            f"Chấm điểm mã nguồn theo thang {max_score} điểm. "
+            f"Trả lời ngắn gọn tối đa {max_words} từ bằng {lang}. "
+            f"Dùng đúng format sau, KHÔNG thêm gì khác:\n\n"
+            f"## KẾT QUẢ CHẤM ĐIỂM\n"
+            f"| Tiêu chí | Điểm |\n|---|---|\n"
+            f"| Tiêu chí 1 | X/Y |\n"
+            f"| ... | ... |\n"
+            f"| **TỔNG** | **Z/{max_score}** |\n\n"
+            f"## NHẬN XÉT\n"
+            f"(Tối đa 3 dòng nhận xét chính)\n\n"
+            f"---\n"
+            f"ĐỀ BÀI: {assignment}\n\n"
+            f"TIÊU CHÍ: {criteria}\n\n"
+            f"MÃ NGUỒN:\n{code_content}"
+        )
+
+    # ------------------------------------------------------------------
+    # Non-streaming (backwards compatible)
+    # ------------------------------------------------------------------
+    def generate_grading_report(
+        self, assignment: str, criteria: str, code_content: str
+    ) -> str:
+        structured_prompt = self._build_prompt(assignment, criteria, code_content)
+        if self.provider == "local":
+            return self._generate_with_local_model(structured_prompt)
+        if self.provider == "custom":
+            return self._generate_with_custom_api(structured_prompt)
+        return self._generate_with_gemini(structured_prompt)
+
+    # ------------------------------------------------------------------
+    # Streaming – yields text chunks for real-time UI updates
+    # ------------------------------------------------------------------
+    def generate_grading_report_stream(
+        self, assignment: str, criteria: str, code_content: str
+    ):
+        """Yield text chunks as they arrive from the AI model.
+
+        Falls back to yielding the full response as a single chunk
+        for providers that don't support streaming.
+        """
+        structured_prompt = self._build_prompt(assignment, criteria, code_content)
+        if self.provider == "local":
+            yield from self._stream_local_model(structured_prompt)
+        elif self.provider == "custom":
+            yield from self._stream_custom_api(structured_prompt)
+        else:
+            # Gemini REST API – no native streaming, yield full response
+            yield self._generate_with_gemini(structured_prompt)
+
+    # ------------------------------------------------------------------
+    # Local model (Ollama)
+    # ------------------------------------------------------------------
+    def _generate_with_local_model(self, prompt: str) -> str:
+        response = requests.post(
+            f"{self.ollama_base_url}/api/generate",
+            json={"model": self.local_model_name, "prompt": prompt, "stream": False},
+            timeout=300,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return payload.get("response", "")
+
+    def _stream_local_model(self, prompt: str):
+        """Stream tokens from Ollama's /api/generate endpoint."""
+        response = requests.post(
+            f"{self.ollama_base_url}/api/generate",
+            json={"model": self.local_model_name, "prompt": prompt, "stream": True},
+            timeout=300,
+            stream=True,
+        )
+        response.raise_for_status()
+        for line in response.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            try:
+                chunk = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            token = chunk.get("response", "")
+            if token:
+                yield token
+            if chunk.get("done", False):
+                break
+
+    # ------------------------------------------------------------------
+    # Custom API (OpenAI-compatible)
+    # ------------------------------------------------------------------
+    def _generate_with_custom_api(self, prompt: str) -> str:
+        url = f"{self.api_base_url.rstrip('/')}/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        payload = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+        }
+        response = requests.post(url, headers=headers, json=payload, timeout=300)
+        response.raise_for_status()
+        data = response.json()
+        return self._extract_text_from_payload(data)
+
+    def _stream_custom_api(self, prompt: str):
+        """Stream tokens from an OpenAI-compatible /chat/completions endpoint."""
+        url = f"{self.api_base_url.rstrip('/')}/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        payload = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "stream": True,
+        }
+        response = requests.post(
+            url, headers=headers, json=payload, timeout=300, stream=True
+        )
+        response.raise_for_status()
+        for line in response.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            if line.startswith("data: "):
+                line = line[len("data: "):]
+            if line.strip() == "[DONE]":
+                break
+            try:
+                chunk = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            choices = chunk.get("choices", [])
+            if choices:
+                delta = choices[0].get("delta", {})
+                content = delta.get("content", "")
+                if content:
+                    yield content
+
+    # ------------------------------------------------------------------
+    # Gemini
+    # ------------------------------------------------------------------
+    def _generate_with_gemini(self, prompt: str) -> str:
+        if not self.api_key:
+            raise ValueError("Thiếu API key cho Gemini")
+
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model_name}:generateContent?key={self.api_key}"
+        )
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2},
+        }
+        response = requests.post(url, json=payload, timeout=300)
+        response.raise_for_status()
+        data = response.json()
+        return self._extract_text_from_payload(data)
+
+    # ------------------------------------------------------------------
+    # Response parsing helpers
+    # ------------------------------------------------------------------
+    def _extract_text_from_payload(self, data) -> str:
+        if not isinstance(data, dict):
+            return str(data)
+
+        if data.get("error"):
+            message = data.get("error", {}).get("message", "Unknown API error")
+            raise ValueError(message)
+
+        text = self._extract_text_from_choices(data.get("choices"))
+        if text:
+            return text
+
+        if data.get("response"):
+            return str(data.get("response"))
+
+        return self._extract_text_from_candidates(data.get("candidates")) or str(data)
+
+    def _extract_text_from_choices(self, choices) -> str:
+        if not isinstance(choices, list) or not choices:
+            return ""
+
+        first_choice = choices[0]
+        message = first_choice.get("message") or {}
+        content = message.get("content") if isinstance(message, dict) else None
+        if isinstance(content, list):
+            return "".join(
+                part.get("text", "") for part in content if isinstance(part, dict)
+            )
+        if content:
+            return str(content)
+        return ""
+
+    def _extract_text_from_candidates(self, candidates) -> str:
+        if not isinstance(candidates, list):
+            return ""
+
+        parts = []
+        for candidate in candidates:
+            content = candidate.get("content") or {}
+            for part in content.get("parts", []):
+                text = part.get("text", "")
+                if text:
+                    parts.append(text)
+        return "".join(parts)
