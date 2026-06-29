@@ -38,6 +38,14 @@ class AIService:
                 or Settings.CUSTOM_MODEL_NAME
                 or Settings.DEFAULT_MODEL
             )
+        elif self.provider == "deepseek":
+            self.api_key = self.config.get("api_key") or Settings.DEEPSEEK_API_KEY
+            self.api_base_url = (
+                self.config.get("api_base_url") or Settings.DEEPSEEK_API_BASE_URL
+            )
+            self.model_name = (
+                self.config.get("model_name") or Settings.DEEPSEEK_MODEL_NAME
+            )
         else:
             self.api_key = self.config.get("api_key") or Settings.GEMINI_API_KEY
             self.model_name = self.config.get("model_name") or Settings.DEFAULT_MODEL
@@ -97,7 +105,7 @@ class AIService:
         structured_prompt = self._build_prompt(assignment, criteria, code_content)
         if self.provider == "local":
             return self._generate_with_local_model(structured_prompt)
-        if self.provider == "custom":
+        if self.provider == "custom" or self.provider == "deepseek":
             return self._generate_with_custom_api(structured_prompt)
         return self._generate_with_gemini(structured_prompt)
 
@@ -115,7 +123,7 @@ class AIService:
         structured_prompt = self._build_prompt(assignment, criteria, code_content)
         if self.provider == "local":
             yield from self._stream_local_model(structured_prompt)
-        elif self.provider == "custom":
+        elif self.provider == "custom" or self.provider == "deepseek":
             yield from self._stream_custom_api(structured_prompt)
         else:
             yield from self._stream_gemini(structured_prompt)

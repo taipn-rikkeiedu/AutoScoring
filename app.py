@@ -56,6 +56,7 @@ def main():
                     st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
                     st.session_state.settings_gemini_model_select = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                    st.session_state.settings_deepseek_model_select = uploaded_config.get("model_name", Settings.DEEPSEEK_MODEL_NAME)
                     st.session_state.settings_github_token = uploaded_config.get("github_token", "")
                     
                     # Sync to disk
@@ -196,9 +197,11 @@ def main():
     # Render Premium Banner Header
     st.markdown(
         f"""
-        <div class="header-container">
-            <h1 class="header-title">🤖 Hệ thống Chấm điểm & Đánh giá Mã nguồn AI <span style="font-size:0.5em; opacity:0.8; vertical-align:middle; background:rgba(255,255,255,0.15); padding:3px 10px; border-radius:6px; margin-left:8px;">v{Settings.APP_VERSION}</span></h1>
-            <div class="header-subtitle">Giải pháp chấm bài tập lập trình tự động qua liên kết GitHub sử dụng Trí tuệ Nhân tạo thông minh.</div>
+        <div class="header-container" style="padding: 15px 25px; margin-bottom: 15px;">
+            <h1 class="header-title" style="font-size: 1.6rem; display: flex; align-items: center; gap: 10px;">
+                🤖 AI GitHub Grader
+                <span style="font-size:0.55em; opacity:0.8; background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:6px;">v{Settings.APP_VERSION}</span>
+            </h1>
         </div>
         """,
         unsafe_allow_html=True,
@@ -209,27 +212,20 @@ def main():
 
     # ── Sidebar: Keep clean with only AI Connection status ───────────
     with st.sidebar:
-        st.markdown('<div class="sidebar-section">🔌 TRẠNG THÁI AI KẾT NỐI</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-section">🔌 AI PROVIDER</div>', unsafe_allow_html=True)
         active_config = get_ai_config()
-        st.info(f"Đang kích hoạt:\n\n**{provider_display_name(active_config)}**")
-        st.caption(
-            "Bạn có thể cấu hình AI, chọn model khác, hoặc tải lên khóa bí mật trong thẻ **Settings ⚙️** ở màn hình chính."
-        )
+        st.info(f"**{provider_display_name(active_config)}**")
         
         # Local Sync Status
         if st.session_state.get("sync_local_active"):
-            st.markdown('<div class="sidebar-section" style="margin-top:20px;">🔄 ĐỒNG BỘ LOCAL DATA</div>', unsafe_allow_html=True)
-            st.success("Đang tự động đồng bộ")
-            from services.sync_service import get_sync_paths
-            paths = get_sync_paths()
-            st.caption(f"📁 **Config:** `{paths['config']}`")
-            st.caption(f"📁 **Templates:** `{paths['templates']}`")
+            st.markdown('<div class="sidebar-section" style="margin-top:20px;">🔄 ĐỒNG BỘ CỤC BỘ</div>', unsafe_allow_html=True)
+            st.success("Hoạt động")
 
     # ── Main Area Navigation Tabs ────────────────────────────────────
     tab_grader, tab_manager, tab_settings = st.tabs([
-        "🚀 Chấm Điểm Bài Tập", 
-        "📚 Quản Lý Đề Bài & Mẫu", 
-        "⚙️ Cấu Hình Hệ Thống"
+        "🚀 Chấm Điểm", 
+        "📚 Đề Bài & Mẫu", 
+        "⚙️ Cấu Hình"
     ])
 
     # ══════════════════════════════════════════════════════════════════
@@ -238,10 +234,8 @@ def main():
     with tab_grader:
         col_config, col_monitor = st.columns([2, 3])
         with col_config:
-            st.subheader("📋 Thiết lập phòng chấm")
-            
             # --- Quick template selector button that triggers the modal ---
-            if st.button("📚 Chọn đề bài từ Thư viện mẫu", use_container_width=True):
+            if st.button("📚 Thư viện mẫu đề bài", use_container_width=True):
                 show_template_loader_dialog(templates)
                 
             if st.session_state.get("template_load_success_msg"):
@@ -249,8 +243,8 @@ def main():
                 del st.session_state.template_load_success_msg
             
             repo_url = st.text_input(
-                "🔗 URL GitHub Repository:",
-                placeholder="https://github.com/username/repository-name",
+                "GitHub URL:",
+                placeholder="https://github.com/username/repository",
                 key="grader_repo_url"
             )
             # --- Render Selected Exercise Info with Quick Switcher ---
@@ -261,8 +255,8 @@ def main():
 
                 st.markdown(
                     f"""
-                    <div style="background-color: var(--secondary-background-color); padding: 12px 15px 4px 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 15px; margin-bottom: 0;">
-                        📌 <b>Bài tập đang chọn</b> &nbsp;·&nbsp; <span style="opacity:0.7;">Chương:</span> {_sel_chapter}
+                    <div style="background-color: var(--secondary-background-color); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 10px; margin-bottom: 5px; font-size: 0.9rem;">
+                        📌 <b>Bài tập:</b> {_sel_assignment}
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -286,7 +280,7 @@ def main():
                         st.session_state.criteria_val = data["criteria"]
 
                 new_session = st.selectbox(
-                    "🔹 Session:",
+                    "Session:",
                     _sessions_in_chapter,
                     index=_sess_idx,
                     key="quick_session_select",
@@ -311,27 +305,26 @@ def main():
                         st.session_state.criteria_val = data["criteria"]
 
                 new_assignment = st.selectbox(
-                    "📄 Bài tập:",
+                    "Bài tập:",
                     _assignments_in_session,
                     index=_ass_idx,
                     key="quick_assignment_select",
                     on_change=_on_quick_assignment_change,
                 )
             else:
-                st.warning("⚠️ Vui lòng chọn bài tập từ Thư viện mẫu ở trên để thiết lập đề bài và tiêu chí.")
+                st.warning("Vui lòng chọn bài tập từ thư viện mẫu.")
                 
             execute_trigger = st.button(
-                "🚀 Bắt đầu thực thi Chấm điểm", type="primary", use_container_width=True
+                "🚀 Chấm điểm", type="primary", use_container_width=True
             )
 
         with col_monitor:
-            st.subheader("📊 Báo cáo Giám định từ AI")
+            st.subheader("Kết quả chấm điểm")
             if not execute_trigger:
                 st.markdown(
                     """
-                    <div class="info-card">
-                        🔍 <b>Chưa có lượt chạy nào</b><br>
-                        Hãy nhập liên kết GitHub, đề bài, tiêu chí chấm ở cột bên trái và nhấn nút <b>"Bắt đầu thực thi Chấm điểm"</b> để xem báo cáo chi tiết.
+                    <div class="info-card" style="padding: 20px; font-size: 0.9rem;">
+                        Nhập link GitHub và nhấn <b>"Chấm điểm"</b> để bắt đầu.
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -340,7 +333,7 @@ def main():
                 assignment_val = st.session_state.get("assignment_val", "")
                 criteria_val = st.session_state.get("criteria_val", "")
                 if not repo_url or not assignment_val or not criteria_val:
-                    st.error("⚠️ Vui lòng điền đầy đủ các thông tin bắt buộc trước khi thực hiện (GitHub URL và đề bài từ thư viện).")
+                    st.error("Vui lòng nhập GitHub URL và chọn bài tập mẫu.")
                 else:
                     # ── PHASE 1: Fetch source code from GitHub ───────────
                     extracted_payload = None
@@ -477,19 +470,13 @@ def main():
                             display_name = provider_display_name(ai_config)
 
                             with st.status(
-                                f"🤖 Trợ giảng AI đang đánh giá ({display_name})...",
+                                "🤖 AI đang chấm điểm...",
                                 expanded=True,
                             ) as ai_status:
                                 try:
                                     ai_engine = AIService(config=ai_config)
 
-                                    st.write(
-                                        f"🧠 Đang gửi **{extracted_payload['total_files']}** "
-                                        f"tập tin tới **{display_name}** để chấm điểm..."
-                                    )
-                                    st.write(
-                                        "⏳ Đang chờ phản hồi từ AI (có thể mất vài phút)..."
-                                    )
+                                    st.write("Đang phân tích mã nguồn...")
 
                                     # Use streaming to show real-time output
                                     # Buffer chunks and update UI periodically
@@ -546,9 +533,6 @@ def main():
                                     )
                                     st.error(f"Lỗi AI: {str(e)}")
 
-    # ══════════════════════════════════════════════════════════════════
-    # TAB 2: TEMPLATE & EXERCISE MANAGER
-    # ══════════════════════════════════════════════════════════════════
     with tab_manager:
         if st.session_state.get("templates_crud_success"):
             st.success(st.session_state.templates_crud_success)
@@ -556,20 +540,20 @@ def main():
             
         col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
         with col_btn1:
-            if st.button("➕ Thêm bài tập mới", use_container_width=True):
+            if st.button("➕ Thêm mới", use_container_width=True):
                 show_add_assignment_dialog(templates)
         with col_btn2:
-            if st.button("✏️ Chỉnh sửa đề bài", use_container_width=True):
+            if st.button("✏️ Chỉnh sửa", use_container_width=True):
                 show_edit_assignment_dialog(templates)
         with col_btn3:
-            if st.button("🗑️ Xóa bài tập", use_container_width=True):
+            if st.button("🗑️ Xóa", use_container_width=True):
                 show_delete_assignment_dialog(templates)
         with col_btn4:
-            if st.button("📁 Sao lưu & Khôi phục", use_container_width=True):
+            if st.button("📁 Sao lưu / Khôi phục", use_container_width=True):
                 show_backup_restore_dialog(templates)
 
         st.markdown('<div class="manager-section">', unsafe_allow_html=True)
-        st.subheader("📋 Danh sách Chương & Bài tập hiện có")
+        st.subheader("Danh sách bài tập")
         if templates:
             for ch_name, sessions in templates.items():
                 with st.expander(f"📁 {ch_name}", expanded=True):
@@ -577,13 +561,13 @@ def main():
                         st.markdown(f"##### 🔹 {sess_name}")
                         for ass_name, ass_data in ass_dict.items():
                             with st.expander(f"📄 {ass_name}", expanded=False):
-                                st.markdown("**📝 Đề bài:**")
+                                st.markdown("**Đề bài:**")
                                 st.write(ass_data.get("assignment", ""))
-                                st.markdown("**🎯 Tiêu chí chấm điểm:**")
+                                st.markdown("**Tiêu chí:**")
                                 st.write(ass_data.get("criteria", ""))
                         st.markdown("---")
         else:
-            st.info("Thư viện hiện đang trống. Hãy thêm đề bài mới hoặc khôi phục dữ liệu qua nút '📁 Sao lưu & Khôi phục'.")
+            st.info("Thư viện trống. Hãy thêm đề bài mới hoặc khôi phục.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════════════
@@ -593,14 +577,12 @@ def main():
         col_ai, col_files = st.columns([1, 1])
         
         with col_ai:
-            st.subheader("🔌 Cấu hình công cụ AI")
-            st.caption("Thay đổi nhà cung cấp AI, khóa API và các mô hình xử lý:")
+            st.subheader("Cấu hình AI")
             
-            # Form-like rendering for AI settings
             provider = st.selectbox(
                 "Nhà cung cấp (Provider)",
-                ["gemini", "local", "custom"],
-                index=["gemini", "local", "custom"].index(
+                ["gemini", "local", "custom", "deepseek"],
+                index=["gemini", "local", "custom", "deepseek"].index(
                     active_config.get("provider", "gemini")
                 ),
                 key="settings_provider_select",
@@ -608,7 +590,7 @@ def main():
             
             if provider == "local":
                 local_model_name = st.text_input(
-                    "Tên local model (Ollama)",
+                    "Tên local model",
                     value=active_config.get("local_model_name", Settings.LOCAL_MODEL_NAME),
                     key="settings_local_model_name",
                 )
@@ -640,6 +622,9 @@ def main():
                         value=active_config.get("model_name", Settings.DEFAULT_MODEL),
                         key="settings_model_name",
                     )
+                elif provider == "deepseek":
+                    api_base_url = "https://api.deepseek.com"
+                    model_name = "deepseek-chat"
                 else:
                     api_base_url = ""
                     saved_model = active_config.get("model_name", Settings.DEFAULT_MODEL)
@@ -655,10 +640,9 @@ def main():
                     )
 
             st.markdown("---")
-            st.subheader("🔑 Cấu hình GitHub Token (Tùy chọn)")
-            st.caption("Cần thiết để tránh lỗi giới hạn lượt gọi (Rate Limit) từ GitHub API khi chạy trên Streamlit Cloud.")
+            st.subheader("GitHub Token (Tùy chọn)")
             github_token = st.text_input(
-                "GitHub Personal Access Token",
+                "GitHub Access Token",
                 value=active_config.get("github_token", ""),
                 type="password",
                 key="settings_github_token",
@@ -690,20 +674,16 @@ def main():
                     st.error(f"Cấu hình không hợp lệ: {str(ve)}")
 
         with col_files:
-            st.subheader("📁 Nhập / Xuất cấu hình AI (config.json)")
-            st.caption(
-                "Cấu hình nhanh API key bằng cách tải lên tệp config.json có sẵn:"
-            )
+            st.subheader("Nhập / Xuất cấu hình")
             
-            st.markdown("**1. Tải lên từ máy tính (Nạp cấu hình):**")
             uploaded_config_file = st.file_uploader(
-                "Chọn tệp config.json", 
+                "Nạp cấu hình (config.json)", 
                 type=["json"], 
                 key="settings_config_uploader"
             )
             
             st.button(
-                "🔌 Áp dụng cấu hình AI vừa tải lên", 
+                "Áp dụng cấu hình", 
                 use_container_width=True, 
                 on_click=apply_uploaded_config
             )
@@ -715,13 +695,9 @@ def main():
                 st.error(st.session_state.config_upload_error)
                 del st.session_state.config_upload_error
                     
-            st.markdown("---")
-            st.markdown("**2. Tải xuống máy tính (Sao lưu cấu hình hiện tại):**")
-            
-            config_data = json.dumps(active_config, ensure_ascii=False, indent=2)
             st.download_button(
-                label="📥 Tải xuống config.json hiện tại",
-                data=config_data,
+                label="Tải xuống config.json",
+                data=json.dumps(active_config, ensure_ascii=False, indent=2),
                 file_name="config.json",
                 mime="application/json",
                 use_container_width=True
@@ -729,21 +705,17 @@ def main():
 
         # ── Cache Management Section ─────────────────────────────────
         st.markdown("---")
-        st.subheader("🗄️ Bộ nhớ đệm kết quả chấm (Response Cache)")
-        st.caption(
-            "Khi bật, kết quả chấm sẽ được lưu lại. Nếu chấm lại cùng đề bài, "
-            "tiêu chí và mã nguồn, hệ thống sẽ trả kết quả ngay lập tức mà không gọi AI."
-        )
+        st.subheader("Bộ nhớ đệm (Cache)")
         cache_stats = get_cache_stats()
         col_cache_info, col_cache_action = st.columns([2, 1])
         with col_cache_info:
             st.info(
-                f"📊 Số lượng kết quả đã cache: **{cache_stats['total_entries']}** | "
+                f"Đã lưu: **{cache_stats['total_entries']}** kết quả | "
                 f"TTL: **{Settings.GRADING_CACHE_TTL_MINUTES} phút**"
             )
         with col_cache_action:
             if cache_stats["total_entries"] > 0:
-                if st.button("🗑️ Xóa toàn bộ cache", use_container_width=True):
+                if st.button("Xóa cache", use_container_width=True):
                     clear_cache()
                     st.success("✅ Đã xóa toàn bộ cache!")
                     st.rerun()

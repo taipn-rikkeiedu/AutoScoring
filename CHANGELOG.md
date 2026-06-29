@@ -7,6 +7,19 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v2.6.0] — 2026-06-29
+
+### ✨ Tính năng mới
+- **Tích hợp DeepSeek API:** Bổ sung nhà cung cấp AI DeepSeek (mô hình `deepseek-chat`) sử dụng cơ chế OpenAI-compatible. Chỉ hiển thị ô nhập API Key trên giao diện để giữ giao diện tối giản và tinh gọn tối đa.
+
+### 🎨 Cải tiến & Tối ưu hóa UI
+- **Tối giản hóa giao diện (UI Minification):**
+  - Rút ngắn/loại bỏ các tiêu đề phụ, chú thích, hướng dẫn dài dòng trên toàn giao diện.
+  - Thu gọn kích thước Banner Header chính và tinh giản Sidebar.
+  - Tối ưu hóa nhãn các nút bấm và hộp điều khiển (`Chấm điểm`, `Thư viện mẫu đề bài`, `Xóa cache`, v.v.).
+
+---
+
 ## [v2.5.1] — 2026-06-29
 
 ### ✨ Tính năng mới

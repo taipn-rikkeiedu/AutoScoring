@@ -34,12 +34,15 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "2.5.1"
+    APP_VERSION = "2.6.0"
     LOCAL_DATA_ROOT = "C:/AutoScoring"
     LOCAL_CONFIG_PATH = "C:/AutoScoring/config/config.json"
     LOCAL_TEMPLATES_PATH = "C:/AutoScoring/data/templates.json"
     LOCAL_SYNC_SETTINGS_PATH = "C:/AutoScoring/.sync_settings.json"
     GEMINI_API_KEY = _get_secret("GEMINI_API_KEY", "")
+    DEEPSEEK_API_KEY = _get_secret("DEEPSEEK_API_KEY", "")
+    DEEPSEEK_API_BASE_URL = _get_secret("DEEPSEEK_API_BASE_URL", "https://api.deepseek.com").rstrip("/")
+    DEEPSEEK_MODEL_NAME = _get_secret("DEEPSEEK_MODEL_NAME", "deepseek-chat")
     GITHUB_TOKEN = _get_secret("GITHUB_TOKEN", "")
     DEFAULT_MODEL = _get_secret("DEFAULT_MODEL", "gemini-1.5-pro")
     AI_PROVIDER = _get_secret("AI_PROVIDER", "gemini").strip().lower()
@@ -134,6 +137,10 @@ class Settings:
         "gemini-1.5-pro-latest",
         "gemini-1.5-flash-latest",
     ]
+    DEEPSEEK_MODELS = [
+        "deepseek-chat",
+        "deepseek-reasoner",
+    ]
     DEFAULT_CRITERIA = "1. Đáp ứng yêu cầu nghiệp vụ của đề bài. (40 điểm)\n2. Logic xử lý chính xác và xử lý ngoại lệ tốt. (30 điểm)\n3. Cấu trúc mã nguồn sạch sẽ, dễ đọc, chuẩn hóa. (30 điểm)"
     DEFAULT_TEMPLATES = {}
 
@@ -148,6 +155,11 @@ class Settings:
                 raise ValueError(
                     "CRITICAL CONFIG ERROR: Thiếu CUSTOM_API_BASE_URL trong .env hoặc giao diện"
                 )
+            return
+        if provider_name == "deepseek":
+            resolved_key = api_key or cls.DEEPSEEK_API_KEY
+            if not resolved_key:
+                raise ValueError("CRITICAL CONFIG ERROR: Thiếu DEEPSEEK_API_KEY trong .env hoặc giao diện")
             return
         resolved_key = api_key or cls.GEMINI_API_KEY
         if not resolved_key:
