@@ -47,6 +47,14 @@ class AIService:
             self.model_name = (
                 self.config.get("deepseek_model_name") or self.config.get("model_name") or Settings.DEEPSEEK_MODEL_NAME
             )
+        elif self.provider == "openrouter":
+            self.api_key = self.config.get("openrouter_api_key") or self.config.get("api_key") or Settings.OPENROUTER_API_KEY
+            self.api_base_url = (
+                self.config.get("openrouter_api_base_url") or self.config.get("api_base_url") or Settings.OPENROUTER_API_BASE_URL
+            )
+            self.model_name = (
+                self.config.get("openrouter_model_name") or self.config.get("model_name") or Settings.OPENROUTER_MODEL_NAME
+            )
         else:
             self.api_key = self.config.get("gemini_api_key") or self.config.get("api_key") or Settings.GEMINI_API_KEY
             self.model_name = (
@@ -110,7 +118,7 @@ class AIService:
         structured_prompt = self._build_prompt(assignment, criteria, code_content)
         if self.provider == "local":
             return self._generate_with_local_model(structured_prompt)
-        if self.provider == "custom" or self.provider == "deepseek":
+        if self.provider == "custom" or self.provider == "deepseek" or self.provider == "openrouter":
             return self._generate_with_custom_api(structured_prompt)
         return self._generate_with_gemini(structured_prompt)
 
@@ -128,7 +136,7 @@ class AIService:
         structured_prompt = self._build_prompt(assignment, criteria, code_content)
         if self.provider == "local":
             yield from self._stream_local_model(structured_prompt)
-        elif self.provider == "custom" or self.provider == "deepseek":
+        elif self.provider == "custom" or self.provider == "deepseek" or self.provider == "openrouter":
             yield from self._stream_custom_api(structured_prompt)
         else:
             yield from self._stream_gemini(structured_prompt)

@@ -7,6 +7,18 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v2.8.0] — 2026-06-29
+
+### ✨ Tính năng mới
+- **Tích hợp nhà cung cấp OpenRouter (qwen/qwen3-coder:free):**
+  - Thêm OpenRouter thành một Provider chính thức với danh sách model lập trình miễn phí khuyên dùng: `qwen/qwen3-coder:free`, `qwen/qwen-2.5-coder-32b-instruct:free`, `deepseek/deepseek-r1:free`, `openrouter/free`.
+  - Quản lý API Key độc lập cho OpenRouter trong `config.json`.
+- **Hỗ trợ tối ưu hóa và làm rõ cơ chế Streamlit Cloud:**
+  - Viết tài liệu giải thích rõ lý do 🔄 ĐỒNG BỘ CỤC BỘ (Local Sync) bị giới hạn trên Streamlit Cloud do rào cản bảo mật (không thể đọc ổ `C:/` cục bộ từ container đám mây).
+  - Đưa ra giải pháp tối ưu sử dụng **Streamlit Secrets** trực tiếp trên dashboard và cơ chế Sao lưu/Khôi phục thủ công để quản lý cấu hình và đề bài.
+
+---
+
 ## [v2.7.0] — 2026-06-29
 
 ### ✨ Tính năng mới

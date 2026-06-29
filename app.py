@@ -64,6 +64,12 @@ def main():
                     st.session_state.settings_deepseek_api_key = uploaded_config.get(
                         "deepseek_api_key", old_api_key if prov == "deepseek" else ""
                     )
+                    st.session_state.settings_openrouter_api_key = uploaded_config.get(
+                        "openrouter_api_key", old_api_key if prov == "openrouter" else ""
+                    )
+                    st.session_state.settings_openrouter_model_select = uploaded_config.get(
+                        "openrouter_model_name", old_model_name if prov == "openrouter" else Settings.OPENROUTER_MODEL_NAME
+                    )
                     st.session_state.settings_custom_api_key = uploaded_config.get(
                         "custom_api_key", old_api_key if prov == "custom" else ""
                     )
@@ -600,8 +606,8 @@ def main():
             
             provider = st.selectbox(
                 "Nhà cung cấp (Provider)",
-                ["gemini", "local", "custom", "deepseek"],
-                index=["gemini", "local", "custom", "deepseek"].index(
+                ["gemini", "local", "custom", "deepseek", "openrouter"],
+                index=["gemini", "local", "custom", "deepseek", "openrouter"].index(
                     active_config.get("provider", "gemini")
                 ),
                 key="settings_provider_select",
@@ -613,6 +619,8 @@ def main():
             gemini_api_key = active_config.get("gemini_api_key", "")
             gemini_model_name = active_config.get("gemini_model_name", Settings.DEFAULT_MODEL)
             deepseek_api_key = active_config.get("deepseek_api_key", "")
+            openrouter_api_key = active_config.get("openrouter_api_key", "")
+            openrouter_model_name = active_config.get("openrouter_model_name", Settings.OPENROUTER_MODEL_NAME)
             custom_api_key = active_config.get("custom_api_key", "")
             custom_api_base_url = active_config.get("custom_api_base_url", "")
             custom_model_name = active_config.get("custom_model_name", Settings.DEFAULT_MODEL)
@@ -653,6 +661,24 @@ def main():
                     type="password",
                     key="settings_deepseek_api_key",
                 )
+            elif provider == "openrouter":
+                openrouter_api_key = st.text_input(
+                    "API Key (OpenRouter)",
+                    value=active_config.get("openrouter_api_key", ""),
+                    type="password",
+                    key="settings_openrouter_api_key",
+                )
+                saved_model = active_config.get("openrouter_model_name", Settings.OPENROUTER_MODEL_NAME)
+                if saved_model in Settings.OPENROUTER_MODELS:
+                    default_idx = Settings.OPENROUTER_MODELS.index(saved_model)
+                else:
+                    default_idx = 0
+                openrouter_model_name = st.selectbox(
+                    "Model OpenRouter",
+                    Settings.OPENROUTER_MODELS,
+                    index=default_idx,
+                    key="settings_openrouter_model_select",
+                )
             elif provider == "custom":
                 custom_api_key = st.text_input(
                     "API Key",
@@ -688,6 +714,9 @@ def main():
                 "deepseek_api_key": deepseek_api_key,
                 "deepseek_api_base_url": "https://api.deepseek.com",
                 "deepseek_model_name": "deepseek-chat",
+                "openrouter_api_key": openrouter_api_key,
+                "openrouter_api_base_url": "https://openrouter.ai/api/v1",
+                "openrouter_model_name": openrouter_model_name,
                 "custom_api_key": custom_api_key,
                 "custom_api_base_url": custom_api_base_url,
                 "custom_model_name": custom_model_name,
@@ -703,7 +732,8 @@ def main():
                         api_key=(
                             gemini_api_key if provider == "gemini" 
                             else (deepseek_api_key if provider == "deepseek" 
-                            else (custom_api_key if provider == "custom" else ""))
+                            else (openrouter_api_key if provider == "openrouter"
+                            else (custom_api_key if provider == "custom" else "")))
                         ),
                         api_base_url=custom_api_base_url if provider == "custom" else "",
                     )

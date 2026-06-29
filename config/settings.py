@@ -34,7 +34,7 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "2.7.0"
+    APP_VERSION = "2.8.0"
     LOCAL_DATA_ROOT = "C:/AutoScoring"
     LOCAL_CONFIG_PATH = "C:/AutoScoring/config/config.json"
     LOCAL_TEMPLATES_PATH = "C:/AutoScoring/data/templates.json"
@@ -43,6 +43,9 @@ class Settings:
     DEEPSEEK_API_KEY = _get_secret("DEEPSEEK_API_KEY", "")
     DEEPSEEK_API_BASE_URL = _get_secret("DEEPSEEK_API_BASE_URL", "https://api.deepseek.com").rstrip("/")
     DEEPSEEK_MODEL_NAME = _get_secret("DEEPSEEK_MODEL_NAME", "deepseek-chat")
+    OPENROUTER_API_KEY = _get_secret("OPENROUTER_API_KEY", "")
+    OPENROUTER_API_BASE_URL = _get_secret("OPENROUTER_API_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
+    OPENROUTER_MODEL_NAME = _get_secret("OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free")
     GITHUB_TOKEN = _get_secret("GITHUB_TOKEN", "")
     DEFAULT_MODEL = _get_secret("DEFAULT_MODEL", "gemini-1.5-pro")
     AI_PROVIDER = _get_secret("AI_PROVIDER", "gemini").strip().lower()
@@ -141,6 +144,12 @@ class Settings:
         "deepseek-chat",
         "deepseek-reasoner",
     ]
+    OPENROUTER_MODELS = [
+        "qwen/qwen3-coder:free",
+        "qwen/qwen-2.5-coder-32b-instruct:free",
+        "deepseek/deepseek-r1:free",
+        "openrouter/free",
+    ]
     DEFAULT_CRITERIA = "1. Đáp ứng yêu cầu nghiệp vụ của đề bài. (40 điểm)\n2. Logic xử lý chính xác và xử lý ngoại lệ tốt. (30 điểm)\n3. Cấu trúc mã nguồn sạch sẽ, dễ đọc, chuẩn hóa. (30 điểm)"
     DEFAULT_TEMPLATES = {}
 
@@ -160,6 +169,11 @@ class Settings:
             resolved_key = api_key or cls.DEEPSEEK_API_KEY
             if not resolved_key:
                 raise ValueError("CRITICAL CONFIG ERROR: Thiếu DEEPSEEK_API_KEY trong .env hoặc giao diện")
+            return
+        if provider_name == "openrouter":
+            resolved_key = api_key or cls.OPENROUTER_API_KEY
+            if not resolved_key:
+                raise ValueError("CRITICAL CONFIG ERROR: Thiếu OPENROUTER_API_KEY trong .env hoặc giao diện")
             return
         resolved_key = api_key or cls.GEMINI_API_KEY
         if not resolved_key:

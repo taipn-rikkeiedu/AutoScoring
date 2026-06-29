@@ -130,6 +130,12 @@ def auto_sync_on_startup():
                     st.session_state.settings_deepseek_api_key = config_data.get(
                         "deepseek_api_key", old_api_key if prov == "deepseek" else ""
                     )
+                    st.session_state.settings_openrouter_api_key = config_data.get(
+                        "openrouter_api_key", old_api_key if prov == "openrouter" else ""
+                    )
+                    st.session_state.settings_openrouter_model_select = config_data.get(
+                        "openrouter_model_name", old_model_name if prov == "openrouter" else Settings.OPENROUTER_MODEL_NAME
+                    )
                     st.session_state.settings_custom_api_key = config_data.get(
                         "custom_api_key", old_api_key if prov == "custom" else ""
                     )
