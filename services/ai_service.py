@@ -1,9 +1,13 @@
 import json
+import time
 import requests
 from config.settings import Settings
 
 
 class AIService:
+    # Retry config for transient API errors (429, 503, high demand)
+    _MAX_RETRIES = 3
+    _RETRY_BASE_DELAY = 2  # seconds, doubles each retry (2s, 4s, 8s)
     def __init__(self, config=None):
         self.config = config or {}
         self.provider = (
@@ -200,18 +204,30 @@ class AIService:
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.2},
         }
-        response = requests.post(url, json=payload, timeout=300)
-        if response.status_code != 200:
+
+        last_error = None
+        for attempt in range(self._MAX_RETRIES + 1):
+            response = requests.post(url, json=payload, timeout=300)
+            if response.status_code == 200:
+                data = response.json()
+                return self._extract_text_from_payload(data)
+
+            # Check if this is a retryable error (429/503 or high demand)
+            if self._is_retryable(response) and attempt < self._MAX_RETRIES:
+                delay = self._RETRY_BASE_DELAY * (2 ** attempt)
+                time.sleep(delay)
+                continue
+
+            # Non-retryable or exhausted retries
             try:
                 err_data = response.json()
                 err_msg = err_data.get("error", {}).get("message", response.text)
-                raise ValueError(f"Google API Error: {err_msg}")
-            except ValueError:
-                raise
+                last_error = ValueError(f"Google API Error: {err_msg}")
             except Exception:
-                response.raise_for_status()
-        data = response.json()
-        return self._extract_text_from_payload(data)
+                last_error = ValueError(f"Google API Error: HTTP {response.status_code}")
+            break
+
+        raise last_error
 
     def _stream_gemini(self, prompt: str):
         """Stream tokens from Gemini's streamGenerateContent SSE endpoint."""
@@ -226,35 +242,60 @@ class AIService:
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.2},
         }
-        try:
-            response = requests.post(url, json=payload, timeout=300, stream=True)
-            if response.status_code != 200:
-                # Fallback to non-streaming if SSE endpoint fails
+
+        for attempt in range(self._MAX_RETRIES + 1):
+            try:
+                response = requests.post(url, json=payload, timeout=300, stream=True)
+                if response.status_code != 200:
+                    if self._is_retryable(response) and attempt < self._MAX_RETRIES:
+                        delay = self._RETRY_BASE_DELAY * (2 ** attempt)
+                        time.sleep(delay)
+                        continue
+                    # Fallback to non-streaming (which also has retry)
+                    yield self._generate_with_gemini(prompt)
+                    return
+
+                for line in self._iter_lines_safe(response):
+                    if not line:
+                        continue
+                    if line.startswith("data: "):
+                        line = line[len("data: "):]
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    candidates = chunk.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        for part in parts:
+                            text = part.get("text", "")
+                            if text:
+                                yield text
+                # If we reach here, streaming succeeded — break the retry loop
+                return
+            except requests.exceptions.RequestException:
+                if attempt < self._MAX_RETRIES:
+                    delay = self._RETRY_BASE_DELAY * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                # Exhausted retries — fallback to non-streaming
                 yield self._generate_with_gemini(prompt)
                 return
 
-            for line in self._iter_lines_safe(response):
-                if not line:
-                    continue
-                if line.startswith("data: "):
-                    line = line[len("data: "):]
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    chunk = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                candidates = chunk.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    for part in parts:
-                        text = part.get("text", "")
-                        if text:
-                            yield text
-        except requests.exceptions.RequestException:
-            # Network error — fallback to non-streaming
-            yield self._generate_with_gemini(prompt)
+    @staticmethod
+    def _is_retryable(response):
+        """Check if the API response indicates a transient/retryable error."""
+        if response.status_code in (429, 503):
+            return True
+        try:
+            err_msg = response.json().get("error", {}).get("message", "")
+            retryable_keywords = ["high demand", "overloaded", "try again", "rate limit"]
+            return any(kw in err_msg.lower() for kw in retryable_keywords)
+        except Exception:
+            return False
 
     # ------------------------------------------------------------------
     # UTF-8 safe line iterator
