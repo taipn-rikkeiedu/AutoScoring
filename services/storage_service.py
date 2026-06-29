@@ -22,6 +22,7 @@ def get_ai_config():
         "model_name": Settings.CUSTOM_MODEL_NAME or Settings.DEFAULT_MODEL,
         "local_model_name": Settings.LOCAL_MODEL_NAME,
         "ollama_base_url": Settings.OLLAMA_BASE_URL,
+        "github_token": Settings.GITHUB_TOKEN,
     }
 
 def provider_display_name(config: dict) -> str:

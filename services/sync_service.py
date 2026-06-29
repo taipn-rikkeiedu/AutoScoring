@@ -121,6 +121,7 @@ def auto_sync_on_startup():
                     st.session_state.settings_local_model_name = config_data.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = config_data.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
                     st.session_state.settings_gemini_model_select = config_data.get("model_name", Settings.DEFAULT_MODEL)
+                    st.session_state.settings_github_token = config_data.get("github_token", "")
                     sync_details.append("Cấu hình AI")
         except Exception as e:
             st.warning(f"Không thể đọc config.json từ local: {str(e)}")

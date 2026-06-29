@@ -7,6 +7,15 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v2.5.1] — 2026-06-29
+
+### ✨ Tính năng mới
+- **Cấu hình GitHub Token trên UI (Streamlit Cloud Optimization):**
+  - Cho phép người dùng nhập GitHub Personal Access Token trực tiếp trên tab Cấu hình (Settings).
+  - Tránh lỗi giới hạn lượt gọi (Rate Limit 403) từ GitHub API khi deploy trên Streamlit Cloud (nơi chia sẻ IP chung giữa nhiều ứng dụng).
+
+---
+
 ## [v2.5.0] — 2026-06-29
 
 ### ✨ Tính năng mới

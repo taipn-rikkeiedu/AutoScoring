@@ -12,8 +12,14 @@ class GitHubService:
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "AutoScoring/1.0",
         }
-        if Settings.GITHUB_TOKEN:
-            self.headers["Authorization"] = f"token {Settings.GITHUB_TOKEN}"
+        
+        # Load GitHub Token from active session state config if available, fallback to Settings
+        from services.storage_service import get_ai_config
+        active_config = get_ai_config()
+        token = active_config.get("github_token") or Settings.GITHUB_TOKEN
+        
+        if token:
+            self.headers["Authorization"] = f"token {token}"
 
     def _parse_url(self, repo_url: str) -> tuple[str, str]:
         # Validate that the domain is strictly github.com

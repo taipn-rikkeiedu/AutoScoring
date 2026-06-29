@@ -56,6 +56,7 @@ def main():
                     st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
                     st.session_state.settings_gemini_model_select = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                    st.session_state.settings_github_token = uploaded_config.get("github_token", "")
                     
                     # Sync to disk
                     from services.sync_service import sync_config_to_disk
@@ -653,6 +654,16 @@ def main():
                         key="settings_gemini_model_select",
                     )
 
+            st.markdown("---")
+            st.subheader("🔑 Cấu hình GitHub Token (Tùy chọn)")
+            st.caption("Cần thiết để tránh lỗi giới hạn lượt gọi (Rate Limit) từ GitHub API khi chạy trên Streamlit Cloud.")
+            github_token = st.text_input(
+                "GitHub Personal Access Token",
+                value=active_config.get("github_token", ""),
+                type="password",
+                key="settings_github_token",
+            )
+
             # Auto-sync config to session state on change
             new_settings_config = {
                 "provider": provider,
@@ -661,6 +672,7 @@ def main():
                 "model_name": model_name,
                 "local_model_name": local_model_name,
                 "ollama_base_url": ollama_base_url,
+                "github_token": github_token,
             }
             if st.session_state.get("ai_config") != new_settings_config:
                 try:
