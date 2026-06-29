@@ -48,15 +48,34 @@ def main():
                 if isinstance(uploaded_config, dict) and "provider" in uploaded_config:
                     st.session_state.ai_config = uploaded_config
                     
-                    # Force sync values directly to widget keys in session state to update inputs
                     st.session_state.settings_provider_select = uploaded_config.get("provider", "gemini")
-                    st.session_state.settings_api_key = uploaded_config.get("api_key", "")
-                    st.session_state.settings_api_base_url = uploaded_config.get("api_base_url", "")
-                    st.session_state.settings_model_name = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                    
+                    old_api_key = uploaded_config.get("api_key", "")
+                    old_model_name = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                    old_api_base_url = uploaded_config.get("api_base_url", "")
+                    prov = uploaded_config.get("provider", "gemini")
+                    
+                    st.session_state.settings_gemini_api_key = uploaded_config.get(
+                        "gemini_api_key", old_api_key if prov == "gemini" else ""
+                    )
+                    st.session_state.settings_gemini_model_select = uploaded_config.get(
+                        "gemini_model_name", old_model_name if prov == "gemini" else Settings.DEFAULT_MODEL
+                    )
+                    st.session_state.settings_deepseek_api_key = uploaded_config.get(
+                        "deepseek_api_key", old_api_key if prov == "deepseek" else ""
+                    )
+                    st.session_state.settings_custom_api_key = uploaded_config.get(
+                        "custom_api_key", old_api_key if prov == "custom" else ""
+                    )
+                    st.session_state.settings_custom_api_base_url = uploaded_config.get(
+                        "custom_api_base_url", old_api_base_url if prov == "custom" else ""
+                    )
+                    st.session_state.settings_custom_model_name = uploaded_config.get(
+                        "custom_model_name", old_model_name if prov == "custom" else Settings.DEFAULT_MODEL
+                    )
+                    
                     st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
-                    st.session_state.settings_gemini_model_select = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
-                    st.session_state.settings_deepseek_model_select = uploaded_config.get("model_name", Settings.DEEPSEEK_MODEL_NAME)
                     st.session_state.settings_github_token = uploaded_config.get("github_token", "")
                     
                     # Sync to disk
@@ -588,6 +607,16 @@ def main():
                 key="settings_provider_select",
             )
             
+            # Initialize other fields with safe config fallbacks
+            local_model_name = active_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
+            ollama_base_url = active_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
+            gemini_api_key = active_config.get("gemini_api_key", "")
+            gemini_model_name = active_config.get("gemini_model_name", Settings.DEFAULT_MODEL)
+            deepseek_api_key = active_config.get("deepseek_api_key", "")
+            custom_api_key = active_config.get("custom_api_key", "")
+            custom_api_base_url = active_config.get("custom_api_base_url", "")
+            custom_model_name = active_config.get("custom_model_name", Settings.DEFAULT_MODEL)
+
             if provider == "local":
                 local_model_name = st.text_input(
                     "Tên local model",
@@ -599,45 +628,48 @@ def main():
                     value=active_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL),
                     key="settings_ollama_base_url",
                 )
-                api_key = ""
-                api_base_url = ""
-                model_name = ""
-            else:
-                local_model_name = Settings.LOCAL_MODEL_NAME
-                ollama_base_url = Settings.OLLAMA_BASE_URL
-                api_key = st.text_input(
-                    "API Key",
-                    value=active_config.get("api_key", ""),
+            elif provider == "gemini":
+                gemini_api_key = st.text_input(
+                    "API Key (Gemini)",
+                    value=active_config.get("gemini_api_key", ""),
                     type="password",
-                    key="settings_api_key",
+                    key="settings_gemini_api_key",
                 )
-                if provider == "custom":
-                    api_base_url = st.text_input(
-                        "Base URL",
-                        value=active_config.get("api_base_url", ""),
-                        key="settings_api_base_url",
-                    )
-                    model_name = st.text_input(
-                        "Model",
-                        value=active_config.get("model_name", Settings.DEFAULT_MODEL),
-                        key="settings_model_name",
-                    )
-                elif provider == "deepseek":
-                    api_base_url = "https://api.deepseek.com"
-                    model_name = "deepseek-chat"
+                saved_model = active_config.get("gemini_model_name", Settings.DEFAULT_MODEL)
+                if saved_model in Settings.GEMINI_MODELS:
+                    default_idx = Settings.GEMINI_MODELS.index(saved_model)
                 else:
-                    api_base_url = ""
-                    saved_model = active_config.get("model_name", Settings.DEFAULT_MODEL)
-                    if saved_model in Settings.GEMINI_MODELS:
-                        default_idx = Settings.GEMINI_MODELS.index(saved_model)
-                    else:
-                        default_idx = 0
-                    model_name = st.selectbox(
-                        "Model Gemini",
-                        Settings.GEMINI_MODELS,
-                        index=default_idx,
-                        key="settings_gemini_model_select",
-                    )
+                    default_idx = 0
+                gemini_model_name = st.selectbox(
+                    "Model Gemini",
+                    Settings.GEMINI_MODELS,
+                    index=default_idx,
+                    key="settings_gemini_model_select",
+                )
+            elif provider == "deepseek":
+                deepseek_api_key = st.text_input(
+                    "API Key (DeepSeek)",
+                    value=active_config.get("deepseek_api_key", ""),
+                    type="password",
+                    key="settings_deepseek_api_key",
+                )
+            elif provider == "custom":
+                custom_api_key = st.text_input(
+                    "API Key",
+                    value=active_config.get("custom_api_key", ""),
+                    type="password",
+                    key="settings_custom_api_key",
+                )
+                custom_api_base_url = st.text_input(
+                    "Base URL",
+                    value=active_config.get("custom_api_base_url", ""),
+                    key="settings_custom_api_base_url",
+                )
+                custom_model_name = st.text_input(
+                    "Model",
+                    value=active_config.get("custom_model_name", Settings.DEFAULT_MODEL),
+                    key="settings_custom_model_name",
+                )
 
             st.markdown("---")
             st.subheader("GitHub Token (Tùy chọn)")
@@ -651,9 +683,14 @@ def main():
             # Auto-sync config to session state on change
             new_settings_config = {
                 "provider": provider,
-                "api_key": api_key,
-                "api_base_url": api_base_url,
-                "model_name": model_name,
+                "gemini_api_key": gemini_api_key,
+                "gemini_model_name": gemini_model_name,
+                "deepseek_api_key": deepseek_api_key,
+                "deepseek_api_base_url": "https://api.deepseek.com",
+                "deepseek_model_name": "deepseek-chat",
+                "custom_api_key": custom_api_key,
+                "custom_api_base_url": custom_api_base_url,
+                "custom_model_name": custom_model_name,
                 "local_model_name": local_model_name,
                 "ollama_base_url": ollama_base_url,
                 "github_token": github_token,
@@ -663,8 +700,12 @@ def main():
                     # Validate before saving
                     Settings.validate(
                         provider=provider,
-                        api_key=api_key if provider != "local" else "",
-                        api_base_url=api_base_url if provider == "custom" else "",
+                        api_key=(
+                            gemini_api_key if provider == "gemini" 
+                            else (deepseek_api_key if provider == "deepseek" 
+                            else (custom_api_key if provider == "custom" else ""))
+                        ),
+                        api_base_url=custom_api_base_url if provider == "custom" else "",
                     )
                     st.session_state.ai_config = new_settings_config
                     from services.sync_service import sync_config_to_disk

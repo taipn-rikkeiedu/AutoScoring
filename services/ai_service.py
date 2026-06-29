@@ -29,26 +29,31 @@ class AIService:
             self.api_key = ""
             self.api_base_url = ""
         elif self.provider == "custom":
-            self.api_key = self.config.get("api_key") or Settings.CUSTOM_API_KEY
+            self.api_key = self.config.get("custom_api_key") or self.config.get("api_key") or Settings.CUSTOM_API_KEY
             self.api_base_url = (
-                self.config.get("api_base_url") or Settings.CUSTOM_API_BASE_URL
+                self.config.get("custom_api_base_url") or self.config.get("api_base_url") or Settings.CUSTOM_API_BASE_URL
             )
             self.model_name = (
-                self.config.get("model_name")
+                self.config.get("custom_model_name")
+                or self.config.get("model_name")
                 or Settings.CUSTOM_MODEL_NAME
                 or Settings.DEFAULT_MODEL
             )
         elif self.provider == "deepseek":
-            self.api_key = self.config.get("api_key") or Settings.DEEPSEEK_API_KEY
+            self.api_key = self.config.get("deepseek_api_key") or self.config.get("api_key") or Settings.DEEPSEEK_API_KEY
             self.api_base_url = (
-                self.config.get("api_base_url") or Settings.DEEPSEEK_API_BASE_URL
+                self.config.get("deepseek_api_base_url") or self.config.get("api_base_url") or Settings.DEEPSEEK_API_BASE_URL
             )
             self.model_name = (
-                self.config.get("model_name") or Settings.DEEPSEEK_MODEL_NAME
+                self.config.get("deepseek_model_name") or self.config.get("model_name") or Settings.DEEPSEEK_MODEL_NAME
             )
         else:
-            self.api_key = self.config.get("api_key") or Settings.GEMINI_API_KEY
-            self.model_name = self.config.get("model_name") or Settings.DEFAULT_MODEL
+            self.api_key = self.config.get("gemini_api_key") or self.config.get("api_key") or Settings.GEMINI_API_KEY
+            self.model_name = (
+                self.config.get("gemini_model_name")
+                or self.config.get("model_name")
+                or Settings.DEFAULT_MODEL
+            )
             self.api_base_url = ""
 
         Settings.validate(

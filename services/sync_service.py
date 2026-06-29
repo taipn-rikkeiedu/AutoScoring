@@ -115,13 +115,32 @@ def auto_sync_on_startup():
                     st.session_state.ai_config = config_data
                     # Sync input widgets keys to avoid sync conflicts on load
                     st.session_state.settings_provider_select = config_data.get("provider", "gemini")
-                    st.session_state.settings_api_key = config_data.get("api_key", "")
-                    st.session_state.settings_api_base_url = config_data.get("api_base_url", "")
-                    st.session_state.settings_model_name = config_data.get("model_name", Settings.DEFAULT_MODEL)
+                    
+                    old_api_key = config_data.get("api_key", "")
+                    old_model_name = config_data.get("model_name", Settings.DEFAULT_MODEL)
+                    old_api_base_url = config_data.get("api_base_url", "")
+                    prov = config_data.get("provider", "gemini")
+                    
+                    st.session_state.settings_gemini_api_key = config_data.get(
+                        "gemini_api_key", old_api_key if prov == "gemini" else ""
+                    )
+                    st.session_state.settings_gemini_model_select = config_data.get(
+                        "gemini_model_name", old_model_name if prov == "gemini" else Settings.DEFAULT_MODEL
+                    )
+                    st.session_state.settings_deepseek_api_key = config_data.get(
+                        "deepseek_api_key", old_api_key if prov == "deepseek" else ""
+                    )
+                    st.session_state.settings_custom_api_key = config_data.get(
+                        "custom_api_key", old_api_key if prov == "custom" else ""
+                    )
+                    st.session_state.settings_custom_api_base_url = config_data.get(
+                        "custom_api_base_url", old_api_base_url if prov == "custom" else ""
+                    )
+                    st.session_state.settings_custom_model_name = config_data.get(
+                        "custom_model_name", old_model_name if prov == "custom" else Settings.DEFAULT_MODEL
+                    )
                     st.session_state.settings_local_model_name = config_data.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = config_data.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
-                    st.session_state.settings_gemini_model_select = config_data.get("model_name", Settings.DEFAULT_MODEL)
-                    st.session_state.settings_deepseek_model_select = config_data.get("model_name", Settings.DEEPSEEK_MODEL_NAME)
                     st.session_state.settings_github_token = config_data.get("github_token", "")
                     sync_details.append("Cấu hình AI")
         except Exception as e:

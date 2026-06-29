@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v2.7.0] — 2026-06-29
+
+### ✨ Tính năng mới
+- **Lưu trữ API Key độc lập từng AI Provider:**
+  - Tách cấu trúc lưu trữ của `config.json` để giữ các khóa API, model name, và URL riêng biệt (`gemini_api_key`, `deepseek_api_key`, `custom_api_key`, v.v.).
+  - Giúp người dùng chuyển đổi qua lại giữa các nhà cung cấp mà không bị mất cấu hình hay API Key của nhau.
+  - Tương thích ngược tự động với các cấu hình phiên bản cũ.
+
+---
+
 ## [v2.6.0] — 2026-06-29
 
 ### ✨ Tính năng mới

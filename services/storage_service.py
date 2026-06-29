@@ -16,28 +16,16 @@ def get_ai_config():
     if "ai_config" in st.session_state:
         return st.session_state.ai_config
     
-    provider = Settings.AI_PROVIDER or "gemini"
-    default_api_key = ""
-    default_api_base_url = ""
-    default_model = Settings.DEFAULT_MODEL
-    
-    if provider == "gemini":
-        default_api_key = Settings.GEMINI_API_KEY
-        default_model = Settings.DEFAULT_MODEL
-    elif provider == "deepseek":
-        default_api_key = Settings.DEEPSEEK_API_KEY
-        default_api_base_url = Settings.DEEPSEEK_API_BASE_URL
-        default_model = Settings.DEEPSEEK_MODEL_NAME
-    elif provider == "custom":
-        default_api_key = Settings.CUSTOM_API_KEY
-        default_api_base_url = Settings.CUSTOM_API_BASE_URL
-        default_model = Settings.CUSTOM_MODEL_NAME or Settings.DEFAULT_MODEL
-        
     return {
-        "provider": provider,
-        "api_key": default_api_key,
-        "api_base_url": default_api_base_url,
-        "model_name": default_model,
+        "provider": Settings.AI_PROVIDER or "gemini",
+        "gemini_api_key": Settings.GEMINI_API_KEY,
+        "gemini_model_name": Settings.DEFAULT_MODEL,
+        "deepseek_api_key": Settings.DEEPSEEK_API_KEY,
+        "deepseek_api_base_url": Settings.DEEPSEEK_API_BASE_URL,
+        "deepseek_model_name": Settings.DEEPSEEK_MODEL_NAME,
+        "custom_api_key": Settings.CUSTOM_API_KEY,
+        "custom_api_base_url": Settings.CUSTOM_API_BASE_URL,
+        "custom_model_name": Settings.CUSTOM_MODEL_NAME or Settings.DEFAULT_MODEL,
         "local_model_name": Settings.LOCAL_MODEL_NAME,
         "ollama_base_url": Settings.OLLAMA_BASE_URL,
         "github_token": Settings.GITHUB_TOKEN,
@@ -50,10 +38,10 @@ def provider_display_name(config: dict) -> str:
         model = config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
         return f"Ollama Local ({model})"
     if provider == "custom":
-        model = config.get("model_name", "custom")
+        model = config.get("custom_model_name") or config.get("model_name", "custom")
         return f"Custom API ({model})"
     if provider == "deepseek":
-        model = config.get("model_name", Settings.DEEPSEEK_MODEL_NAME)
+        model = config.get("deepseek_model_name") or config.get("model_name", Settings.DEEPSEEK_MODEL_NAME)
         return f"DeepSeek API ({model})"
-    model = config.get("model_name", Settings.DEFAULT_MODEL)
+    model = config.get("gemini_model_name") or config.get("model_name", Settings.DEFAULT_MODEL)
     return f"Google Gemini ({model})"
