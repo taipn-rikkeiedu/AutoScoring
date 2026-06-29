@@ -68,7 +68,7 @@ def main():
                         "openrouter_api_key", old_api_key if prov == "openrouter" else ""
                     )
                     st.session_state.settings_openrouter_model_select = uploaded_config.get(
-                        "openrouter_model_name", old_model_name if prov == "openrouter" else Settings.OPENROUTER_MODEL_NAME
+                        "openrouter_model_name", old_model_name if prov == "openrouter" else getattr(Settings, "OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free")
                     )
                     st.session_state.settings_custom_api_key = uploaded_config.get(
                         "custom_api_key", old_api_key if prov == "custom" else ""
@@ -620,7 +620,7 @@ def main():
             gemini_model_name = active_config.get("gemini_model_name", Settings.DEFAULT_MODEL)
             deepseek_api_key = active_config.get("deepseek_api_key", "")
             openrouter_api_key = active_config.get("openrouter_api_key", "")
-            openrouter_model_name = active_config.get("openrouter_model_name", Settings.OPENROUTER_MODEL_NAME)
+            openrouter_model_name = active_config.get("openrouter_model_name", getattr(Settings, "OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free"))
             custom_api_key = active_config.get("custom_api_key", "")
             custom_api_base_url = active_config.get("custom_api_base_url", "")
             custom_model_name = active_config.get("custom_model_name", Settings.DEFAULT_MODEL)
@@ -668,14 +668,15 @@ def main():
                     type="password",
                     key="settings_openrouter_api_key",
                 )
-                saved_model = active_config.get("openrouter_model_name", Settings.OPENROUTER_MODEL_NAME)
-                if saved_model in Settings.OPENROUTER_MODELS:
-                    default_idx = Settings.OPENROUTER_MODELS.index(saved_model)
+                saved_model = active_config.get("openrouter_model_name", getattr(Settings, "OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free"))
+                openrouter_models = getattr(Settings, "OPENROUTER_MODELS", ["qwen/qwen3-coder:free", "openrouter/free"])
+                if saved_model in openrouter_models:
+                    default_idx = openrouter_models.index(saved_model)
                 else:
                     default_idx = 0
                 openrouter_model_name = st.selectbox(
                     "Model OpenRouter",
-                    Settings.OPENROUTER_MODELS,
+                    openrouter_models,
                     index=default_idx,
                     key="settings_openrouter_model_select",
                 )

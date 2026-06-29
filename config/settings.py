@@ -34,7 +34,7 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "2.8.0"
+    APP_VERSION = "2.8.1"
     LOCAL_DATA_ROOT = "C:/AutoScoring"
     LOCAL_CONFIG_PATH = "C:/AutoScoring/config/config.json"
     LOCAL_TEMPLATES_PATH = "C:/AutoScoring/data/templates.json"

@@ -7,6 +7,15 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v2.8.1] — 2026-06-29
+
+### 🐛 Sửa lỗi
+- **Sửa lỗi AttributeError trên Streamlit Cloud:**
+  - Sử dụng hàm `getattr` để nạp an toàn các thuộc tính cấu hình OpenRouter mới từ lớp Settings.
+  - Ngăn ngừa lỗi đổ vỡ ứng dụng do cơ chế lưu bộ nhớ đệm (module caching) của Streamlit Cloud không tự động cập nhật lại các tệp cấu hình phụ (`config/settings.py`).
+
+---
+
 ## [v2.8.0] — 2026-06-29
 
 ### ✨ Tính năng mới

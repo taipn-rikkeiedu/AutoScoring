@@ -23,9 +23,9 @@ def get_ai_config():
         "deepseek_api_key": Settings.DEEPSEEK_API_KEY,
         "deepseek_api_base_url": Settings.DEEPSEEK_API_BASE_URL,
         "deepseek_model_name": Settings.DEEPSEEK_MODEL_NAME,
-        "openrouter_api_key": Settings.OPENROUTER_API_KEY,
-        "openrouter_api_base_url": Settings.OPENROUTER_API_BASE_URL,
-        "openrouter_model_name": Settings.OPENROUTER_MODEL_NAME,
+        "openrouter_api_key": getattr(Settings, "OPENROUTER_API_KEY", ""),
+        "openrouter_api_base_url": getattr(Settings, "OPENROUTER_API_BASE_URL", "https://openrouter.ai/api/v1"),
+        "openrouter_model_name": getattr(Settings, "OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free"),
         "custom_api_key": Settings.CUSTOM_API_KEY,
         "custom_api_base_url": Settings.CUSTOM_API_BASE_URL,
         "custom_model_name": Settings.CUSTOM_MODEL_NAME or Settings.DEFAULT_MODEL,
@@ -47,7 +47,7 @@ def provider_display_name(config: dict) -> str:
         model = config.get("deepseek_model_name") or config.get("model_name", Settings.DEEPSEEK_MODEL_NAME)
         return f"DeepSeek API ({model})"
     if provider == "openrouter":
-        model = config.get("openrouter_model_name") or config.get("model_name", Settings.OPENROUTER_MODEL_NAME)
+        model = config.get("openrouter_model_name") or config.get("model_name", getattr(Settings, "OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free"))
         return f"OpenRouter ({model})"
     model = config.get("gemini_model_name") or config.get("model_name", Settings.DEFAULT_MODEL)
     return f"Google Gemini ({model})"

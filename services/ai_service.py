@@ -48,12 +48,12 @@ class AIService:
                 self.config.get("deepseek_model_name") or self.config.get("model_name") or Settings.DEEPSEEK_MODEL_NAME
             )
         elif self.provider == "openrouter":
-            self.api_key = self.config.get("openrouter_api_key") or self.config.get("api_key") or Settings.OPENROUTER_API_KEY
+            self.api_key = self.config.get("openrouter_api_key") or self.config.get("api_key") or getattr(Settings, "OPENROUTER_API_KEY", "")
             self.api_base_url = (
-                self.config.get("openrouter_api_base_url") or self.config.get("api_base_url") or Settings.OPENROUTER_API_BASE_URL
+                self.config.get("openrouter_api_base_url") or self.config.get("api_base_url") or getattr(Settings, "OPENROUTER_API_BASE_URL", "https://openrouter.ai/api/v1")
             )
             self.model_name = (
-                self.config.get("openrouter_model_name") or self.config.get("model_name") or Settings.OPENROUTER_MODEL_NAME
+                self.config.get("openrouter_model_name") or self.config.get("model_name") or getattr(Settings, "OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free")
             )
         else:
             self.api_key = self.config.get("gemini_api_key") or self.config.get("api_key") or Settings.GEMINI_API_KEY

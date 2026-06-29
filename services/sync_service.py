@@ -134,7 +134,7 @@ def auto_sync_on_startup():
                         "openrouter_api_key", old_api_key if prov == "openrouter" else ""
                     )
                     st.session_state.settings_openrouter_model_select = config_data.get(
-                        "openrouter_model_name", old_model_name if prov == "openrouter" else Settings.OPENROUTER_MODEL_NAME
+                        "openrouter_model_name", old_model_name if prov == "openrouter" else getattr(Settings, "OPENROUTER_MODEL_NAME", "qwen/qwen3-coder:free")
                     )
                     st.session_state.settings_custom_api_key = config_data.get(
                         "custom_api_key", old_api_key if prov == "custom" else ""
