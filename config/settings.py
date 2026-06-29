@@ -34,7 +34,11 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "2.4.0"
+    APP_VERSION = "2.5.0"
+    LOCAL_DATA_ROOT = "C:/AutoScoring"
+    LOCAL_CONFIG_PATH = "C:/AutoScoring/config/config.json"
+    LOCAL_TEMPLATES_PATH = "C:/AutoScoring/data/templates.json"
+    LOCAL_SYNC_SETTINGS_PATH = "C:/AutoScoring/.sync_settings.json"
     GEMINI_API_KEY = _get_secret("GEMINI_API_KEY", "")
     GITHUB_TOKEN = _get_secret("GITHUB_TOKEN", "")
     DEFAULT_MODEL = _get_secret("DEFAULT_MODEL", "gemini-1.5-pro")

@@ -7,6 +7,17 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v2.5.0] — 2026-06-29
+
+### ✨ Tính năng mới
+- **Đồng bộ tự động dữ liệu Local (Local Filesystem Auto-Sync):**
+  - **Tự động đọc/ghi cấu hình:** Đồng bộ `config.json` và `templates.json` hai chiều giữa ổ đĩa và app session khi khởi chạy.
+  - **Môi trường an toàn:** Tự động phát hiện môi trường chạy (Local Windows ↔ Streamlit Cloud) để kích hoạt đồng bộ hoặc fallback an toàn.
+  - **Trạng thái đồng bộ:** Thêm card thông tin chi tiết về đường dẫn file và trạng thái đồng bộ tại Sidebar.
+  - **Lưu trữ cấu hình:** Ghi ngược cấu hình và thư viện bài tập ngay khi người dùng thay đổi trực tiếp trên UI.
+
+---
+
 ## [v2.4.0] — 2026-06-29
 
 ### ✨ Tính năng mới

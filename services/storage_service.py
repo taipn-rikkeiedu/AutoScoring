@@ -8,6 +8,8 @@ def load_templates():
 
 def save_templates(templates):
     st.session_state.cloud_templates = templates
+    from services.sync_service import sync_templates_to_disk
+    sync_templates_to_disk(templates)
     return True
 
 def get_ai_config():

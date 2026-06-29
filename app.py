@@ -32,6 +32,14 @@ def main():
         page_title=f"AI GitHub Grader v{Settings.APP_VERSION}", page_icon="🤖", layout="wide"
     )
 
+    # ── Auto-sync from local filesystem on startup ──
+    from services.sync_service import auto_sync_on_startup
+    auto_sync_on_startup()
+
+    if st.session_state.get("sync_status_msg"):
+        st.toast(st.session_state.sync_status_msg, icon="🔄")
+        del st.session_state.sync_status_msg
+
     def apply_uploaded_config():
         uploaded_file = st.session_state.get("settings_config_uploader")
         if uploaded_file is not None:
@@ -48,6 +56,10 @@ def main():
                     st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
                     st.session_state.settings_gemini_model_select = uploaded_config.get("model_name", Settings.DEFAULT_MODEL)
+                    
+                    # Sync to disk
+                    from services.sync_service import sync_config_to_disk
+                    sync_config_to_disk(uploaded_config)
                     
                     st.session_state.config_upload_success = "✅ Đã nạp cấu hình AI thành công!"
                 else:
@@ -202,6 +214,15 @@ def main():
         st.caption(
             "Bạn có thể cấu hình AI, chọn model khác, hoặc tải lên khóa bí mật trong thẻ **Settings ⚙️** ở màn hình chính."
         )
+        
+        # Local Sync Status
+        if st.session_state.get("sync_local_active"):
+            st.markdown('<div class="sidebar-section" style="margin-top:20px;">🔄 ĐỒNG BỘ LOCAL DATA</div>', unsafe_allow_html=True)
+            st.success("Đang tự động đồng bộ")
+            from services.sync_service import get_sync_paths
+            paths = get_sync_paths()
+            st.caption(f"📁 **Config:** `{paths['config']}`")
+            st.caption(f"📁 **Templates:** `{paths['templates']}`")
 
     # ── Main Area Navigation Tabs ────────────────────────────────────
     tab_grader, tab_manager, tab_settings = st.tabs([
@@ -650,6 +671,8 @@ def main():
                         api_base_url=api_base_url if provider == "custom" else "",
                     )
                     st.session_state.ai_config = new_settings_config
+                    from services.sync_service import sync_config_to_disk
+                    sync_config_to_disk(new_settings_config)
                     st.success("✅ Đã cập nhật và đồng bộ cấu hình AI thành công!")
                 except ValueError as ve:
                     st.error(f"Cấu hình không hợp lệ: {str(ve)}")
