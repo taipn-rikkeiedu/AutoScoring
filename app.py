@@ -29,7 +29,7 @@ from components.modals import (
 
 def main():
     st.set_page_config(
-        page_title="AI GitHub Grader v2.0", page_icon="🤖", layout="wide"
+        page_title=f"AI GitHub Grader v{Settings.APP_VERSION}", page_icon="🤖", layout="wide"
     )
 
     def apply_uploaded_config():
@@ -182,9 +182,9 @@ def main():
 
     # Render Premium Banner Header
     st.markdown(
-        """
+        f"""
         <div class="header-container">
-            <h1 class="header-title">🤖 Hệ thống Chấm điểm & Đánh giá Mã nguồn AI</h1>
+            <h1 class="header-title">🤖 Hệ thống Chấm điểm & Đánh giá Mã nguồn AI <span style="font-size:0.5em; opacity:0.8; vertical-align:middle; background:rgba(255,255,255,0.15); padding:3px 10px; border-radius:6px; margin-left:8px;">v{Settings.APP_VERSION}</span></h1>
             <div class="header-subtitle">Giải pháp chấm bài tập lập trình tự động qua liên kết GitHub sử dụng Trí tuệ Nhân tạo thông minh.</div>
         </div>
         """,
@@ -231,18 +231,69 @@ def main():
                 placeholder="https://github.com/username/repository-name",
                 key="grader_repo_url"
             )
-            # --- Render Selected Exercise Info (replacing text areas) ---
+            # --- Render Selected Exercise Info with Quick Switcher ---
             if st.session_state.get("selected_chapter_name"):
+                _sel_chapter = st.session_state.selected_chapter_name
+                _sel_session = st.session_state.selected_session_name
+                _sel_assignment = st.session_state.selected_assignment_name
+
                 st.markdown(
                     f"""
-                    <div style="background-color: var(--secondary-background-color); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 15px; margin-bottom: 15px;">
-                        📌 <b>Bài tập đang chọn:</b><br>
-                        • <b>Chương:</b> {st.session_state.selected_chapter_name}<br>
-                        • <b>Session:</b> {st.session_state.selected_session_name}<br>
-                        • <b>Bài tập:</b> {st.session_state.selected_assignment_name}
+                    <div style="background-color: var(--secondary-background-color); padding: 12px 15px 4px 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 15px; margin-bottom: 0;">
+                        📌 <b>Bài tập đang chọn</b> &nbsp;·&nbsp; <span style="opacity:0.7;">Chương:</span> {_sel_chapter}
                     </div>
                     """,
                     unsafe_allow_html=True
+                )
+
+                # Quick-switch: Session within the same Chapter
+                _sessions_in_chapter = list(templates.get(_sel_chapter, {}).keys())
+                _sess_idx = _sessions_in_chapter.index(_sel_session) if _sel_session in _sessions_in_chapter else 0
+
+                def _on_quick_session_change():
+                    """Callback when quick session switcher changes."""
+                    new_session = st.session_state.quick_session_select
+                    ch = st.session_state.selected_chapter_name
+                    assignments_in_new_session = list(templates.get(ch, {}).get(new_session, {}).keys())
+                    if assignments_in_new_session:
+                        first_assignment = assignments_in_new_session[0]
+                        data = templates[ch][new_session][first_assignment]
+                        st.session_state.selected_session_name = new_session
+                        st.session_state.selected_assignment_name = first_assignment
+                        st.session_state.assignment_val = data["assignment"]
+                        st.session_state.criteria_val = data["criteria"]
+
+                new_session = st.selectbox(
+                    "🔹 Session:",
+                    _sessions_in_chapter,
+                    index=_sess_idx,
+                    key="quick_session_select",
+                    on_change=_on_quick_session_change,
+                    label_visibility="collapsed" if len(_sessions_in_chapter) <= 1 else "visible",
+                )
+
+                # Quick-switch: Exercise within the current Session
+                _current_session = st.session_state.selected_session_name
+                _assignments_in_session = list(templates.get(_sel_chapter, {}).get(_current_session, {}).keys())
+                _ass_idx = _assignments_in_session.index(_sel_assignment) if _sel_assignment in _assignments_in_session else 0
+
+                def _on_quick_assignment_change():
+                    """Callback when quick assignment switcher changes."""
+                    new_assignment = st.session_state.quick_assignment_select
+                    ch = st.session_state.selected_chapter_name
+                    sess = st.session_state.selected_session_name
+                    data = templates.get(ch, {}).get(sess, {}).get(new_assignment, {})
+                    if data:
+                        st.session_state.selected_assignment_name = new_assignment
+                        st.session_state.assignment_val = data["assignment"]
+                        st.session_state.criteria_val = data["criteria"]
+
+                new_assignment = st.selectbox(
+                    "📄 Bài tập:",
+                    _assignments_in_session,
+                    index=_ass_idx,
+                    key="quick_assignment_select",
+                    on_change=_on_quick_assignment_change,
                 )
             else:
                 st.warning("⚠️ Vui lòng chọn bài tập từ Thư viện mẫu ở trên để thiết lập đề bài và tiêu chí.")

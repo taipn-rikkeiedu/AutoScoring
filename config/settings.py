@@ -31,6 +31,7 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
+    APP_VERSION = "2.3.0"
     GEMINI_API_KEY = _get_secret("GEMINI_API_KEY", "")
     GITHUB_TOKEN = _get_secret("GITHUB_TOKEN", "")
     DEFAULT_MODEL = _get_secret("DEFAULT_MODEL", "gemini-1.5-pro")
