@@ -1,5 +1,6 @@
 import re
 import json
+import time
 import streamlit as st
 from config.settings import Settings
 from services.github_service import GitHubService
@@ -418,8 +419,12 @@ def main():
                                     )
 
                                     # Use streaming to show real-time output
+                                    # Buffer chunks and update UI periodically
+                                    # to avoid flickering and Vietnamese char corruption
                                     report_placeholder = st.empty()
                                     full_report = ""
+                                    _last_render = time.monotonic()
+                                    _RENDER_INTERVAL = 0.15  # seconds
 
                                     for chunk in ai_engine.generate_grading_report_stream(
                                         assignment_val,
@@ -427,9 +432,12 @@ def main():
                                         extracted_payload["content"],
                                     ):
                                         full_report += chunk
-                                        report_placeholder.markdown(
-                                            full_report + "▌"
-                                        )
+                                        now = time.monotonic()
+                                        if now - _last_render >= _RENDER_INTERVAL:
+                                            report_placeholder.markdown(
+                                                full_report + "▌"
+                                            )
+                                            _last_render = now
 
                                     # Final render cleanup (remove cursor)
                                     report_placeholder.markdown(full_report)

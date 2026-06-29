@@ -120,7 +120,7 @@ class AIService:
             stream=True,
         )
         response.raise_for_status()
-        for line in response.iter_lines(decode_unicode=True):
+        for line in self._iter_lines_safe(response):
             if not line:
                 continue
             try:
@@ -167,7 +167,7 @@ class AIService:
             url, headers=headers, json=payload, timeout=300, stream=True
         )
         response.raise_for_status()
-        for line in response.iter_lines(decode_unicode=True):
+        for line in self._iter_lines_safe(response):
             if not line:
                 continue
             if line.startswith("data: "):
@@ -233,7 +233,7 @@ class AIService:
                 yield self._generate_with_gemini(prompt)
                 return
 
-            for line in response.iter_lines(decode_unicode=True):
+            for line in self._iter_lines_safe(response):
                 if not line:
                     continue
                 if line.startswith("data: "):
@@ -255,6 +255,36 @@ class AIService:
         except requests.exceptions.RequestException:
             # Network error — fallback to non-streaming
             yield self._generate_with_gemini(prompt)
+
+    # ------------------------------------------------------------------
+    # UTF-8 safe line iterator
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _iter_lines_safe(response, chunk_size=512):
+        """Iterate over response lines with proper UTF-8 decoding.
+
+        Unlike ``response.iter_lines(decode_unicode=True)`` which can
+        split multi-byte UTF-8 characters (e.g. Vietnamese) across chunk
+        boundaries and produce mojibake, this method uses Python's
+        incremental UTF-8 decoder to guarantee correct character handling.
+        """
+        import codecs
+
+        decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        buf = ""
+        for raw_chunk in response.iter_content(chunk_size=chunk_size):
+            if not raw_chunk:
+                continue
+            buf += decoder.decode(raw_chunk, final=False)
+            while "\n" in buf:
+                line, buf = buf.split("\n", 1)
+                stripped = line.strip("\r")
+                if stripped:
+                    yield stripped
+        # Flush remaining bytes in the decoder
+        buf += decoder.decode(b"", final=True)
+        if buf.strip("\r\n"):
+            yield buf.strip("\r\n")
 
     # ------------------------------------------------------------------
     # Response parsing helpers
