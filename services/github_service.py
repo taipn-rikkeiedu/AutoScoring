@@ -114,6 +114,9 @@ class GitHubService:
                         continue
                     if any(ex_dir in name for ex_dir in Settings.EXCLUDED_DIRS):
                         continue
+                    basename = name.split("/")[-1]
+                    if basename in Settings.EXCLUDED_FILES:
+                        continue
                     if name.endswith("/"):
                         continue
                     try:
@@ -248,9 +251,12 @@ class GitHubService:
                 if item_type not in ("file", "blob") or not isinstance(item_path, str):
                     continue
                 if not item_path.endswith(Settings.ALLOWED_EXTENSIONS):
-                    continue
+                     continue
                 if any(ex_dir in item_path for ex_dir in Settings.EXCLUDED_DIRS):
-                    continue
+                     continue
+                basename = item_path.split("/")[-1]
+                if basename in Settings.EXCLUDED_FILES:
+                     continue
                 eligible.append(item)
 
             total_eligible = len(eligible)

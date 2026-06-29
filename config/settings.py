@@ -34,7 +34,7 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "2.3.0"
+    APP_VERSION = "2.4.0"
     GEMINI_API_KEY = _get_secret("GEMINI_API_KEY", "")
     GITHUB_TOKEN = _get_secret("GITHUB_TOKEN", "")
     DEFAULT_MODEL = _get_secret("DEFAULT_MODEL", "gemini-1.5-pro")
@@ -101,6 +101,19 @@ class Settings:
         GRADING_CACHE_TTL_MINUTES = int(_get_secret("GRADING_CACHE_TTL_MINUTES", "120"))
     except (ValueError, TypeError):
         GRADING_CACHE_TTL_MINUTES = 120
+    EXCLUDED_FILES = (
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "composer.lock",
+        "pom.xml.tag",
+        ".gitignore",
+        "LICENSE",
+        "gradlew.bat",
+        "gradlew",
+        "mvnw.cmd",
+        "mvnw",
+    )
     GEMINI_MODELS = [
         "gemini-3.5-flash",
         "gemini-3.5-pro",

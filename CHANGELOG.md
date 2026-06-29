@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v2.4.0] — 2026-06-29
+
+### ✨ Tính năng mới
+- **Tối ưu hóa tài nguyên AI (Token Optimization):**
+  - **Nén mã nguồn:** Tự động loại bỏ khoảng trắng thừa ở cuối dòng, gộp các dòng trống liên tiếp để tiết kiệm token đầu vào (30-50% input tokens).
+  - **Loại bỏ file hệ thống:** Lọc bỏ các file rác, metadata, lockfiles (`package-lock.json`, `yarn.lock`, `.gitignore`, `LICENSE`, wrappers...) ngay từ khâu download (giữ lại `README.md`).
+  - **Giới hạn Output Token:** Cấu hình cứng `maxOutputTokens: 1024` cho Gemini API để tránh phản hồi lan man, tiết kiệm token đầu ra.
+
+---
+
 ## [v2.3.0] — 2026-06-29
 
 ### ✨ Tính năng mới

@@ -49,10 +49,28 @@ class AIService:
             api_base_url=self.api_base_url,
         )
 
+    def _compress_code(self, code_content: str) -> str:
+        """Compress code content by collapsing consecutive empty lines and trailing spaces to save input tokens."""
+        lines = code_content.split('\n')
+        compressed_lines = []
+        prev_blank = False
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                if not prev_blank:
+                    compressed_lines.append("")
+                prev_blank = True
+            else:
+                prev_blank = False
+                # Remove trailing whitespaces on the line
+                compressed_lines.append(line.rstrip())
+        return '\n'.join(compressed_lines)
+
     def _build_prompt(self, assignment: str, criteria: str, code_content: str) -> str:
         max_score = Settings.GRADING_MAX_SCORE
         max_words = Settings.GRADING_MAX_WORDS
         lang = Settings.GRADING_LANGUAGE
+        compressed_code = self._compress_code(code_content)
         return (
             f"Chấm điểm mã nguồn theo thang {max_score} điểm. "
             f"Trả lời ngắn gọn tối đa {max_words} từ bằng {lang}. "
@@ -67,7 +85,7 @@ class AIService:
             f"---\n"
             f"ĐỀ BÀI: {assignment}\n\n"
             f"TIÊU CHÍ: {criteria}\n\n"
-            f"MÃ NGUỒN:\n{code_content}"
+            f"MÃ NGUỒN:\n{compressed_code}"
         )
 
     # ------------------------------------------------------------------
@@ -202,7 +220,10 @@ class AIService:
         )
         payload = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.2},
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 1024
+            },
         }
 
         last_error = None
@@ -240,7 +261,10 @@ class AIService:
         )
         payload = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.2},
+            "generationConfig": {
+                "temperature": 0.2,
+                "maxOutputTokens": 1024
+            },
         }
 
         for attempt in range(self._MAX_RETRIES + 1):
