@@ -1,9 +1,12 @@
 import os
 import json
 import streamlit as st
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
 
 def _get_secret(key: str, default: str = "") -> str:
@@ -17,7 +20,7 @@ def _get_secret(key: str, default: str = "") -> str:
         if isinstance(value, str):
             return value
         return str(value)
-    except Exception:
+    except BaseException:
         return os.getenv(key, default)
 
 
@@ -76,13 +79,28 @@ class Settings:
         ".idea/",
         ".vscode/",
     )
-    GRADING_MAX_SCORE = int(_get_secret("GRADING_MAX_SCORE", "100"))
-    GRADING_MAX_WORDS = int(_get_secret("GRADING_MAX_WORDS", "100"))
+    try:
+        GRADING_MAX_SCORE = int(_get_secret("GRADING_MAX_SCORE", "100"))
+    except (ValueError, TypeError):
+        GRADING_MAX_SCORE = 100
+    try:
+        GRADING_MAX_WORDS = int(_get_secret("GRADING_MAX_WORDS", "100"))
+    except (ValueError, TypeError):
+        GRADING_MAX_WORDS = 100
     GRADING_LANGUAGE = _get_secret("GRADING_LANGUAGE", "Tiếng Việt")
-    MAX_PROJECT_FILES = int(_get_secret("MAX_PROJECT_FILES", "100"))
-    MAX_PROJECT_CHARS = int(_get_secret("MAX_PROJECT_CHARS", "500000"))
+    try:
+        MAX_PROJECT_FILES = int(_get_secret("MAX_PROJECT_FILES", "100"))
+    except (ValueError, TypeError):
+        MAX_PROJECT_FILES = 100
+    try:
+        MAX_PROJECT_CHARS = int(_get_secret("MAX_PROJECT_CHARS", "500000"))
+    except (ValueError, TypeError):
+        MAX_PROJECT_CHARS = 500000
     GRADING_CACHE_ENABLED = _get_bool_env("GRADING_CACHE_ENABLED", True)
-    GRADING_CACHE_TTL_MINUTES = int(_get_secret("GRADING_CACHE_TTL_MINUTES", "120"))
+    try:
+        GRADING_CACHE_TTL_MINUTES = int(_get_secret("GRADING_CACHE_TTL_MINUTES", "120"))
+    except (ValueError, TypeError):
+        GRADING_CACHE_TTL_MINUTES = 120
     GEMINI_MODELS = [
         "gemini-3.5-flash",
         "gemini-3.5-pro",
