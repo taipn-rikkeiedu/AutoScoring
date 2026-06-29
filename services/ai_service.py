@@ -5,9 +5,9 @@ from config.settings import Settings
 
 
 class AIService:
-    # Retry config for transient API errors (429, 503, high demand)
-    _MAX_RETRIES = 3
-    _RETRY_BASE_DELAY = 2  # seconds, doubles each retry (2s, 4s, 8s)
+    # Retry config for transient API errors (429, 503, quota, high demand)
+    _MAX_RETRIES = 5
+    _RETRY_BASE_DELAY = 10  # seconds; actual delay = max(base*2^attempt, server_hint)
     def __init__(self, config=None):
         self.config = config or {}
         self.provider = (
@@ -212,9 +212,9 @@ class AIService:
                 data = response.json()
                 return self._extract_text_from_payload(data)
 
-            # Check if this is a retryable error (429/503 or high demand)
+            # Check if this is a retryable error (429/503/quota or high demand)
             if self._is_retryable(response) and attempt < self._MAX_RETRIES:
-                delay = self._RETRY_BASE_DELAY * (2 ** attempt)
+                delay = self._get_retry_delay(response, attempt)
                 time.sleep(delay)
                 continue
 
@@ -248,7 +248,7 @@ class AIService:
                 response = requests.post(url, json=payload, timeout=300, stream=True)
                 if response.status_code != 200:
                     if self._is_retryable(response) and attempt < self._MAX_RETRIES:
-                        delay = self._RETRY_BASE_DELAY * (2 ** attempt)
+                        delay = self._get_retry_delay(response, attempt)
                         time.sleep(delay)
                         continue
                     # Fallback to non-streaming (which also has retry)
@@ -279,7 +279,7 @@ class AIService:
             except requests.exceptions.RequestException:
                 if attempt < self._MAX_RETRIES:
                     delay = self._RETRY_BASE_DELAY * (2 ** attempt)
-                    time.sleep(delay)
+                    time.sleep(min(delay, 60))
                     continue
                 # Exhausted retries — fallback to non-streaming
                 yield self._generate_with_gemini(prompt)
@@ -292,10 +292,35 @@ class AIService:
             return True
         try:
             err_msg = response.json().get("error", {}).get("message", "")
-            retryable_keywords = ["high demand", "overloaded", "try again", "rate limit"]
+            retryable_keywords = [
+                "high demand", "overloaded", "try again",
+                "rate limit", "quota", "resource exhausted",
+                "please retry",
+            ]
             return any(kw in err_msg.lower() for kw in retryable_keywords)
         except Exception:
             return False
+
+    def _get_retry_delay(self, response, attempt):
+        """Calculate retry delay, preferring server-suggested wait time."""
+        import re as _re
+        fallback = min(self._RETRY_BASE_DELAY * (2 ** attempt), 120)
+        # 1. Check Retry-After header (seconds)
+        retry_after = response.headers.get("Retry-After")
+        if retry_after:
+            try:
+                return max(float(retry_after), 1)
+            except (ValueError, TypeError):
+                pass
+        # 2. Parse "Please retry in XXs" from error message body
+        try:
+            err_msg = response.json().get("error", {}).get("message", "")
+            match = _re.search(r"retry in ([\d.]+)s", err_msg, _re.IGNORECASE)
+            if match:
+                return max(float(match.group(1)) + 1, 1)  # +1s safety margin
+        except Exception:
+            pass
+        return fallback
 
     # ------------------------------------------------------------------
     # UTF-8 safe line iterator
