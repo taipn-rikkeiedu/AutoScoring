@@ -1,7 +1,7 @@
 import json
 import time
 import requests
-from config.settings import Settings
+from core.settings import Settings
 
 
 class AIService:

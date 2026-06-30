@@ -1,21 +1,34 @@
 import streamlit as st
-from config.settings import Settings
+from core.settings import Settings
 
 def load_templates():
-    if "cloud_templates" not in st.session_state:
-        st.session_state.cloud_templates = Settings.DEFAULT_TEMPLATES.copy()
-    return st.session_state.cloud_templates
+    from core.exercise_service import ExerciseService
+    return ExerciseService.load_templates()
 
 def save_templates(templates):
-    st.session_state.cloud_templates = templates
-    from services.sync_service import sync_templates_to_disk
-    sync_templates_to_disk(templates)
-    return True
+    from core.exercise_service import ExerciseService
+    return ExerciseService.save_templates(templates)
 
 def get_ai_config():
-    if "ai_config" in st.session_state:
+    from utils.helpers import is_streamlit_running
+    if is_streamlit_running() and "ai_config" in st.session_state:
         return st.session_state.ai_config
     
+    # If not running in Streamlit, check if config.json exists on disk
+    from core.sync_service import get_sync_paths
+    import os
+    import json
+    paths = get_sync_paths()
+    config_file = paths["config"]
+    if os.path.exists(config_file):
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+                if isinstance(config_data, dict) and "provider" in config_data:
+                    return config_data
+        except Exception:
+            pass
+            
     return {
         "provider": Settings.AI_PROVIDER or "gemini",
         "gemini_api_key": Settings.GEMINI_API_KEY,
@@ -32,6 +45,9 @@ def get_ai_config():
         "local_model_name": Settings.LOCAL_MODEL_NAME,
         "ollama_base_url": Settings.OLLAMA_BASE_URL,
         "github_token": Settings.GITHUB_TOKEN,
+        "exercise_source": getattr(Settings, "EXERCISE_SOURCE", "local"),
+        "exercise_api_url": getattr(Settings, "EXERCISE_API_URL", ""),
+        "exercise_api_token": getattr(Settings, "EXERCISE_API_TOKEN", ""),
     }
 
 def provider_display_name(config: dict) -> str:

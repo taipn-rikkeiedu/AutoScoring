@@ -1,90 +1,13 @@
 import os
 import json
 import streamlit as st
-from config.settings import Settings
-
-def get_sync_paths() -> dict:
-    """Read paths from .sync_settings.json or return defaults."""
-    default_paths = {
-        "root": Settings.LOCAL_DATA_ROOT,
-        "config": Settings.LOCAL_CONFIG_PATH,
-        "templates": Settings.LOCAL_TEMPLATES_PATH
-    }
-    
-    # Check if we have customized sync paths saved
-    if os.path.exists(Settings.LOCAL_SYNC_SETTINGS_PATH):
-        try:
-            with open(Settings.LOCAL_SYNC_SETTINGS_PATH, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                if isinstance(saved, dict):
-                    # Ensure we merge with defaults if keys are missing
-                    return {
-                        "root": saved.get("root", default_paths["root"]),
-                        "config": saved.get("config", default_paths["config"]),
-                        "templates": saved.get("templates", default_paths["templates"])
-                    }
-        except Exception:
-            pass
-            
-    return default_paths
-
-def save_sync_paths(root_path: str, config_path: str, templates_path: str) -> bool:
-    """Save custom sync paths to .sync_settings.json."""
-    try:
-        # Create directories if they do not exist
-        os.makedirs(os.path.dirname(Settings.LOCAL_SYNC_SETTINGS_PATH), exist_ok=True)
-        
-        paths = {
-            "root": root_path.strip(),
-            "config": config_path.strip(),
-            "templates": templates_path.strip()
-        }
-        with open(Settings.LOCAL_SYNC_SETTINGS_PATH, "w", encoding="utf-8") as f:
-            json.dump(paths, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception:
-        return False
-
-def is_local_environment() -> bool:
-    """Check if the current host environment can access local Windows directories."""
-    if os.name != "nt":
-        return False
-    try:
-        paths = get_sync_paths()
-        root = paths["root"]
-        if not os.path.exists(root):
-            os.makedirs(root, exist_ok=True)
-        return True
-    except Exception:
-        return False
-
-def sync_config_to_disk(config_dict: dict) -> bool:
-    """Write current config dict to config.json on disk."""
-    if not is_local_environment():
-        return False
-    try:
-        paths = get_sync_paths()
-        config_file = paths["config"]
-        os.makedirs(os.path.dirname(config_file), exist_ok=True)
-        with open(config_file, "w", encoding="utf-8") as f:
-            json.dump(config_dict, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception:
-        return False
-
-def sync_templates_to_disk(templates_dict: dict) -> bool:
-    """Write current templates dict to templates.json on disk."""
-    if not is_local_environment():
-        return False
-    try:
-        paths = get_sync_paths()
-        templates_file = paths["templates"]
-        os.makedirs(os.path.dirname(templates_file), exist_ok=True)
-        with open(templates_file, "w", encoding="utf-8") as f:
-            json.dump(templates_dict, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception:
-        return False
+from core.settings import Settings
+from core.sync_service import (
+    get_sync_paths,
+    is_local_environment,
+    sync_config_to_disk,
+    sync_templates_to_disk,
+)
 
 def auto_sync_on_startup():
     """Run once on startup to read config and templates from local disk."""
@@ -148,12 +71,15 @@ def auto_sync_on_startup():
                     st.session_state.settings_local_model_name = config_data.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = config_data.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
                     st.session_state.settings_github_token = config_data.get("github_token", "")
+                    st.session_state.settings_exercise_source = config_data.get("exercise_source", getattr(Settings, "EXERCISE_SOURCE", "local"))
+                    st.session_state.settings_exercise_api_url = config_data.get("exercise_api_url", getattr(Settings, "EXERCISE_API_URL", ""))
+                    st.session_state.settings_exercise_api_token = config_data.get("exercise_api_token", getattr(Settings, "EXERCISE_API_TOKEN", ""))
                     sync_details.append("Cấu hình AI")
         except Exception as e:
             st.warning(f"Không thể đọc config.json từ local: {str(e)}")
     else:
         # Create default config.json
-        from services.storage_service import get_ai_config
+        from core.storage_service import get_ai_config
         default_config = get_ai_config()
         sync_config_to_disk(default_config)
         sync_details.append("Cấu hình AI (tạo mới)")
@@ -170,7 +96,7 @@ def auto_sync_on_startup():
             st.warning(f"Không thể đọc templates.json từ local: {str(e)}")
     else:
         # Create default templates.json
-        from services.storage_service import load_templates
+        from core.storage_service import load_templates
         default_templates = load_templates()
         sync_templates_to_disk(default_templates)
         sync_details.append("Mẫu bài tập (tạo mới)")

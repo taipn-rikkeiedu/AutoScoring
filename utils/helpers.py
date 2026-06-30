@@ -13,3 +13,12 @@ def parse_score(report_text: str) -> str | None:
     if match_fallback:
         return match_fallback.group(1)
     return None
+
+
+def is_streamlit_running() -> bool:
+    """Check if the code is currently running inside a Streamlit application."""
+    import streamlit as st
+    try:
+        return st.runtime.exists()
+    except Exception:
+        return False

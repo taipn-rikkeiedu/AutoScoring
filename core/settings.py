@@ -55,6 +55,9 @@ class Settings:
     CUSTOM_API_KEY = _get_secret("CUSTOM_API_KEY", "")
     CUSTOM_API_BASE_URL = _get_secret("CUSTOM_API_BASE_URL", "").rstrip("/")
     CUSTOM_MODEL_NAME = _get_secret("CUSTOM_MODEL_NAME", "")
+    EXERCISE_SOURCE = _get_secret("EXERCISE_SOURCE", "local").strip().lower()
+    EXERCISE_API_URL = _get_secret("EXERCISE_API_URL", "")
+    EXERCISE_API_TOKEN = _get_secret("EXERCISE_API_TOKEN", "")
     ALLOWED_EXTENSIONS = (
         ".py",
         ".java",

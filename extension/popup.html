@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AI GitHub Grader Helper</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-color: #ffffff;
+      --text-color: #1e293b;
+      --border-color: #cbd5e1;
+      --secondary-bg: #f8fafc;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 480px;
+      height: 580px;
+      font-family: var(--font-family);
+      font-size: 14px;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      color: white;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .logo-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .version-tag {
+      font-size: 0.7rem;
+      opacity: 0.8;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Navigation Tabs */
+    .tabs-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--secondary-bg);
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      padding: 10px 0;
+      font-family: var(--font-family);
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #64748b;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn:hover {
+      color: var(--primary-color);
+    }
+
+    .tab-btn.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      background-color: #ffffff;
+    }
+
+    /* Content Area */
+    .content-container {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      height: 100%;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* Form Elements */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #475569;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: var(--font-family);
+      font-size: 0.9rem;
+      color: var(--text-color);
+      background-color: #ffffff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus, select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+    }
+
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Primary Action Button */
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: var(--font-family);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 10px -2px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* Status Indicator */
+    .status-container {
+      display: none;
+      background-color: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 12px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary-color);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .status-text {
+      color: #1e40af;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    /* Connection Indicator */
+    .connection-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+
+    .connection-banner.success {
+      background-color: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+
+    .connection-banner.error {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .success .dot { background-color: #22c55e; }
+    .error .dot { background-color: #ef4444; }
+
+    /* Results Section */
+    .results-container {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      background-color: var(--secondary-bg);
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .result-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #0f172a;
+    }
+
+    .score-badge {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 4px rgba(22,163,74,0.2);
+    }
+
+    .report-body {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #334155;
+    }
+
+    .report-body h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 10px;
+      margin-bottom: 6px;
+    }
+
+    .report-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+    }
+
+    .report-body th, .report-body td {
+      border: 1px solid var(--border-color);
+      padding: 6px;
+      text-align: left;
+    }
+
+    .report-body th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+    }
+
+    /* Settings Group */
+    .settings-info {
+      font-size: 0.8rem;
+      color: #64748b;
+      line-height: 1.4;
+      background-color: #f1f5f9;
+      padding: 10px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <img src="icon.png" class="logo-img" alt="logo">
+      <span class="logo-title">AI GitHub Grader</span>
+    </div>
+    <span class="version-tag" id="app-version">v1.0.0</span>
+  </header>
+
+  <nav class="tabs-bar">
+    <button class="tab-btn active" id="tab-grader-btn">🚀 Chấm Điểm</button>
+    <button class="tab-btn" id="tab-settings-btn">⚙️ Cài Đặt</button>
+  </nav>
+
+  <div class="content-container">
+    
+    <!-- Connection Status Banner -->
+    <div class="connection-banner error" id="conn-banner">
+      <span class="dot"></span>
+      <span id="conn-text">Mất kết nối với API Server</span>
+    </div>
+
+    <!-- TAB 1: GRADER -->
+    <div class="tab-content active" id="tab-grader">
+      
+      <div class="form-group">
+        <label for="repo-url">GitHub Repository URL:</label>
+        <input type="text" id="repo-url" placeholder="https://github.com/username/repository">
+      </div>
+
+      <div class="form-group">
+        <label for="chapter-select">Chọn Chương:</label>
+        <select id="chapter-select">
+          <option value="">-- Chọn Chương --</option>
+        </select>
+      </div>
+
+      <div class="select-row">
+        <div class="form-group">
+          <label for="session-select">Chọn Session:</label>
+          <select id="session-select" disabled>
+            <option value="">-- Chọn --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="assignment-select">Chọn Bài tập:</label>
+          <select id="assignment-select" disabled>
+            <option value="">-- Chọn --</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="grade-btn" disabled>
+        <span>🚀 Bắt đầu Chấm điểm</span>
+      </button>
+
+      <!-- Status Indicator -->
+      <div class="status-container" id="status-box">
+        <div class="spinner"></div>
+        <span class="status-text" id="status-message">Đang lấy dữ liệu...</span>
+      </div>
+
+      <!-- Results Box -->
+      <div class="results-container" id="results-box">
+        <div class="result-header">
+          <span class="result-title">Kết Quả Đánh Giá</span>
+          <span class="score-badge" id="score-val">-- / 100</span>
+        </div>
+        <div class="report-body" id="report-html"></div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: SETTINGS -->
+    <div class="tab-content" id="tab-settings">
+      
+      <div class="form-group">
+        <label for="api-url">Địa chỉ API Server Backend:</label>
+        <input type="text" id="api-url" placeholder="http://localhost:8000">
+      </div>
+
+      <div class="settings-info">
+        <b>💡 Hướng dẫn:</b><br>
+        1. Chạy API Server Python bằng lệnh:<br>
+        <code>uvicorn api:app --port 8000</code><br>
+        2. Nhập URL của API Server vào ô trên và bấm lưu.<br>
+        3. Extension sẽ tải danh sách bài tập động từ Server.
+      </div>
+
+      <button class="btn-primary" id="save-settings-btn">
+        <span>💾 Lưu Cấu Hình</span>
+      </button>
+
+      <div class="form-group" style="margin-top: 10px;">
+        <label>Thông tin kết nối:</label>
+        <div style="font-size: 0.85rem; line-height: 1.5; color: #475569;" id="provider-info">
+          • Trạng thái AI Provider: <i>Chưa kiểm tra</i><br>
+          • Nguồn bài tập hiện tại: <i>Chưa kiểm tra</i>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="marked.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

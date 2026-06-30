@@ -3,7 +3,7 @@ import zipfile
 import requests
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
-from config.settings import Settings
+from core.settings import Settings
 
 
 class GitHubService:
@@ -14,7 +14,7 @@ class GitHubService:
         }
         
         # Load GitHub Token from active session state config if available, fallback to Settings
-        from services.storage_service import get_ai_config
+        from core.storage_service import get_ai_config
         active_config = get_ai_config()
         token = active_config.get("github_token") or Settings.GITHUB_TOKEN
         

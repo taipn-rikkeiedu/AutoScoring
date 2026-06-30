@@ -3,11 +3,11 @@ import unittest
 import zipfile
 from unittest.mock import Mock, patch
 
-from services.github_service import GitHubService
+from core.github_service import GitHubService
 
 
 class GitHubServiceTest(unittest.TestCase):
-    @patch("services.github_service.requests.get")
+    @patch("core.github_service.requests.get")
     def test_uses_default_branch_when_main_and_master_fail(self, mock_get):
         service = GitHubService()
 
@@ -36,7 +36,7 @@ class GitHubServiceTest(unittest.TestCase):
         self.assertEqual(result["total_files"], 1)
         self.assertIn("FILE PATH: app.py", result["content"])
 
-    @patch("services.github_service.requests.get")
+    @patch("core.github_service.requests.get")
     def test_falls_back_to_archive_when_tree_api_fails(self, mock_get):
         service = GitHubService()
 
@@ -72,7 +72,7 @@ class GitHubServiceTest(unittest.TestCase):
         self.assertEqual(result["total_files"], 1)
         self.assertIn("app.py", result["content"])
 
-    @patch("services.github_service.requests.get")
+    @patch("core.github_service.requests.get")
     def test_progress_callback_is_called(self, mock_get):
         service = GitHubService()
         progress_steps = []
