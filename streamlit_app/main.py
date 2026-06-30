@@ -494,69 +494,71 @@ def main():
                             ai_config = get_ai_config()
                             display_name = provider_display_name(ai_config)
 
-                            with st.status(
-                                "🤖 AI đang chấm điểm...",
-                                expanded=True,
-                            ) as ai_status:
-                                try:
-                                    ai_engine = AIService(config=ai_config)
+                            # Create placeholders for clean layout: status box first, then streaming report and score below it
+                            status_placeholder = st.empty()
+                            report_placeholder = st.empty()
+                            score_placeholder = st.empty()
+                            full_report = ""
 
-                                    st.write("Đang phân tích mã nguồn...")
+                            with status_placeholder:
+                                with st.status(
+                                    "🤖 AI đang chấm điểm...",
+                                    expanded=True,
+                                ) as ai_status:
+                                    try:
+                                        ai_engine = AIService(config=ai_config)
+                                        st.write("Đang phân tích mã nguồn và khởi chạy AI...")
 
-                                    # Use streaming to show real-time output
-                                    # Buffer chunks and update UI periodically
-                                    # to avoid flickering and Vietnamese char corruption
-                                    report_placeholder = st.empty()
-                                    full_report = ""
-                                    _last_render = time.monotonic()
-                                    _RENDER_INTERVAL = 0.15  # seconds
+                                        _last_render = time.monotonic()
+                                        _RENDER_INTERVAL = 0.15  # seconds
 
-                                    for chunk in ai_engine.generate_grading_report_stream(
-                                        assignment_val,
-                                        criteria_val,
-                                        extracted_payload["content"],
-                                    ):
-                                        full_report += chunk
-                                        now = time.monotonic()
-                                        if now - _last_render >= _RENDER_INTERVAL:
-                                            report_placeholder.markdown(
-                                                full_report + "▌"
-                                            )
-                                            _last_render = now
+                                        for chunk in ai_engine.generate_grading_report_stream(
+                                            assignment_val,
+                                            criteria_val,
+                                            extracted_payload["content"],
+                                        ):
+                                            full_report += chunk
+                                            now = time.monotonic()
+                                            if now - _last_render >= _RENDER_INTERVAL:
+                                                report_placeholder.markdown(full_report + "▌")
+                                                _last_render = now
 
-                                    # Final render cleanup (remove cursor)
-                                    report_placeholder.markdown(full_report)
+                                        # Final render cleanup (remove cursor)
+                                        report_placeholder.markdown(full_report)
 
-                                    # Save to cache for future lookups
-                                    save_cached_report(
-                                        assignment_val,
-                                        criteria_val,
-                                        extracted_payload["content"],
-                                        full_report,
-                                    )
+                                        # Save to cache for future lookups
+                                        save_cached_report(
+                                            assignment_val,
+                                            criteria_val,
+                                            extracted_payload["content"],
+                                            full_report,
+                                        )
 
-                                    # Try to parse the score and display as a metric
-                                    score = parse_score(full_report)
-                                    if score:
+                                        ai_status.update(
+                                            label="✅ AI đã hoàn tất đánh giá",
+                                            state="complete",
+                                            expanded=False,
+                                        )
+                                    except Exception as e:
+                                        ai_status.update(
+                                            label="❌ Lỗi khi chấm điểm bằng AI",
+                                            state="error",
+                                            expanded=True,
+                                        )
+                                        st.error(f"Lỗi AI: {str(e)}")
+                                        full_report = ""
+
+                            # Render score metric outside the status box
+                            if full_report:
+                                score = parse_score(full_report)
+                                if score:
+                                    with score_placeholder.container():
                                         st.markdown("### 🏆 Kết quả điểm số")
                                         st.metric(
                                             label="Tổng điểm đánh giá",
                                             value=f"{score} / 100",
                                         )
                                         st.markdown("---")
-
-                                    ai_status.update(
-                                        label="✅ AI đã hoàn tất đánh giá",
-                                        state="complete",
-                                        expanded=False,
-                                    )
-                                except Exception as e:
-                                    ai_status.update(
-                                        label="❌ Lỗi khi chấm điểm bằng AI",
-                                        state="error",
-                                        expanded=True,
-                                    )
-                                    st.error(f"Lỗi AI: {str(e)}")
 
     with tab_manager:
         from core.exercise_service import ExerciseService
