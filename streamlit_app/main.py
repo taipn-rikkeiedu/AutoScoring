@@ -559,7 +559,7 @@ def main():
                                     st.error(f"Lỗi AI: {str(e)}")
 
     with tab_manager:
-        from services.exercise_service import ExerciseService
+        from core.exercise_service import ExerciseService
         if ExerciseService.get_source() == "api":
             st.warning("⚠️ Hệ thống hiện tại đang sử dụng bài tập từ nguồn REST API. Việc Thêm/Sửa/Xóa dưới đây sẽ chỉ sửa đổi bộ nhớ đệm cục bộ và có thể bị ghi đè khi đồng bộ lại từ API.")
             
@@ -734,7 +734,7 @@ def main():
                 if st.button("🔄 Đồng bộ bài tập từ API"):
                     with st.spinner("Đang tải dữ liệu từ API..."):
                         try:
-                            from services.exercise_service import ExerciseService
+                            from core.exercise_service import ExerciseService
                             ExerciseService.sync_from_api_to_local(exercise_api_url, exercise_api_token)
                             st.success("✅ Đồng bộ bài tập từ API thành công!")
                             st.rerun()
