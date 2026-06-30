@@ -110,6 +110,16 @@ class AIService:
 
     # ------------------------------------------------------------------
     def _log_debug(self, prompt: str, response: str) -> None:
+        # Print to stdout so it appears in Streamlit Cloud's "Manage app" logs console!
+        try:
+            print(f"\n[AI_DEBUG_LOG] {'='*80}")
+            print(f"[AI_DEBUG_LOG] PROVIDER: {self.provider}")
+            print(f"[AI_DEBUG_LOG] MODEL: {self.model_name if self.provider != 'local' else self.local_model_name}")
+            print(f"[AI_DEBUG_LOG] RESPONSE RECEIVED:\n{response}")
+            print(f"[AI_DEBUG_LOG] {'='*80}\n", flush=True)
+        except Exception:
+            pass
+
         try:
             import os
             from datetime import datetime
