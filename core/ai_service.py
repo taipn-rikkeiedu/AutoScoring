@@ -93,16 +93,15 @@ class AIService:
         lang = Settings.GRADING_LANGUAGE
         compressed_code = self._compress_code(code_content)
         return (
-            f"Chấm điểm mã nguồn theo thang {max_score} điểm. "
-            f"Phần nhận xét phải cực kỳ ngắn gọn và tối đa {max_words} từ bằng {lang}. "
-            f"Dùng đúng format sau, KHÔNG thêm gì khác:\n\n"
+            f"Hãy chấm điểm mã nguồn dưới đây theo thang {max_score} điểm và viết nhận xét ngắn gọn bằng {lang}.\n"
+            f"Điền kết quả chấm điểm vào bảng và ghi các ý nhận xét (tối đa {max_words} từ) vào đúng cấu trúc định dạng dưới đây. KHÔNG viết lời dẫn hay phản hồi ngoài cấu trúc này:\n\n"
             f"## KẾT QUẢ CHẤM ĐIỂM\n"
             f"| Tiêu chí | Điểm |\n|---|---|\n"
             f"| Tiêu chí 1 | X/Y |\n"
             f"| ... | ... |\n"
             f"| **TỔNG** | **Z/{max_score}** |\n\n"
             f"## NHẬN XÉT\n"
-            f"(Nhận xét chính tối đa {max_words} từ)\n\n"
+            f"[Viết nhận xét ngắn gọn tại đây, tối đa {max_words} từ]\n\n"
             f"---\n"
             f"ĐỀ BÀI: {assignment}\n\n"
             f"TIÊU CHÍ: {criteria}\n\n"
