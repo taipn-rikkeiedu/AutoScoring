@@ -93,20 +93,40 @@ class AIService:
         lang = Settings.GRADING_LANGUAGE
         compressed_code = self._compress_code(code_content)
         return (
-            f"Hãy chấm điểm mã nguồn dưới đây theo thang {max_score} điểm và viết nhận xét ngắn gọn bằng {lang}.\n"
-            f"Điền kết quả chấm điểm vào bảng và ghi các ý nhận xét (tối đa {max_words} từ) vào đúng cấu trúc định dạng dưới đây. KHÔNG viết lời dẫn hay phản hồi ngoài cấu trúc này:\n\n"
+            f"Bạn là chuyên gia chấm điểm mã nguồn. Hãy đánh giá mã nguồn dưới đây theo thang {max_score} điểm dựa trên ĐỀ BÀI và TIÊU CHÍ.\n"
+            f"Yêu cầu phản hồi tuân thủ nghiêm ngặt định dạng Markdown dưới đây. Không viết lời mở đầu, lời chào hay kết luận ngoài mẫu này:\n\n"
             f"## KẾT QUẢ CHẤM ĐIỂM\n"
             f"| Tiêu chí | Điểm |\n|---|---|\n"
-            f"| Tiêu chí 1 | X/Y |\n"
+            f"| [Tên tiêu chí] | [Điểm]/[Điểm tối đa] |\n"
             f"| ... | ... |\n"
-            f"| **TỔNG** | **Z/{max_score}** |\n\n"
+            f"| **TỔNG** | **[Tổng điểm]/{max_score}** |\n\n"
             f"## NHẬN XÉT\n"
-            f"[Viết nhận xét ngắn gọn tại đây, tối đa {max_words} từ]\n\n"
+            f"[Viết 1-2 câu nhận xét cực kỳ ngắn gọn tại đây, tối đa {max_words} từ bằng {lang}]\n\n"
             f"---\n"
-            f"ĐỀ BÀI: {assignment}\n\n"
-            f"TIÊU CHÍ: {criteria}\n\n"
+            f"ĐỀ BÀI:\n{assignment}\n\n"
+            f"TIÊU CHÍ:\n{criteria}\n\n"
             f"MÃ NGUỒN:\n{compressed_code}"
         )
+
+    # ------------------------------------------------------------------
+    def _log_debug(self, prompt: str, response: str) -> None:
+        try:
+            import os
+            from datetime import datetime
+            log_dir = os.path.join(Settings.LOCAL_DATA_ROOT, "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            log_file = os.path.join(log_dir, "ai_debug.log")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"\n{'='*80}\n")
+                f.write(f"TIMESTAMP: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"PROVIDER: {self.provider}\n")
+                f.write(f"MODEL: {self.model_name if self.provider != 'local' else self.local_model_name}\n")
+                f.write(f"PROMPT SENT:\n{prompt}\n")
+                f.write(f"{'-'*80}\n")
+                f.write(f"RESPONSE RECEIVED:\n{response}\n")
+                f.write(f"{'='*80}\n")
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Non-streaming (backwards compatible)
@@ -116,10 +136,14 @@ class AIService:
     ) -> str:
         structured_prompt = self._build_prompt(assignment, criteria, code_content)
         if self.provider == "local":
-            return self._generate_with_local_model(structured_prompt)
-        if self.provider == "custom" or self.provider == "deepseek" or self.provider == "openrouter":
-            return self._generate_with_custom_api(structured_prompt)
-        return self._generate_with_gemini(structured_prompt)
+            response = self._generate_with_local_model(structured_prompt)
+        elif self.provider == "custom" or self.provider == "deepseek" or self.provider == "openrouter":
+            response = self._generate_with_custom_api(structured_prompt)
+        else:
+            response = self._generate_with_gemini(structured_prompt)
+        
+        self._log_debug(structured_prompt, response)
+        return response
 
     # ------------------------------------------------------------------
     # Streaming – yields text chunks for real-time UI updates
@@ -133,12 +157,20 @@ class AIService:
         for providers that don't support streaming.
         """
         structured_prompt = self._build_prompt(assignment, criteria, code_content)
+        full_response = ""
+        
         if self.provider == "local":
-            yield from self._stream_local_model(structured_prompt)
+            generator = self._stream_local_model(structured_prompt)
         elif self.provider == "custom" or self.provider == "deepseek" or self.provider == "openrouter":
-            yield from self._stream_custom_api(structured_prompt)
+            generator = self._stream_custom_api(structured_prompt)
         else:
-            yield from self._stream_gemini(structured_prompt)
+            generator = self._stream_gemini(structured_prompt)
+            
+        for chunk in generator:
+            full_response += chunk
+            yield chunk
+            
+        self._log_debug(structured_prompt, full_response)
 
     # ------------------------------------------------------------------
     # Local model (Ollama)
