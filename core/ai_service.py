@@ -94,7 +94,7 @@ class AIService:
         compressed_code = self._compress_code(code_content)
         return (
             f"Chấm điểm mã nguồn theo thang {max_score} điểm. "
-            f"Trả lời ngắn gọn tối đa {max_words} từ bằng {lang}. "
+            f"Phần nhận xét phải cực kỳ ngắn gọn và tối đa {max_words} từ bằng {lang}. "
             f"Dùng đúng format sau, KHÔNG thêm gì khác:\n\n"
             f"## KẾT QUẢ CHẤM ĐIỂM\n"
             f"| Tiêu chí | Điểm |\n|---|---|\n"
@@ -102,7 +102,7 @@ class AIService:
             f"| ... | ... |\n"
             f"| **TỔNG** | **Z/{max_score}** |\n\n"
             f"## NHẬN XÉT\n"
-            f"(Tối đa 3 dòng nhận xét chính)\n\n"
+            f"(Nhận xét chính tối đa {max_words} từ)\n\n"
             f"---\n"
             f"ĐỀ BÀI: {assignment}\n\n"
             f"TIÊU CHÍ: {criteria}\n\n"

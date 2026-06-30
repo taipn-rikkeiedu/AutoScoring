@@ -97,9 +97,9 @@ class Settings:
     except (ValueError, TypeError):
         GRADING_MAX_SCORE = 100
     try:
-        GRADING_MAX_WORDS = int(_get_secret("GRADING_MAX_WORDS", "100"))
+        GRADING_MAX_WORDS = int(_get_secret("GRADING_MAX_WORDS", "30"))
     except (ValueError, TypeError):
-        GRADING_MAX_WORDS = 100
+        GRADING_MAX_WORDS = 30
     GRADING_LANGUAGE = _get_secret("GRADING_LANGUAGE", "Tiếng Việt")
     try:
         MAX_PROJECT_FILES = int(_get_secret("MAX_PROJECT_FILES", "100"))
