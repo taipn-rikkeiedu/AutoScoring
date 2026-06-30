@@ -351,16 +351,25 @@ class AIService:
                         continue
                     try:
                         chunk = json.loads(line)
+                        if "candidates" in chunk:
+                            for idx, c in enumerate(chunk["candidates"]):
+                                fr = c.get("finishReason")
+                                if fr:
+                                    print(f"[AI_DEBUG_CHUNK] candidate {idx} finishReason: {fr}", flush=True)
+                                if "content" not in c or c["content"] is None:
+                                    print(f"[AI_DEBUG_CHUNK] candidate {idx} content is null or absent: {c}", flush=True)
                     except json.JSONDecodeError:
                         continue
+                    
                     candidates = chunk.get("candidates", [])
                     if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        for part in parts:
-                            text = part.get("text", "")
-                            if text:
-                                yield text
-                # If we reach here, streaming succeeded — break the retry loop
+                        content = candidates[0].get("content")
+                        if content:
+                            parts = content.get("parts", [])
+                            for part in parts:
+                                text = part.get("text", "")
+                                if text:
+                                    yield text
                 return
             except requests.exceptions.RequestException:
                 if attempt < self._MAX_RETRIES:
