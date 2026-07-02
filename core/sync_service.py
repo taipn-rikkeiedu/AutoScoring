@@ -45,9 +45,7 @@ def save_sync_paths(root_path: str, config_path: str, templates_path: str) -> bo
         return False
 
 def is_local_environment() -> bool:
-    """Check if the current host environment can access local Windows directories."""
-    if os.name != "nt":
-        return False
+    """Check if the current host environment can write to the data root directory."""
     try:
         paths = get_sync_paths()
         root = paths["root"]

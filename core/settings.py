@@ -35,10 +35,10 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 class Settings:
     APP_VERSION = "2.8.1"
-    LOCAL_DATA_ROOT = "C:/AutoScoring"
-    LOCAL_CONFIG_PATH = "C:/AutoScoring/config/config.json"
-    LOCAL_TEMPLATES_PATH = "C:/AutoScoring/data/templates.json"
-    LOCAL_SYNC_SETTINGS_PATH = "C:/AutoScoring/.sync_settings.json"
+    LOCAL_DATA_ROOT = "C:/AutoScoring" if os.name == "nt" else "./data_root"
+    LOCAL_CONFIG_PATH = f"{LOCAL_DATA_ROOT}/config/config.json"
+    LOCAL_TEMPLATES_PATH = f"{LOCAL_DATA_ROOT}/data/templates.json"
+    LOCAL_SYNC_SETTINGS_PATH = f"{LOCAL_DATA_ROOT}/.sync_settings.json"
     GEMINI_API_KEY = _get_secret("GEMINI_API_KEY", "")
     DEEPSEEK_API_KEY = _get_secret("DEEPSEEK_API_KEY", "")
     DEEPSEEK_API_BASE_URL = _get_secret("DEEPSEEK_API_BASE_URL", "https://api.deepseek.com").rstrip("/")
@@ -97,9 +97,9 @@ class Settings:
     except (ValueError, TypeError):
         GRADING_MAX_SCORE = 100
     try:
-        GRADING_MAX_WORDS = int(_get_secret("GRADING_MAX_WORDS", "30"))
+        GRADING_MAX_WORDS = int(_get_secret("GRADING_MAX_WORDS", "200"))
     except (ValueError, TypeError):
-        GRADING_MAX_WORDS = 30
+        GRADING_MAX_WORDS = 200
     GRADING_LANGUAGE = _get_secret("GRADING_LANGUAGE", "Tiếng Việt")
     try:
         MAX_PROJECT_FILES = int(_get_secret("MAX_PROJECT_FILES", "100"))

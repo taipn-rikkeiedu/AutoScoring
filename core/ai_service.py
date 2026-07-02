@@ -89,7 +89,7 @@ class AIService:
 
     def _build_prompt(self, assignment: str, criteria: str, code_content: str) -> str:
         max_score = Settings.GRADING_MAX_SCORE
-        max_words = Settings.GRADING_MAX_WORDS
+        max_words = int(self.config.get("grading_max_words") or Settings.GRADING_MAX_WORDS)
         lang = Settings.GRADING_LANGUAGE
         compressed_code = self._compress_code(code_content)
         return (
@@ -101,7 +101,7 @@ class AIService:
             f"| ... | ... |\n"
             f"| **TỔNG** | **[Tổng điểm]/{max_score}** |\n\n"
             f"## NHẬN XÉT\n"
-            f"[Viết 1-2 câu nhận xét cực kỳ ngắn gọn tại đây, tối đa {max_words} từ bằng {lang}]\n\n"
+            f"[Viết ít nhất 3 câu nhận xét chi tiết, chỉ rõ ưu điểm, hạn chế và đề xuất giải pháp cải thiện cụ thể cho mã nguồn tại đây. Không viết quá {max_words} từ và viết bằng {lang}]\n\n"
             f"---\n"
             f"ĐỀ BÀI:\n{assignment}\n\n"
             f"TIÊU CHÍ:\n{criteria}\n\n"

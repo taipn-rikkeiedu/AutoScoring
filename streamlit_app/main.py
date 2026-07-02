@@ -83,6 +83,14 @@ def main():
                     st.session_state.settings_local_model_name = uploaded_config.get("local_model_name", Settings.LOCAL_MODEL_NAME)
                     st.session_state.settings_ollama_base_url = uploaded_config.get("ollama_base_url", Settings.OLLAMA_BASE_URL)
                     st.session_state.settings_github_token = uploaded_config.get("github_token", "")
+                    st.session_state.settings_grading_max_words = int(uploaded_config.get("grading_max_words", Settings.GRADING_MAX_WORDS))
+                    st.session_state.settings_grading_max_score = int(uploaded_config.get("grading_max_score", Settings.GRADING_MAX_SCORE))
+                    st.session_state.settings_grading_language = uploaded_config.get("grading_language", Settings.GRADING_LANGUAGE)
+                    st.session_state.settings_grading_cache_enabled = bool(uploaded_config.get("grading_cache_enabled", Settings.GRADING_CACHE_ENABLED))
+                    st.session_state.settings_grading_cache_ttl = int(uploaded_config.get("grading_cache_ttl", Settings.GRADING_CACHE_TTL_MINUTES))
+                    st.session_state.settings_max_project_files = int(uploaded_config.get("max_project_files", Settings.MAX_PROJECT_FILES))
+                    st.session_state.settings_max_project_chars = int(uploaded_config.get("max_project_chars", Settings.MAX_PROJECT_CHARS))
+                    st.session_state.settings_local_data_root = uploaded_config.get("local_data_root", Settings.LOCAL_DATA_ROOT)
                     
                     # Sync to disk
                     from core.sync_service import sync_config_to_disk
@@ -93,6 +101,22 @@ def main():
                     st.session_state.config_upload_error = "Cấu trúc file config.json không hợp lệ."
             except Exception as e:
                 st.session_state.config_upload_error = f"Lỗi đọc file: {str(e)}"
+
+    # Load templates database early for default assignment initialization
+    from core.storage_service import load_templates
+    templates_early = load_templates()
+    if "selected_chapter_name" not in st.session_state and templates_early:
+        first_chapter = list(templates_early.keys())[0]
+        if templates_early[first_chapter]:
+            first_session = list(templates_early[first_chapter].keys())[0]
+            if templates_early[first_chapter][first_session]:
+                first_assignment = list(templates_early[first_chapter][first_session].keys())[0]
+                data = templates_early[first_chapter][first_session][first_assignment]
+                st.session_state.selected_chapter_name = first_chapter
+                st.session_state.selected_session_name = first_session
+                st.session_state.selected_assignment_name = first_assignment
+                st.session_state.assignment_val = data.get("assignment", "")
+                st.session_state.criteria_val = data.get("criteria", "")
 
     # Initialize input values in session state if not present
     if "assignment_val" not in st.session_state:
@@ -259,23 +283,95 @@ def main():
     with tab_grader:
         col_config, col_monitor = st.columns([2, 3])
         with col_config:
-            # --- Quick template selector button that triggers the modal ---
-            if st.button("📚 Thư viện mẫu đề bài", use_container_width=True):
-                show_template_loader_dialog(templates)
+            # ── Inline Template Selector (Zero Modals Required) ──
+            if templates:
+                st.markdown("##### 📚 Chọn bài tập chấm điểm")
                 
-            if st.session_state.get("template_load_success_msg"):
-                st.success(st.session_state.template_load_success_msg)
-                del st.session_state.template_load_success_msg
-            
+                # 1. Chapter selection
+                chapters = list(templates.keys())
+                sel_chapter_idx = chapters.index(st.session_state.selected_chapter_name) if st.session_state.get("selected_chapter_name") in chapters else 0
+                
+                def _on_chapter_change():
+                    ch = st.session_state.inline_chapter_select
+                    sessions = list(templates.get(ch, {}).keys())
+                    if sessions:
+                        sess = sessions[0]
+                        assignments = list(templates[ch][sess].keys())
+                        if assignments:
+                            ass = assignments[0]
+                            data = templates[ch][sess][ass]
+                            st.session_state.selected_chapter_name = ch
+                            st.session_state.selected_session_name = sess
+                            st.session_state.selected_assignment_name = ass
+                            st.session_state.assignment_val = data["assignment"]
+                            st.session_state.criteria_val = data["criteria"]
+
+                selected_chapter = st.selectbox(
+                    "Chương / Môn học:",
+                    chapters,
+                    index=sel_chapter_idx,
+                    key="inline_chapter_select",
+                    on_change=_on_chapter_change,
+                )
+                
+                # 2. Session selection
+                ch_name = st.session_state.get("selected_chapter_name") or chapters[0]
+                sessions = list(templates.get(ch_name, {}).keys())
+                sel_session_idx = sessions.index(st.session_state.selected_session_name) if st.session_state.get("selected_session_name") in sessions else 0
+                
+                def _on_session_change():
+                    ch = st.session_state.selected_chapter_name
+                    sess = st.session_state.inline_session_select
+                    assignments = list(templates.get(ch, {}).get(sess, {}).keys())
+                    if assignments:
+                        ass = assignments[0]
+                        data = templates[ch][sess][ass]
+                        st.session_state.selected_session_name = sess
+                        st.session_state.selected_assignment_name = ass
+                        st.session_state.assignment_val = data["assignment"]
+                        st.session_state.criteria_val = data["criteria"]
+
+                selected_session = st.selectbox(
+                    "Session / Buổi học:",
+                    sessions,
+                    index=sel_session_idx,
+                    key="inline_session_select",
+                    on_change=_on_session_change,
+                )
+                
+                # 3. Assignment selection
+                sess_name = st.session_state.get("selected_session_name") or (sessions[0] if sessions else "")
+                assignments = list(templates.get(ch_name, {}).get(sess_name, {}).keys()) if sess_name else []
+                sel_ass_idx = assignments.index(st.session_state.selected_assignment_name) if st.session_state.get("selected_assignment_name") in assignments else 0
+                
+                def _on_assignment_change():
+                    ch = st.session_state.selected_chapter_name
+                    sess = st.session_state.selected_session_name
+                    ass = st.session_state.inline_assignment_select
+                    data = templates.get(ch, {}).get(sess, {}).get(ass, {})
+                    if data:
+                        st.session_state.selected_assignment_name = ass
+                        st.session_state.assignment_val = data["assignment"]
+                        st.session_state.criteria_val = data["criteria"]
+
+                selected_assignment = st.selectbox(
+                    "Bài tập:",
+                    assignments,
+                    index=sel_ass_idx,
+                    key="inline_assignment_select",
+                    on_change=_on_assignment_change,
+                )
+            else:
+                st.warning("Thư viện mẫu trống. Hãy thêm đề bài mới.")
+
+            st.markdown("---")
             repo_url = st.text_input(
                 "GitHub URL:",
                 placeholder="https://github.com/username/repository",
                 key="grader_repo_url"
             )
-            # --- Render Selected Exercise Info with Quick Switcher ---
+            # --- Render Selected Exercise Info ---
             if st.session_state.get("selected_chapter_name"):
-                _sel_chapter = st.session_state.selected_chapter_name
-                _sel_session = st.session_state.selected_session_name
                 _sel_assignment = st.session_state.selected_assignment_name
 
                 st.markdown(
@@ -285,56 +381,6 @@ def main():
                     </div>
                     """,
                     unsafe_allow_html=True
-                )
-
-                # Quick-switch: Session within the same Chapter
-                _sessions_in_chapter = list(templates.get(_sel_chapter, {}).keys())
-                _sess_idx = _sessions_in_chapter.index(_sel_session) if _sel_session in _sessions_in_chapter else 0
-
-                def _on_quick_session_change():
-                    """Callback when quick session switcher changes."""
-                    new_session = st.session_state.quick_session_select
-                    ch = st.session_state.selected_chapter_name
-                    assignments_in_new_session = list(templates.get(ch, {}).get(new_session, {}).keys())
-                    if assignments_in_new_session:
-                        first_assignment = assignments_in_new_session[0]
-                        data = templates[ch][new_session][first_assignment]
-                        st.session_state.selected_session_name = new_session
-                        st.session_state.selected_assignment_name = first_assignment
-                        st.session_state.assignment_val = data["assignment"]
-                        st.session_state.criteria_val = data["criteria"]
-
-                new_session = st.selectbox(
-                    "Session:",
-                    _sessions_in_chapter,
-                    index=_sess_idx,
-                    key="quick_session_select",
-                    on_change=_on_quick_session_change,
-                    label_visibility="collapsed" if len(_sessions_in_chapter) <= 1 else "visible",
-                )
-
-                # Quick-switch: Exercise within the current Session
-                _current_session = st.session_state.selected_session_name
-                _assignments_in_session = list(templates.get(_sel_chapter, {}).get(_current_session, {}).keys())
-                _ass_idx = _assignments_in_session.index(_sel_assignment) if _sel_assignment in _assignments_in_session else 0
-
-                def _on_quick_assignment_change():
-                    """Callback when quick assignment switcher changes."""
-                    new_assignment = st.session_state.quick_assignment_select
-                    ch = st.session_state.selected_chapter_name
-                    sess = st.session_state.selected_session_name
-                    data = templates.get(ch, {}).get(sess, {}).get(new_assignment, {})
-                    if data:
-                        st.session_state.selected_assignment_name = new_assignment
-                        st.session_state.assignment_val = data["assignment"]
-                        st.session_state.criteria_val = data["criteria"]
-
-                new_assignment = st.selectbox(
-                    "Bài tập:",
-                    _assignments_in_session,
-                    index=_ass_idx,
-                    key="quick_assignment_select",
-                    on_change=_on_quick_assignment_change,
                 )
             else:
                 st.warning("Vui lòng chọn bài tập từ thư viện mẫu.")
@@ -698,6 +744,17 @@ def main():
                 )
 
             st.markdown("---")
+            st.subheader("Độ dài nhận xét")
+            grading_max_words = st.number_input(
+                "Số từ tối đa cho phần Nhận xét (tối thiểu 10):",
+                min_value=10,
+                max_value=2000,
+                value=int(active_config.get("grading_max_words", Settings.GRADING_MAX_WORDS)),
+                step=10,
+                key="settings_grading_max_words",
+            )
+
+            st.markdown("---")
             st.subheader("GitHub Token (Tùy chọn)")
             github_token = st.text_input(
                 "GitHub Access Token",
@@ -705,6 +762,59 @@ def main():
                 type="password",
                 key="settings_github_token",
             )
+
+            st.markdown("---")
+            st.subheader("⚙️ Cấu hình hệ thống & Giới hạn")
+            col_sys1, col_sys2 = st.columns(2)
+            with col_sys1:
+                grading_max_score = st.number_input(
+                    "Thang điểm tối đa:",
+                    min_value=1,
+                    max_value=1000,
+                    value=int(active_config.get("grading_max_score", Settings.GRADING_MAX_SCORE)),
+                    step=5,
+                    key="settings_grading_max_score",
+                )
+                grading_language = st.text_input(
+                    "Ngôn ngữ nhận xét:",
+                    value=active_config.get("grading_language", Settings.GRADING_LANGUAGE),
+                    key="settings_grading_language",
+                )
+                grading_cache_enabled = st.checkbox(
+                    "Bật bộ nhớ đệm (Cache)",
+                    value=bool(active_config.get("grading_cache_enabled", Settings.GRADING_CACHE_ENABLED)),
+                    key="settings_grading_cache_enabled",
+                )
+                grading_cache_ttl = st.number_input(
+                    "Thời gian lưu cache (phút):",
+                    min_value=1,
+                    max_value=10080,
+                    value=int(active_config.get("grading_cache_ttl", Settings.GRADING_CACHE_TTL_MINUTES)),
+                    step=10,
+                    key="settings_grading_cache_ttl",
+                )
+            with col_sys2:
+                max_project_files = st.number_input(
+                    "Số file mã nguồn tối đa:",
+                    min_value=1,
+                    max_value=10000,
+                    value=int(active_config.get("max_project_files", Settings.MAX_PROJECT_FILES)),
+                    step=10,
+                    key="settings_max_project_files",
+                )
+                max_project_chars = st.number_input(
+                    "Số ký tự tối đa:",
+                    min_value=1000,
+                    max_value=10000000,
+                    value=int(active_config.get("max_project_chars", Settings.MAX_PROJECT_CHARS)),
+                    step=10000,
+                    key="settings_max_project_chars",
+                )
+                local_data_root = st.text_input(
+                    "Thư mục dữ liệu cục bộ:",
+                    value=active_config.get("local_data_root", Settings.LOCAL_DATA_ROOT),
+                    key="settings_local_data_root",
+                )
 
             st.markdown("---")
             st.subheader("Cấu hình nguồn bài tập")
@@ -766,6 +876,14 @@ def main():
                 "exercise_source": exercise_source,
                 "exercise_api_url": exercise_api_url,
                 "exercise_api_token": exercise_api_token,
+                "grading_max_words": int(grading_max_words),
+                "grading_max_score": int(grading_max_score),
+                "grading_language": grading_language,
+                "grading_cache_enabled": bool(grading_cache_enabled),
+                "grading_cache_ttl": int(grading_cache_ttl),
+                "max_project_files": int(max_project_files),
+                "max_project_chars": int(max_project_chars),
+                "local_data_root": local_data_root,
             }
             if st.session_state.get("ai_config") != new_settings_config:
                 try:
