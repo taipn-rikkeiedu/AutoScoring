@@ -1,154 +1,125 @@
-# 🤖 AI GitHub Grader — Hệ thống Chấm Điểm Tự Động thông qua AI
+# REduX 🚀 — Giải Pháp Chấm Điểm Lớp Học Tự Động Bằng Trí Tuệ Nhân Tạo
 
-**AI GitHub Grader** là bộ công cụ hỗ trợ giảng viên tự động chấm điểm và đánh giá chi tiết mã nguồn của học viên từ các kho lưu trữ GitHub (public repository). Hệ thống tích hợp trực tiếp với các mô hình Trí Tuệ Nhân Tạo (AI) hàng đầu hiện nay như **Google Gemini**, **DeepSeek**, **OpenRouter (Qwen, Llama...)** và **Ollama (DeepSeek-R1 chạy local offline)**.
+**REduX** (phiên bản v3.5.6) là một Chrome/Edge Extension chuyên nghiệp, hỗ trợ giảng viên quét danh sách nộp bài tập từ hệ thống LMS, tự động tải mã nguồn từ GitHub của học viên, lọc cấu hình thông minh và chấm điểm tự động thông qua các mô hình AI tiên tiến nhất hiện nay (Google Gemini, DeepSeek, OpenRouter, hoặc Ollama chạy Local Offline).
 
-Dự án bao gồm hai thành phần chính:
-1. **Chrome Extension (Khuyên dùng - Serverless 100%)**: Tiện ích chạy trực tiếp trên trình duyệt, hỗ trợ quét danh sách bài nộp và chấm điểm hàng loạt ngay trên trang LMS của trung tâm.
-2. **Streamlit Web App (Python Backend)**: Ứng dụng Web giao diện độc lập viết bằng Python.
+Dự án được thiết kế theo kiến trúc **Serverless 100% (Client-Side Only)** hoạt động độc lập và trực tiếp trên trình duyệt của giảng viên, bảo mật dữ liệu tuyệt đối và tối ưu hóa chi phí vận hành.
 
 ---
 
-## 🎨 Giao diện & Tính năng Nổi bật (Chrome Extension v3.2.2)
+## 🎨 Các Tính Năng Nổi Bật Của REduX
 
-Tiện ích mở rộng Chrome Extension đã được tái cấu trúc hoàn chỉnh giúp tối ưu hóa hiệu năng và mang lại trải nghiệm tiện dụng nhất cho giảng viên:
+### 1. ⚡ Chấm Hàng Loạt & Khớp Đề Bài Thông Minh (Bulk Grader)
+* **Tự động quét trang:** Chỉ với 1-click, REduX sẽ quét toàn bộ danh sách nộp bài của học sinh chứa liên kết GitHub trên trang LMS.
+* **Fuzzy Matching thông minh:** So sánh tương đối tên bài nộp của học sinh với cơ sở dữ liệu để tự động liên kết (map) đúng đề bài & tiêu chí chấm điểm tương ứng.
+* **Tải & Lọc mã nguồn tối ưu:** Tải trực tiếp mã nguồn của học viên qua API GitHub. Sử dụng **Bộ lọc loại trừ (.graderignore) dạng Checkbox trực quan** để lọc bỏ các thư mục rác, build, hoặc dependencies nặng (như `node_modules/`, `build/`, `dist/`...) giúp tiết kiệm token gửi lên AI và tăng tốc độ xử lý mà vẫn giữ lại tài liệu quan trọng như `README.md`.
+* **Chấm điểm song song song song:** Hỗ trợ chấm đồng thời nhiều học viên qua API AI để tối ưu hóa thời gian chờ.
 
-### 1. ⚡ Quét & Chấm Hàng Loạt (Auto Scan & Bulk Grader)
-* **Tự động quét trang:** Quét toàn bộ trang LMS đang mở để tự động nhận diện tất cả các bài nộp chứa liên kết GitHub của học viên.
-* **Fuzzy Matching thông minh:** So sánh tương đối tên bài nộp của học sinh với cơ sở dữ liệu để tự động liên kết (map) đúng Đề bài & Tiêu chí chấm điểm.
-* **Chấm điểm song song:** Hỗ trợ chọn nhiều hoặc tất cả học viên và tiến hành gửi chấm song song qua API AI, giúp tiết kiệm tối đa thời gian.
-* **Báo cáo chi tiết:** Hiển thị nhận xét ngắn gọn về vị trí dòng lỗi, lý do sai và tổng điểm của từng học sinh ngay trên bảng quản lý.
+### 2. 👥 Quản Lý Danh Sách Lớp & Xuất Báo Cáo Excel
+* **Tự động trích xuất thông tin học viên:** Đọc thông tin học viên, mã sinh viên, trạng thái nộp bài trực tiếp từ bảng quản lý lớp học của LMS.
+* **Quản lý trạng thái chấm bài:** Hiển thị chi tiết số bài đã nộp, tỷ lệ bài đã hoàn thành trên mỗi học viên và tổng quan trạng thái chấm điểm của lớp học.
+* **Xuất báo cáo định dạng Excel (.xlsx):** Tích hợp thư viện **SheetJS (xlsx.full.min.js)** giúp xuất trực tiếp bảng điểm tiếng Việt có dấu hoàn hảo, tự động định cấu hình độ rộng cột tối ưu mà không cần thông qua file CSV trung gian lỗi font.
 
-### 2. 🚀 Chấm Đơn (Single Grader)
-* **Chấm nhanh một Repository:** Tự động điền link GitHub của tab đang xem, cho phép chọn nhanh bài tập và chấm ngay lập tức.
-* **Xem Markdown trực quan:** Kết quả trả về từ AI được render đẹp mắt dưới dạng HTML từ mã nguồn Markdown, hỗ trợ sao chép nhanh nhận xét chấm điểm chỉ với 1 click.
+### 3. 🚀 Chấm Điểm Đơn (Single Grader)
+* **Chấm nhanh Repository đang xem:** Tự động phát hiện liên kết GitHub của tab hiện tại, hỗ trợ chọn nhanh mẫu đề bài và chấm ngay lập tức.
+* **Xem Markdown trực quan:** Nhận xét trả về từ AI được render đẹp mắt dưới dạng HTML trực quan, hỗ trợ copy nhanh nhận xét gửi cho học sinh chỉ qua 1-click.
 
-### 3. 📚 Quản lý Đề Bài & Cào thông tin LMS (Exercises Library)
-* **Cào đề bài thông minh:** Tự động bóc tách tên Khóa học (Chương), tên Session và nội dung Đề bài từ trang chi tiết LMS mà giảng viên đang xem.
-* **Tự động trích xuất tiêu chí (AI Rubric):** Tự động phát hiện các cụm từ chỉ định tiêu chí chấm như `Tiêu chí chấm bài (AI)::`, bóc tách riêng phần tiêu chí đưa vào ô Rubric và làm sạch mô tả đề bài chính.
-* **Quản lý cơ sở dữ liệu cục bộ:** Lưu trữ ngân hàng đề bài trực tiếp trên trình duyệt (`chrome.storage.local`), cho phép sửa đổi hoặc xóa bài tập nhanh chóng.
+### 4. 📚 Quản Lý Ngân Hàng Đề Bài (Exercises Library)
+* **Cào đề bài tự động:** Quét tên môn học, chương học, nội dung mô tả đề bài trực tiếp trên trang chi tiết bài tập LMS của giáo viên.
+* **Tách Rubric chấm điểm tự động:** Tự động phát hiện cấu trúc tiêu chí chấm bài (AI Rubric) trong đề bài để bóc tách riêng phần tiêu chí phục vụ Prompt chấm điểm.
 
-### 4. ⚙️ Cấu hình AI & Hệ thống tùy biến System Prompt
-* **Đa dạng nhà cung cấp:** Hỗ trợ Google Gemini, DeepSeek API, OpenRouter, Ollama (Local) hoặc bất kỳ API tương thích chuẩn OpenAI nào khác.
-* **Tùy biến System Prompt:** Cho phép giảng viên chỉnh sửa trực tiếp Prompt gốc của AI ngay trong tab Cài đặt. Hỗ trợ các biến đại diện động:
-  * `{{assignment}}`: Nội dung đề bài
-  * `{{criteria}}`: Tiêu chí chấm điểm (AI Rubric)
-  * `{{code}}`: Mã nguồn của học viên (được nén khoảng trắng tối ưu dung lượng)
-* **Lưu đệm tối ưu hiệu năng (Performance Optimization):** Áp dụng kỹ thuật `Select Caching` (giảm tải 95% xử lý lặp) và `DocumentFragment Batching` (vẽ bảng HTML hàng loạt chỉ qua 1 lần reflow), giúp Extension chạy cực kỳ mượt mà, triệt tiêu hoàn toàn hiện tượng giật lag khi quét trang có 30-50 học sinh.
+### 5. ⚙️ Cấu Hình Đa Nhà Cung Cấp & Chỉ Báo Nhạy Bén
+* **Hỗ trợ đa dạng AI API:** Google Gemini (Gemini 2.5 Flash/Pro), DeepSeek API (Coder/Chat), OpenRouter (Qwen, Llama...), Custom OpenAI-compatible API, và Ollama Local (DeepSeek-R1 chạy offline).
+* **System Prompt Customizer:** Biên tập và thay đổi Prompt chấm bài của AI ngay trong cấu hình hệ thống bằng các biến động: `{{assignment}}`, `{{criteria}}`, và `{{code}}`.
+* **Trạng thái AI tích hợp (Smart Version Tag):** Nhãn phiên bản ở góc phải Header (`v3.5.6`) hoạt động như một đèn chỉ báo thông minh: sáng **màu xanh lá cây** khi cấu hình khóa API hoạt động sẵn sàng, và tự động chuyển sang **màu đỏ** khi chưa cấu hình hoặc cấu hình sai.
 
 ---
 
-## 📁 Cấu trúc thư mục dự án
+## 📁 Cấu Trúc Mã Nguồn Dự Án
 
 ```text
 AutoScoring/
 ├── extension/             # Mã nguồn Chrome/Edge Extension (JavaScript/CSS/HTML)
-│   ├── manifest.json      # Tệp khai báo thông tin & quyền của Extension (v3.2.2)
-│   ├── popup.html         # Giao diện popup chính của Extension
-│   ├── popup.css          # Tệp định dạng CSS premium, chống tràn màn hình
-│   ├── popup.js           # Bộ điều phối và liên kết sự kiện 4 Tab chính
-│   ├── utils.js           # Các hàm tiện ích dùng chung (Fuzzy match, trích xuất điểm/tiêu chí)
-│   ├── aiService.js       # Dịch vụ gọi API gửi prompt chấm điểm (Gemini, DeepSeek, Ollama...)
-│   ├── githubService.js   # Dịch vụ tải và giải nén repository ZIP từ GitHub
-│   ├── lmsScraper.js      # Scrip cào thông tin đề bài được tiêm trực tiếp vào LMS
-│   └── controllers/       # Các bộ điều khiển logic cho từng tab chuyên biệt
-│       ├── autoGraderTab.js   # Tab 1: Quét và chấm hàng loạt (Tối ưu Reflow & Cache)
-│       ├── singleGraderTab.js # Tab 2: Chấm điểm đơn
-│       ├── exercisesTab.js    # Tab 3: Quản lý ngân hàng đề bài
-│       └── settingsTab.js     # Tab 4: Cài đặt hệ thống & Soạn thảo System Prompt
-├── streamlit_app/         # Mã nguồn ứng dụng Web Python (Streamlit)
-│   └── app.py             # Giao diện web Python chính
+│   ├── manifest.json      # Tệp khai báo thông tin, quyền lợi & icon của Extension (v3.5.6)
+│   ├── popup.html         # Giao diện điều khiển chính của REduX (5 Tab điều hướng)
+│   ├── popup.css          # Định dạng CSS premium, hỗ trợ giao diện sáng/tối tối giản
+│   ├── popup.js           # Bộ điều phối chính kết nối các Tab và khởi chạy dịch vụ
+│   ├── aiService.js       # Dịch vụ giao tiếp với các API AI (Gemini, DeepSeek, Ollama...)
+│   ├── githubService.js   # Dịch vụ tải, giải nén và lọc file thông minh từ GitHub ZIP
+│   ├── lmsScraper.js      # Script chạy ngầm trên LMS để cào đề bài/danh sách lớp
+│   ├── xlsx.full.min.js   # Thư viện xuất file Excel (SheetJS)
+│   ├── logo.png           # Logo ngang REduX hiển thị tại Header
+│   ├── icon.png           # Icon vuông REduX (biểu tượng X mạch điện & bộ não)
+│   └── controllers/       # Các bộ điều khiển logic tương ứng từng Tab
+│       ├── autoGraderTab.js   # Logic quét, lọc và chấm bài hàng loạt
+│       ├── singleGraderTab.js # Logic chấm đơn
+│       ├── classListTab.js    # Logic quản lý danh sách lớp & xuất Excel
+│       ├── exercisesTab.js    # Logic quản lý ngân hàng đề bài
+│       └── settingsTab.js     # Logic quản lý cấu hình API & lưới Checkbox loại trừ
+├── security_and_sync_plan.md  # Kế hoạch chi tiết về nâng cấp Bảo mật & Cloud cho tương lai
 ├── CHANGELOG.md           # Nhật ký ghi chép tất cả lịch sử thay đổi phiên bản
-└── README.md              # Hướng dẫn chi tiết dự án (Tài liệu này)
+└── README.md              # Tài liệu hướng dẫn sử dụng dự án (Tài liệu này)
 ```
 
 ---
 
-## 🛠️ Hướng dẫn Cài đặt & Sử dụng Chrome Extension
+## 🛠️ Hướng Dẫn Cài Đặt & Sử Dụng
 
-Vì Extension được thiết kế **100% Serverless**, bạn có thể sử dụng trực tiếp trên trình duyệt Chrome hoặc Edge mà không cần cài đặt thêm Python hay chạy API Server.
+### 1. Cài đặt tiện ích dưới dạng đã giải nén (Development Mode)
+Vì REduX là ứng dụng Serverless chạy client-side, bạn không cần cài đặt môi trường backend phức tạp:
+1. Tải hoặc clone mã nguồn thư mục dự án về máy tính của bạn.
+2. Mở trình duyệt Chrome/Edge và truy cập trang quản lý tiện ích:
+   * Chrome: `chrome://extensions/`
+   * Edge: `edge://extensions/`
+3. Kích hoạt **Chế độ dành cho nhà phát triển (Developer mode)** ở góc trên bên phải màn hình.
+4. Bấm nút **Tải tiện ích đã giải nén (Load unpacked)** ở góc trái.
+5. Tìm và chọn thư mục **`extension`** nằm trong thư mục dự án của bạn (đường dẫn có dạng: `/AutoScoring/extension`).
 
-### Bước 1: Cài đặt Extension vào trình duyệt
-1. Tải thư mục dự án về máy tính của bạn.
-2. Mở trình duyệt và truy cập vào trang quản lý tiện ích mở rộng:
-   * **Chrome**: Nhập `chrome://extensions/`
-   * **Edge**: Nhập `edge://extensions/`
-3. Kích hoạt **Chế độ nhà phát triển (Developer mode)** ở góc trên bên phải màn hình.
-4. Bấm vào nút **Tải tiện ích đã giải nén (Load unpacked)** ở góc trái.
-5. Chọn thư mục `extension` nằm bên trong thư mục dự án (đường dẫn dạng: `.../AutoScoring/extension`).
-
-### Bước 2: Thiết lập thông tin API (Tab Cài Đặt)
-1. Click vào biểu tượng Extension **AI GitHub Grader** trên thanh công cụ của trình duyệt.
-2. Di chuyển sang tab **⚙️ Cài Đặt**.
-3. Cấu hình các thông tin sau:
-   * **Nhà Cung Cấp AI:** Chọn một trong các nhà cung cấp (Ví dụ: `Google Gemini`).
-   * **API Key:** Dán khóa API của bạn vào (Ví dụ: Gemini API Key).
-   * **Tên Model:** Điền model muốn dùng (Ví dụ: `gemini-1.5-pro` hoặc `gemini-2.5-flash`).
-   * **GitHub Token:** Dán Personal Access Token của bạn (rất khuyên dùng để không bị giới hạn 60 lượt tải/giờ từ GitHub API khi chấm hàng loạt).
-   * **System Prompt:** Có thể giữ nguyên mặc định hoặc tùy chỉnh theo ý muốn.
-4. Nhấn **Lưu Cấu Hình** 💾. Đèn trạng thái phía trên sẽ đổi sang màu xanh báo **Sẵn sàng**!
-
----
-
-## 🏃 Quy trình chấm bài & Cào đề bài thực tế trên LMS
-
-Để vận hành chấm điểm một bài học mới trên LMS, bạn thực hiện quy trình sau:
-
-### Bước 1: Nạp đề bài vào ngân hàng
-1. Đăng nhập vào trang LMS của trung tâm, di chuyển tới bài tập cần chấm (ví dụ: `Session 02 -> Homework -> Bài tập thực hành`).
-2. Mở Extension lên, chọn Tab **📚 Đề Bài**.
-3. Nhấp nút **📥 Cào đề bài từ LMS**. 
-4. Hệ thống sẽ tự động quét thông tin:
-   * Tên khóa học chứa mã lớp (ví dụ: `[IT-215] Phát triển dịch vụ Web với FastAPI`).
-   * Tên Session (ví dụ: `Session 02`).
-   * Tên bài tập và nội dung đề bài chính.
-   * Tự động cắt phần tiêu chí chấm (nếu có ghi trong đề bài) đưa vào ô **Tiêu chí chấm điểm**.
-5. Kiểm tra lại thông tin trên form và nhấn **✅ Xác Nhận Thêm Vào Ngân Hàng**.
-
-### Bước 2: Thực hiện chấm bài hàng loạt
-1. Di chuyển tới trang danh sách nộp bài tập của lớp học trên LMS (trang hiển thị bảng có chứa các link bài nộp GitHub của học viên).
-2. Mở Extension lên, chọn Tab **⚡ Quét & Chấm Hàng Loạt**.
-3. Nhấp nút **Quét danh sách**. Hệ thống sẽ hiển thị bảng toàn bộ học sinh kèm link GitHub tương ứng.
-4. Nhờ cơ chế *Fuzzy Matching*, Extension sẽ tự động khớp và chọn bài tập phù hợp cho từng học viên. (Bạn có thể đổi thủ công ở dropdown nếu cần).
-5. Tích chọn các học viên muốn chấm điểm, rồi click **🚀 Bắt Đầu Chấm X Bài Đã Chọn**.
-6. Điểm số và nhận xét ngắn gọn (lỗi ở dòng nào, vì sao sai) sẽ được cập nhật trực tiếp trên bảng. Bạn có thể bấm nút **Chi tiết** ở mỗi dòng để xem báo cáo Markdown đầy đủ và copy nhận xét gửi cho học viên!
+### 2. Thiết lập thông tin Cấu hình ban đầu
+1. Nhấp vào biểu tượng của **REduX** (biểu tượng chữ **X** mạch điện tử & bộ não) trên thanh công cụ trình duyệt.
+2. Di chuyển sang Tab **⚙️ Cài Đặt**.
+3. Cấu hình các thông tin kết nối chính:
+   * **Nhà cung cấp AI:** Chọn mô hình AI bạn muốn sử dụng (ví dụ: `Google Gemini`).
+   * **API Key:** Dán khóa API của bạn vào.
+   * **Tên Model:** Nhập model muốn dùng (ví dụ: `gemini-2.5-flash` để tối ưu chi phí và tốc độ, hoặc `gemini-1.5-pro` để có kết quả sâu sắc hơn).
+   * **GitHub Token:** Cung cấp Personal Access Token (PAT) của bạn. *Lưu ý: Bạn nên sử dụng Token này vì nếu không có, GitHub API sẽ giới hạn tối đa 60 lượt tải/giờ, có thể gây lỗi nghẽn khi chấm bài hàng loạt cho lớp học đông.*
+   * **Bộ lọc loại trừ file (.graderignore):** Tích chọn các checkbox của thư mục/tập tin rác bạn muốn loại bỏ khi tải code học viên (ví dụ: `build/`, `dist/`, `.idea/`...). Các thư mục cốt lõi nặng (`node_modules/`, `.venv/`, `.git/`) sẽ luôn được tự động loại bỏ ngầm để đảm bảo hiệu năng.
+4. Nhấp nút **Lưu Cấu Hình** 💾.
+5. Quan sát góc trên cùng bên phải: Nếu nút tag phiên bản **`v3.5.6`** chuyển sang **màu xanh lá cây**, hệ thống của bạn đã sẵn sàng hoạt động! Nếu là **màu đỏ**, hãy kiểm tra lại khóa API và cấu hình tương thích của bạn.
 
 ---
 
-## 🖥️ Hướng dẫn Khởi chạy Streamlit Web App (Thay thế)
+## 🏃 Quy Trình Vận Hành Chấm Điểm Lớp Học Thực Tế
 
-Nếu muốn sử dụng ứng dụng web độc lập viết bằng Python:
+### Bước 1: Thu thập Đề bài và Tiêu chí chấm từ LMS
+1. Đăng nhập vào hệ thống LMS của trung tâm, điều hướng đến trang chi tiết của Bài tập/Homework cần chuẩn bị chấm.
+2. Mở Extension REduX lên, chọn Tab **📚 Đề Bài**.
+3. Click vào nút **📥 Cào đề bài từ LMS**. Tiện ích sẽ tự động bóc tách:
+   * Tên Khóa học & Mã Lớp học.
+   * Tên Session (Chương học).
+   * Nội dung chi tiết đề bài tập về nhà và tự động trích lọc các tiêu chí chấm điểm (Rubric).
+4. Kiểm tra lại thông tin trên form và nhấn **✅ Xác Nhận Thêm Vào Ngân Hàng** để lưu lại.
 
-### Bước 1: Cấu hình môi trường
-Kích hoạt môi trường ảo `.venv` và cài đặt các thư viện Python:
-```bash
-# Kích hoạt môi trường ảo
-# Windows (PowerShell):
-.\.venv\Scripts\activate
-# Windows (Git Bash / macOS):
-source ./.venv/Scripts/activate
+### Bước 2: Quét danh sách bài nộp và Chấm bài
+1. Di chuyển sang trang chứa bảng nộp bài tập của học sinh trên LMS (trang hiển thị danh sách học viên kèm link nộp bài).
+2. Mở REduX, chọn Tab **⚡ Chấm Hàng Loạt**.
+3. Click **Quét danh sách bài nộp trên trang**.
+4. REduX sẽ lập tức quét và hiển thị toàn bộ học sinh kèm đường dẫn repo GitHub tương ứng. Dựa vào thuật toán *Fuzzy Matching*, REduX tự động chọn bài tập tương ứng khớp với tên bài học cho từng học viên.
+5. Tích chọn các học viên cần chấm điểm và click **🚀 Bắt Đầu Chấm X Bài Đã Chọn**.
+6. Tiến trình tải code và gọi AI chấm bài sẽ diễn ra song song. Kết quả điểm số cùng nhận xét nhanh sẽ cập nhật trực tiếp trên bảng. 
+7. Giảng viên có thể bấm vào nút **Chi tiết** trên từng dòng để đọc báo cáo Markdown đầy đủ và sao chép nhận xét gửi cho học viên.
 
-# Cài đặt thư viện
-pip install -r requirements.txt
-```
-
-### Bước 2: Cấu hình tệp `.env`
-Tạo tệp `.env` tại thư mục gốc và điền các cấu hình của bạn:
-```env
-GEMINI_API_KEY=AIzaSy...
-GITHUB_TOKEN=ghp_...
-AI_PROVIDER=gemini
-LOCAL_MODEL_NAME=gemini-1.5-pro
-```
-
-### Bước 3: Chạy ứng dụng
-```bash
-streamlit run streamlit_app/app.py
-```
+### Bước 3: Quản lý danh sách lớp học và Xuất bảng điểm Excel
+1. Di chuyển tới trang danh sách lớp học tổng quan trên LMS (trang có bảng danh sách tất cả học viên trong lớp).
+2. Mở REduX, chọn Tab **👥 Quản Lý Lớp Học**.
+3. Click **Tải Danh Sách Học Viên**. Bảng hiển thị thông tin học viên kèm thống kê tỷ lệ hoàn thành bài tập sẽ xuất hiện.
+4. Sau khi chấm bài xong xuôi, click **📥 Xuất báo cáo Excel (.xlsx)**. Hệ thống sẽ kết xuất trực tiếp tệp tin Excel tiếng Việt chuẩn chỉnh, tự căn rộng cột tối ưu để lưu trữ điểm số.
 
 ---
 
-## 📜 Quy định Cập nhật Phiên bản & Changelog
-
-Để bảo trì dự án một cách chuyên nghiệp, bất kỳ thay đổi nào về mã nguồn đều phải tuân thủ:
-1. Cập nhật mã phiên bản (version code) đồng bộ tại `manifest.json`, `popup.html`, và `popup.js`.
-2. Ghi nhận chi tiết các cải tiến, tính năng mới hoặc sửa lỗi vào tệp [CHANGELOG.md](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/AutoScoring/CHANGELOG.md) theo chuẩn **Keep a Changelog**.
+## 📜 Quy Định Đóng Gói (Release/Version Control)
+* Tiện ích REduX tuân thủ quy trình phát triển và kiểm soát phiên bản nghiêm ngặt.
+* Mọi cập nhật liên quan đến chức năng, sửa lỗi đều phải được nâng cấp mã phiên bản (version) đồng bộ tại các tệp tin:
+  * `manifest.json` (Trường `"version"`)
+  * `popup.js` (Hằng số `appVersion`)
+  * `popup.html` (Thẻ nhãn hiển thị `#app-version`)
+* Mọi thay đổi phải được ghi chép tường tận vào file [CHANGELOG.md](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/AutoScoring/CHANGELOG.md) theo chuẩn định dạng **Keep a Changelog**.
