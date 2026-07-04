@@ -7,6 +7,12 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.3] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Đổi tên ứng dụng thành REduX:**
+  - Cập nhật thương hiệu và đổi tên tiện ích từ "AI GitHub Grader Helper" thành **REduX** trong manifest.json, popup.html và thanh tiêu đề ứng dụng.
+
 ## [v3.5.2] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa
