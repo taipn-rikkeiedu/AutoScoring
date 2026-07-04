@@ -13,6 +13,7 @@ export class SettingsTab {
     this.aiApiUrlInput = document.getElementById("ai-api-url");
     this.aiModelNameInput = document.getElementById("ai-model-name");
     this.githubTokenInput = document.getElementById("github-token");
+    this.graderIgnoreInput = document.getElementById("grader-ignore");
     this.systemPromptInput = document.getElementById("system-prompt");
     this.resetPromptBtn = document.getElementById("reset-prompt-btn");
     
@@ -102,6 +103,7 @@ export class SettingsTab {
     this.aiApiUrlInput.value = config.aiApiUrl;
     this.aiModelNameInput.value = config.aiModelName;
     this.githubTokenInput.value = config.githubToken;
+    this.graderIgnoreInput.value = config.graderIgnore || "";
     this.systemPromptInput.value = config.systemPrompt || DEFAULT_SYSTEM_PROMPT;
     this.exerciseSourceSelect.value = config.exerciseSource;
     this.exerciseApiUrlInput.value = config.exerciseApiUrl;
@@ -132,6 +134,7 @@ export class SettingsTab {
     const apiUrl = this.aiApiUrlInput.value.trim();
     const modelName = this.aiModelNameInput.value.trim();
     const githubToken = this.githubTokenInput.value.trim();
+    const graderIgnore = this.graderIgnoreInput.value.trim();
     const systemPrompt = this.systemPromptInput.value;
     
     const src = this.exerciseSourceSelect.value;
@@ -163,6 +166,7 @@ export class SettingsTab {
         aiModelName: modelName,
         githubToken: githubToken,
         systemPrompt: systemPrompt,
+        graderIgnore: graderIgnore,
         exerciseSource: src,
         exerciseApiUrl: exerciseApiUrl,
         exerciseApiToken: exerciseApiToken,

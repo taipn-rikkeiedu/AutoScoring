@@ -223,7 +223,7 @@ export class SingleGraderTab {
         ? template.criteria
         : DEFAULT_CRITERIA;
 
-      const github = new GitHubService(this.context.config.githubToken);
+      const github = new GitHubService(this.context.config.githubToken, this.context.config.graderIgnore);
       const repoData = await github.getRepoContents(repoUrl, (msg) => {
         this.statusMessage.innerText = msg;
       });

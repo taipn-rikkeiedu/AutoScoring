@@ -1,5 +1,5 @@
 export class GitHubService {
-  constructor(token = "") {
+  constructor(token = "", customIgnoreList = "") {
     this.headers = {
       "Accept": "application/vnd.github.v3+json",
       "User-Agent": "AutoScoring/2.8"
@@ -18,6 +18,35 @@ export class GitHubService {
       "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "pom.xml.tag", 
       ".gitignore", "LICENSE", "gradlew.bat", "gradlew", "mvnw.cmd", "mvnw"
     ];
+
+    // Tự động phân tích và thêm các danh sách loại trừ tùy chỉnh từ người dùng
+    if (customIgnoreList) {
+      const items = customIgnoreList.split(/[\n,]/).map(x => x.trim()).filter(Boolean);
+      items.forEach(item => {
+        if (item.endsWith('/')) {
+          if (!this.excludedDirs.includes(item)) {
+            this.excludedDirs.push(item);
+          }
+        } else {
+          // Phân biệt file/folder dựa trên sự hiện diện của dấu chấm mở rộng
+          if (item.includes('.')) {
+            if (!this.excludedFiles.includes(item)) {
+              this.excludedFiles.push(item);
+            }
+          } else {
+            // Nếu không có dấu chấm, coi như là cả tên thư mục lẫn tên file để đảm bảo loại bỏ triệt để
+            const dirPattern = item + '/';
+            if (!this.excludedDirs.includes(dirPattern)) {
+              this.excludedDirs.push(dirPattern);
+            }
+            if (!this.excludedFiles.includes(item)) {
+              this.excludedFiles.push(item);
+            }
+          }
+        }
+      });
+    }
+
     this.maxFiles = 100;
     this.maxChars = 500000;
   }

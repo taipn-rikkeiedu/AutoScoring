@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.1] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Cấu hình Bộ lọc loại trừ file (.graderignore) tùy chỉnh:**
+  - Bổ sung trường cấu hình **📁 Bộ lọc loại trừ file (.graderignore)** trong tab **Cài Đặt**.
+  - Cho phép giảng viên nhập danh sách các file/thư mục cần bỏ qua khi tải code (tách biệt bằng dấu phẩy hoặc dòng mới).
+  - Tự động nhận diện và phân tích cấu hình để đưa vào danh sách lọc thích hợp.
+  - Các thư mục nặng/phụ thuộc hệ thống cơ bản như `node_modules`, `.venv`, `.vscode`, `.idea`, `.git`... vẫn luôn được tự động loại trừ mặc định.
+  - Tệp `README.md` mặc định được bảo lưu không loại trừ để đảm bảo AI nắm bắt được chỉ dẫn làm bài của học viên.
+
 ## [v3.5.0] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa

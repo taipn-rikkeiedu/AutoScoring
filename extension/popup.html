@@ -290,6 +290,16 @@
         </div>
       </div>
 
+      <!-- Grader Ignore Section -->
+      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">📁 Bộ lọc loại trừ file (.graderignore)</h3>
+        <div class="form-group">
+          <label for="grader-ignore">Danh sách loại trừ (phân cách bằng dấu phẩy hoặc dòng mới):</label>
+          <textarea id="grader-ignore" class="resizable-textarea" style="height: 60px;" placeholder="Ví dụ: my_temp_folder/, secret_file.txt, .config"></textarea>
+          <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; line-height: 1.4;">Các file/thư mục này sẽ được bỏ qua khi tải code. <i>Lưu ý: node_modules, .venv, .vscode, .idea, .git đã luôn được tự động loại trừ mặc định.</i></span>
+        </div>
+      </div>
+
       <!-- System Prompt Section -->
       <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">

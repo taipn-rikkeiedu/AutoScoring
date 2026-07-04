@@ -846,7 +846,7 @@ export class AutoGraderTab {
         ? template.criteria
         : DEFAULT_CRITERIA;
 
-      const github = new GitHubService(this.context.config.githubToken);
+      const github = new GitHubService(this.context.config.githubToken, this.context.config.graderIgnore);
       const repoData = await github.getRepoContents(sub.githubUrl, (msg) => {
         sub.status = 'downloading';
         badgeEl.textContent = 'Tải code...';
