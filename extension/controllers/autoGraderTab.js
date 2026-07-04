@@ -112,6 +112,8 @@ function scrapeClassPage() {
   let idColIndex = -1;
   let gradeLinkColIndex = -1;
   let statusColIndex = -1;
+  let submittedColIndex = -1;
+  let completedColIndex = -1;
   
   const headers = Array.from(document.querySelectorAll('th, thead td'));
   headers.forEach((header, index) => {
@@ -124,6 +126,12 @@ function scrapeClassPage() {
     }
     if (text.includes('trạng thái') || text.includes('status')) {
       if (statusColIndex === -1) statusColIndex = index;
+    }
+    if (text.includes('số bài đã nộp') || text.includes('đã nộp') || text.includes('submitted')) {
+      if (submittedColIndex === -1) submittedColIndex = index;
+    }
+    if (text.includes('số bài hoàn thành') || (text.includes('hoàn thành') && text.includes('bài'))) {
+      if (completedColIndex === -1) completedColIndex = index;
     }
     if (text.includes('chấm') || text.includes('nộp') || text.includes('grade') || text.includes('action') || text.includes('hành động') || text.includes('chi tiết') || text.includes('xem')) {
       if (gradeLinkColIndex === -1) gradeLinkColIndex = index;
@@ -138,6 +146,8 @@ function scrapeClassPage() {
     let studentId = '';
     let submissionUrl = '';
     let lmsStatus = '';
+    let submittedCount = 0;
+    let completedCount = 0;
     
     if (nameColIndex !== -1 && cells[nameColIndex]) {
       studentName = cells[nameColIndex].textContent.trim();
@@ -152,6 +162,15 @@ function scrapeClassPage() {
       } else {
         lmsStatus = cells[statusColIndex].textContent.trim();
       }
+    }
+    if (submittedColIndex !== -1 && cells[submittedColIndex]) {
+      const val = parseInt(cells[submittedColIndex].textContent.trim(), 10);
+      if (!isNaN(val)) submittedCount = val;
+    }
+    if (completedColIndex !== -1 && cells[completedColIndex]) {
+      const selectEl = cells[completedColIndex].querySelector('select');
+      const val = selectEl ? parseInt(selectEl.options[selectEl.selectedIndex]?.textContent.trim(), 10) : parseInt(cells[completedColIndex].textContent.trim(), 10);
+      if (!isNaN(val)) completedCount = val;
     }
     
     let actionElement = null;
@@ -246,7 +265,9 @@ function scrapeClassPage() {
         studentName: studentName || 'Học viên ẩn danh',
         submissionUrl: submissionUrl.split('?')[0].split('#')[0],
         dbId: dbId || '',
-        lmsStatus: lmsStatus || ''
+        lmsStatus: lmsStatus || '',
+        submittedCount: submittedCount,
+        completedCount: completedCount
       });
     }
   });
@@ -998,6 +1019,8 @@ export class AutoGraderTab {
                   submissionUrl: newSt.submissionUrl,
                   dbId: newSt.dbId || (existing ? (existing.dbId || '') : ''),
                   lmsStatus: newSt.lmsStatus || (existing ? (existing.lmsStatus || '') : ''),
+                  submittedCount: newSt.submittedCount !== undefined ? newSt.submittedCount : (existing ? (existing.submittedCount || 0) : 0),
+                  completedCount: newSt.completedCount !== undefined ? newSt.completedCount : (existing ? (existing.completedCount || 0) : 0),
                   githubUrl: existing ? (existing.githubUrl || '') : '',
                   score: existing ? existing.score : null,
                   comments: existing ? existing.comments : null,
@@ -1059,16 +1082,21 @@ export class AutoGraderTab {
       let gradedCount = 0;
       
       studentList.forEach(st => {
-        if (st.score !== null && st.score !== undefined) {
-          gradedCount++;
-        }
         const statusText = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : '';
-        if (statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA')) {
+        const isCompleted = statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA');
+        const isPending = statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA');
+        const isNotCompleted = statusText.includes('CHƯA HOÀN THÀNH') || (!isCompleted && !isPending && statusText.length > 0);
+        
+        if (isCompleted) {
           completedCount++;
-        } else if (statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA')) {
+        } else if (isPending) {
           pendingCount++;
         } else {
           notCompletedCount++;
+        }
+        
+        if (isCompleted || isNotCompleted || (st.score !== null && st.score !== undefined)) {
+          gradedCount++;
         }
       });
       
@@ -1126,27 +1154,48 @@ export class AutoGraderTab {
         
         const tdScore = document.createElement('td');
         tdScore.style.textAlign = 'center';
-        const scoreBadge = document.createElement('span');
-        scoreBadge.className = 'badge-status';
-        if (st.score !== null && st.score !== undefined) {
-          scoreBadge.className += ' success';
-          scoreBadge.textContent = `${st.score} / 100`;
-          if (st.comments) {
-            scoreBadge.style.cursor = 'pointer';
-            scoreBadge.title = 'Click để xem nhận xét';
-            scoreBadge.addEventListener('click', () => {
-              this.context.showReportModal({
-                exerciseName: `Báo cáo chấm điểm: ${st.studentName} - ${st.studentId}`,
-                score: st.score,
-                report: st.comments
-              });
-            });
-          }
+        
+        const ratioBadge = document.createElement('span');
+        ratioBadge.className = 'badge-status';
+        
+        const subCount = st.submittedCount || 0;
+        const compCount = st.completedCount || 0;
+        ratioBadge.textContent = `${compCount} / ${subCount}`;
+        
+        if (compCount === subCount && subCount > 0) {
+          ratioBadge.className += ' success';
+        } else if (compCount < subCount) {
+          ratioBadge.className += ' warning';
         } else {
-          scoreBadge.className += ' pending';
-          scoreBadge.textContent = 'Chưa chấm';
+          ratioBadge.className += ' pending';
         }
-        tdScore.appendChild(scoreBadge);
+        
+        if (st.score !== null && st.score !== undefined) {
+          ratioBadge.title = `Điểm AI: ${st.score}/100. Click để xem nhận xét chi tiết.`;
+          ratioBadge.style.cursor = 'pointer';
+          ratioBadge.style.borderBottom = '2px dashed #15803d';
+          
+          ratioBadge.addEventListener('click', () => {
+            this.context.showReportModal({
+              exerciseName: `Báo cáo chấm điểm: ${st.studentName} - ${st.studentId}`,
+              score: st.score,
+              report: st.comments
+            });
+          });
+          
+          const aiScoreText = document.createElement('div');
+          aiScoreText.style.fontSize = '0.7rem';
+          aiScoreText.style.color = '#15803d';
+          aiScoreText.style.fontWeight = '600';
+          aiScoreText.style.marginTop = '2px';
+          aiScoreText.textContent = `AI: ${st.score}/100`;
+          
+          tdScore.appendChild(ratioBadge);
+          tdScore.appendChild(aiScoreText);
+        } else {
+          tdScore.appendChild(ratioBadge);
+        }
+        
         tr.appendChild(tdScore);
         
         const tdActions = document.createElement('td');

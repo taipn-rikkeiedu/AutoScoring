@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.4.2] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Đồng bộ Tỉ lệ hoàn thành bài tập:**
+  - Tích hợp quét cột **Số bài đã nộp** và **Số bài hoàn thành** từ trang danh sách lớp học của Rikkei LMS.
+  - Hiển thị tỉ lệ này dạng badge màu trong cột **Bài tập / Điểm** (màu xanh lá cây nếu hoàn thành tất cả, màu vàng/cam nếu hoàn thành một phần).
+  - Tự động hiển thị điểm AI nhỏ gọn bên dưới badge tỉ lệ nếu học viên đã được chấm bài, giữ nguyên cơ chế click để mở modal nhận xét.
+- **Nâng cấp thống kê sĩ số Đã chấm:**
+  - Thay đổi cách tính "Đã chấm" trong Banner thống kê để tính cả những sinh viên đã có trạng thái **Hoàn thành** hoặc **Chưa hoàn thành** trên LMS, giúp bao quát tiến độ chấm bài thực tế tốt hơn.
+
 ## [v3.4.1] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa
