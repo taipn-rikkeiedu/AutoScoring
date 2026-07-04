@@ -2,7 +2,7 @@ export class GitHubService {
   constructor(token = "", customIgnoreItems = null) {
     this.headers = {
       "Accept": "application/vnd.github.v3+json",
-      "User-Agent": "AutoScoring/2.8"
+      "User-Agent": "REduX/3.5.6"
     };
     if (token) {
       this.headers["Authorization"] = `token ${token}`;

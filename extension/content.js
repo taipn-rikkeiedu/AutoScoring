@@ -34,7 +34,7 @@ document.addEventListener('click', (event) => {
               timestamp: Date.now()
             };
             chrome.storage.local.set({ activeStudentTransition: transitionData }, () => {
-              console.log("AutoScoring: Saved transition student:", transitionData);
+              console.log("REduX: Saved transition student:", transitionData);
             });
           }
         }

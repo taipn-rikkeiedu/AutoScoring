@@ -10,7 +10,7 @@ class GitHubService:
     def __init__(self):
         self.headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "AutoScoring/1.0",
+            "User-Agent": "REduX/1.0",
         }
         
         # Load GitHub Token from active session state config if available, fallback to Settings

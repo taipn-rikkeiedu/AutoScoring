@@ -37,7 +37,7 @@ Dự án được thiết kế theo kiến trúc **Serverless 100% (Client-Side 
 ## 📁 Cấu Trúc Mã Nguồn Dự Án
 
 ```text
-AutoScoring/
+REduX/
 ├── extension/             # Mã nguồn Chrome/Edge Extension (JavaScript/CSS/HTML)
 │   ├── manifest.json      # Tệp khai báo thông tin, quyền lợi & icon của Extension (v3.5.6)
 │   ├── popup.html         # Giao diện điều khiển chính của REduX (5 Tab điều hướng)
@@ -72,7 +72,7 @@ Vì REduX là ứng dụng Serverless chạy client-side, bạn không cần cà
    * Edge: `edge://extensions/`
 3. Kích hoạt **Chế độ dành cho nhà phát triển (Developer mode)** ở góc trên bên phải màn hình.
 4. Bấm nút **Tải tiện ích đã giải nén (Load unpacked)** ở góc trái.
-5. Tìm và chọn thư mục **`extension`** nằm trong thư mục dự án của bạn (đường dẫn có dạng: `/AutoScoring/extension`).
+5. Tìm và chọn thư mục **`extension`** nằm trong thư mục dự án của bạn (đường dẫn có dạng: `/REduX/extension`).
 
 ### 2. Thiết lập thông tin Cấu hình ban đầu
 1. Nhấp vào biểu tượng của **REduX** (biểu tượng chữ **X** mạch điện tử & bộ não) trên thanh công cụ trình duyệt.
@@ -122,4 +122,4 @@ Vì REduX là ứng dụng Serverless chạy client-side, bạn không cần cà
   * `manifest.json` (Trường `"version"`)
   * `popup.js` (Hằng số `appVersion`)
   * `popup.html` (Thẻ nhãn hiển thị `#app-version`)
-* Mọi thay đổi phải được ghi chép tường tận vào file [CHANGELOG.md](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/AutoScoring/CHANGELOG.md) theo chuẩn định dạng **Keep a Changelog**.
+* Mọi thay đổi phải được ghi chép tường tận vào file [CHANGELOG.md](CHANGELOG.md) theo chuẩn định dạng **Keep a Changelog**.
