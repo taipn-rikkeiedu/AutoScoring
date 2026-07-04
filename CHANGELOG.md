@@ -7,6 +7,19 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.4.1] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Đồng bộ cột Trạng thái LMS:**
+  - Phân tách và quét cột Trạng thái riêng biệt khỏi cột Hành động trên Rikkei LMS.
+  - Tự động nhận diện và hiển thị Trạng thái LMS của học sinh dưới dạng badge trực quan.
+  - Tích hợp style badge cảnh báo màu cam/vàng (`warning`) dành riêng cho trạng thái "Đang chờ kiểm tra" / "CHỜ KIỂM TRA".
+- **Thống kê tiến độ lớp học:**
+  - Bổ sung bảng thông tin tổng hợp ở đầu danh sách lớp hiển thị: Sĩ số lớp, số lượng hoàn thành, chưa hoàn thành, chờ kiểm tra và số bài đã được AI chấm.
+- **Tối ưu hóa bố cục bảng:**
+  - Thay thế cột URL bài nộp cồng kềnh bằng cột Trạng thái LMS.
+  - Chuyển đổi tên học viên thành liên kết mở nhanh đến trang nộp bài chi tiết.
+
 ## [v3.4.0] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa

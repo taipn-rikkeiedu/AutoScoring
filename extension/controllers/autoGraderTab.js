@@ -111,6 +111,7 @@ function scrapeClassPage() {
   let nameColIndex = -1;
   let idColIndex = -1;
   let gradeLinkColIndex = -1;
+  let statusColIndex = -1;
   
   const headers = Array.from(document.querySelectorAll('th, thead td'));
   headers.forEach((header, index) => {
@@ -121,7 +122,10 @@ function scrapeClassPage() {
     if (text.includes('mã') || text.includes('id') || text.includes('code') || text.includes('msv') || text.includes('mssv')) {
       if (idColIndex === -1) idColIndex = index;
     }
-    if (text.includes('chấm') || text.includes('nộp') || text.includes('grade') || text.includes('action') || text.includes('hành động') || text.includes('chi tiết') || text.includes('trạng thái')) {
+    if (text.includes('trạng thái') || text.includes('status')) {
+      if (statusColIndex === -1) statusColIndex = index;
+    }
+    if (text.includes('chấm') || text.includes('nộp') || text.includes('grade') || text.includes('action') || text.includes('hành động') || text.includes('chi tiết') || text.includes('xem')) {
       if (gradeLinkColIndex === -1) gradeLinkColIndex = index;
     }
   });
@@ -133,12 +137,21 @@ function scrapeClassPage() {
     let studentName = '';
     let studentId = '';
     let submissionUrl = '';
+    let lmsStatus = '';
     
     if (nameColIndex !== -1 && cells[nameColIndex]) {
       studentName = cells[nameColIndex].textContent.trim();
     }
     if (idColIndex !== -1 && cells[idColIndex]) {
       studentId = cells[idColIndex].textContent.trim();
+    }
+    if (statusColIndex !== -1 && cells[statusColIndex]) {
+      const selectEl = cells[statusColIndex].querySelector('select');
+      if (selectEl) {
+        lmsStatus = selectEl.options[selectEl.selectedIndex]?.textContent.trim();
+      } else {
+        lmsStatus = cells[statusColIndex].textContent.trim();
+      }
     }
     
     let actionElement = null;
@@ -232,7 +245,8 @@ function scrapeClassPage() {
         studentId: studentId || 'N/A',
         studentName: studentName || 'Học viên ẩn danh',
         submissionUrl: submissionUrl.split('?')[0].split('#')[0],
-        dbId: dbId || ''
+        dbId: dbId || '',
+        lmsStatus: lmsStatus || ''
       });
     }
   });
@@ -983,6 +997,7 @@ export class AutoGraderTab {
                   studentName: newSt.studentName,
                   submissionUrl: newSt.submissionUrl,
                   dbId: newSt.dbId || (existing ? (existing.dbId || '') : ''),
+                  lmsStatus: newSt.lmsStatus || (existing ? (existing.lmsStatus || '') : ''),
                   githubUrl: existing ? (existing.githubUrl || '') : '',
                   score: existing ? existing.score : null,
                   comments: existing ? existing.comments : null,
@@ -1037,6 +1052,31 @@ export class AutoGraderTab {
       
       const fragment = document.createDocumentFragment();
       
+      const total = studentList.length;
+      let completedCount = 0;
+      let notCompletedCount = 0;
+      let pendingCount = 0;
+      let gradedCount = 0;
+      
+      studentList.forEach(st => {
+        if (st.score !== null && st.score !== undefined) {
+          gradedCount++;
+        }
+        const statusText = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : '';
+        if (statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA')) {
+          completedCount++;
+        } else if (statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA')) {
+          pendingCount++;
+        } else {
+          notCompletedCount++;
+        }
+      });
+      
+      this.classStatusBanner.innerHTML = `📊 <b>Thống kê lớp học:</b> Sĩ số: <b>${total}</b> | Hoàn thành: <span class="badge-status success" style="font-weight:bold;">${completedCount}</span> | Chưa hoàn thành: <span class="badge-status pending" style="font-weight:bold;">${notCompletedCount}</span> | Chờ kiểm tra: <span class="badge-status warning" style="font-weight:bold;">${pendingCount}</span> | Đã chấm: <b>${gradedCount}</b>`;
+      this.classStatusBanner.style.backgroundColor = "#f8fafc";
+      this.classStatusBanner.style.color = "#1e293b";
+      this.classStatusBanner.style.borderLeftColor = "#3b82f6";
+
       studentList.forEach((st, index) => {
         const tr = document.createElement('tr');
         
@@ -1047,11 +1087,14 @@ export class AutoGraderTab {
         tr.appendChild(tdId);
         
         const tdName = document.createElement('td');
-        const nameSpan = document.createElement('span');
-        nameSpan.style.fontWeight = '600';
-        nameSpan.style.color = '#1e293b';
-        nameSpan.textContent = st.studentName;
-        tdName.appendChild(nameSpan);
+        const nameLink = document.createElement('a');
+        nameLink.href = st.submissionUrl;
+        nameLink.target = '_blank';
+        nameLink.style.fontWeight = '600';
+        nameLink.style.color = '#1e293b';
+        nameLink.style.textDecoration = 'none';
+        nameLink.textContent = st.studentName;
+        tdName.appendChild(nameLink);
         
         if (st.githubUrl) {
           const githubLink = document.createElement('a');
@@ -1063,16 +1106,23 @@ export class AutoGraderTab {
         }
         tr.appendChild(tdName);
         
-        const tdUrl = document.createElement('td');
-        const urlLink = document.createElement('a');
-        urlLink.href = st.submissionUrl;
-        urlLink.target = '_blank';
-        urlLink.style.fontSize = '0.75rem';
-        urlLink.style.color = '#3b82f6';
-        urlLink.style.wordBreak = 'break-all';
-        urlLink.textContent = st.submissionUrl.replace(/^https?:\/\/[^\/]+\//, ".../");
-        tdUrl.appendChild(urlLink);
-        tr.appendChild(tdUrl);
+        const tdLmsStatus = document.createElement('td');
+        tdLmsStatus.style.textAlign = 'center';
+        const lmsBadge = document.createElement('span');
+        lmsBadge.className = 'badge-status';
+        
+        const statusText = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : 'CHƯA NỘP';
+        lmsBadge.textContent = statusText;
+        
+        if (statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA')) {
+          lmsBadge.className += ' success';
+        } else if (statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA')) {
+          lmsBadge.className += ' warning';
+        } else {
+          lmsBadge.className += ' pending';
+        }
+        tdLmsStatus.appendChild(lmsBadge);
+        tr.appendChild(tdLmsStatus);
         
         const tdScore = document.createElement('td');
         tdScore.style.textAlign = 'center';

@@ -394,6 +394,7 @@ input[type="text"]:focus, select:focus {
   font-weight: 500;
 }
 .badge-status.pending { background-color: #e2e8f0; color: #475569; }
+.badge-status.warning { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 .badge-status.grading { background-color: #dbeafe; color: #1e40af; }
 .badge-status.success { background-color: #dcfce7; color: #15803d; cursor: pointer; }
 .badge-status.error { background-color: #fee2e2; color: #b91c1c; }
