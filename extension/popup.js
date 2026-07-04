@@ -17,8 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabExercises = document.getElementById("tab-exercises");
   const tabSettings = document.getElementById("tab-settings");
 
-  const connBanner = document.getElementById("conn-banner");
-  const connText = document.getElementById("conn-text");
   const appVersionTag = document.getElementById("app-version");
 
   // Shared Modal Elements
@@ -30,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.5.5";
+  const appVersion = "3.5.6";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -126,8 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function testConnectionAndLoadExercises() {
     appVersionTag.innerText = `v${appVersion}`;
-    connBanner.className = "connection-banner error";
-    connText.innerText = "AI: Đang check...";
+    appVersionTag.className = "version-tag error";
     singleGraderTab.enableGradeButton(false);
 
     await loadStoredConfig();
@@ -154,11 +151,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (ready) {
-      connBanner.className = "connection-banner success";
-      connText.innerText = "AI: Sẵn sàng";
+      appVersionTag.className = "version-tag success";
     } else {
-      connBanner.className = "connection-banner error";
-      connText.innerText = "AI: Chưa cấu hình";
+      appVersionTag.className = "version-tag error";
       settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, false, "");
       singleGraderTab.disableSelectors();
       exercisesTab.disableSelectors();

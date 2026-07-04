@@ -7,6 +7,14 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.6] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Tích hợp màu trạng thái kết nối trực tiếp vào tag Phiên bản:**
+  - Loại bỏ hoàn toàn Badge chỉ báo kết nối AI riêng lẻ trong Header.
+  - Tích hợp trực tiếp màu sắc chỉ thị trạng thái AI vào nút thẻ hiển thị phiên bản (ví dụ: `v3.5.6` màu xanh lục khi sẵn sàng và màu đỏ khi chưa cấu hình).
+  - Giúp tinh giản thanh Header tối đa, làm nổi bật logo REduX một cách tinh tế.
+
 ## [v3.5.5] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa
