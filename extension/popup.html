@@ -16,8 +16,9 @@
   </header>
 
   <nav class="tabs-bar">
-    <button class="tab-btn active" id="tab-auto-btn">⚡ Quét & Chấm Hàng Loạt</button>
+    <button class="tab-btn active" id="tab-auto-btn">⚡ Chấm Hàng Loạt</button>
     <button class="tab-btn" id="tab-grader-btn">🚀 Chấm Đơn</button>
+    <button class="tab-btn" id="tab-class-list-btn">👥 Quản Lý Lớp Học</button>
     <button class="tab-btn" id="tab-exercises-btn">📚 Đề Bài</button>
     <button class="tab-btn" id="tab-settings-btn">⚙️ Cài Đặt</button>
   </nav>
@@ -32,13 +33,7 @@
 
     <!-- TAB 0: AUTO SCAN & BULK GRADER -->
     <div class="tab-content active" id="tab-auto" style="overflow-y: auto;">
-      <!-- Mode Switcher -->
-      <div class="mode-selector-container" style="display: flex; gap: 8px; margin-bottom: 10px;">
-        <button class="mode-btn active" id="mode-bulk-grade-btn">⚡ Chấm Hàng Loạt (GitHub)</button>
-        <button class="mode-btn" id="mode-class-list-btn">👥 Quản Lý Danh Sách Lớp</button>
-      </div>
-
-      <!-- Mode 1: Bulk Grader (GitHub) -->
+      <!-- Bulk Grader (GitHub) -->
       <div id="bulk-grader-view" style="display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 10px;">
         <div id="detected-status-banner" style="font-size: 0.85rem; padding: 8px; background-color: #f1f5f9; border-radius: 6px; border-left: 4px solid #3b82f6;">
           🔍 Đang tìm kiếm các bài tập trên trang...
@@ -84,9 +79,12 @@
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- Mode 2: Class List Manager -->
-      <div id="class-list-view" style="display: none; flex-direction: column; flex: 1; min-height: 0; gap: 10px;">
+    <!-- TAB 4: CLASS LIST MANAGEMENT -->
+    <div class="tab-content" id="tab-class-list" style="overflow-y: auto;">
+      <!-- Class List Manager -->
+      <div id="class-list-view" style="display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 10px; height: 100%;">
         <div id="class-status-banner" style="font-size: 0.85rem; padding: 8px; background-color: #f1f5f9; border-radius: 6px; border-left: 4px solid #3b82f6;">
           🔍 Sẵn sàng quét danh sách học viên từ trang...
         </div>
@@ -123,7 +121,7 @@
               <span>📥 Quét Danh Sách Lớp</span>
             </button>
             <button class="btn-primary" id="export-class-csv-btn" style="width: auto; padding: 8px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
-              <span>📊 Xuất Báo Cáo CSV</span>
+              <span>📊 Xuất Excel</span>
             </button>
           </div>
         </div>
@@ -414,6 +412,7 @@
     </div>
   </div>
 
+  <script src="xlsx.full.min.js"></script>
   <script src="jszip.min.js"></script>
   <script src="marked.min.js"></script>
   <script type="module" src="popup.js"></script>

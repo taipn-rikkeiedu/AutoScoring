@@ -7,6 +7,18 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.0] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Tách Tab Quản Lý Lớp Học độc lập:**
+  - Tách rời hoàn toàn phần Quản lý Danh sách lớp thành một tab riêng biệt mang tên **Quản Lý Lớp Học** trên menu điều hướng chính của Extension popup.
+  - Loại bỏ hoàn toàn thanh chọn chế độ (mode selector buttons) cũ giúp giao diện Chấm Hàng Loạt thông thoáng hơn.
+  - Tích hợp sự kiện tự động kích hoạt quét trang và nạp danh sách lớp khi người dùng click chuyển tab.
+- **Tích hợp xuất file Excel (.xlsx) chính chủ:**
+  - Loại bỏ định dạng xuất file CSV cũ dễ gây vỡ font Unicode tiếng Việt.
+  - Tải về và tích hợp thư viện **SheetJS (xlsx.full.min.js)** giúp tạo và tải xuống file Excel (.xlsx) trực tiếp từ bộ nhớ cục bộ phía client.
+  - Tự động định cấu hình độ rộng cho các cột dữ liệu bao gồm: Mã SV, Họ và Tên, Trạng thái LMS, Số bài đã nộp, Số bài hoàn thành, Điểm số AI, Link GitHub, Link LMS và Nhận xét chi tiết của AI.
+
 ## [v3.4.3] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa

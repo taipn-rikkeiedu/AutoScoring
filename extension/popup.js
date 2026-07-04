@@ -7,11 +7,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Shared UI Elements ---
   const tabAutoBtn = document.getElementById("tab-auto-btn");
   const tabGraderBtn = document.getElementById("tab-grader-btn");
+  const tabClassListBtn = document.getElementById("tab-class-list-btn");
   const tabExercisesBtn = document.getElementById("tab-exercises-btn");
   const tabSettingsBtn = document.getElementById("tab-settings-btn");
   
   const tabAuto = document.getElementById("tab-auto");
   const tabGrader = document.getElementById("tab-grader");
+  const tabClassList = document.getElementById("tab-class-list");
   const tabExercises = document.getElementById("tab-exercises");
   const tabSettings = document.getElementById("tab-settings");
 
@@ -28,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.4.3";
+  const appVersion = "3.5.0";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -83,10 +85,17 @@ document.addEventListener("DOMContentLoaded", () => {
     inactiveContents.forEach(c => c.classList.remove("active"));
   };
 
-  tabAutoBtn.addEventListener("click", () => activateTab(tabAutoBtn, tabAuto, [tabGraderBtn, tabExercisesBtn, tabSettingsBtn], [tabGrader, tabExercises, tabSettings]));
-  tabGraderBtn.addEventListener("click", () => activateTab(tabGraderBtn, tabGrader, [tabAutoBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabExercises, tabSettings]));
-  tabExercisesBtn.addEventListener("click", () => activateTab(tabExercisesBtn, tabExercises, [tabAutoBtn, tabGraderBtn, tabSettingsBtn], [tabAuto, tabGrader, tabSettings]));
-  tabSettingsBtn.addEventListener("click", () => activateTab(tabSettingsBtn, tabSettings, [tabAutoBtn, tabGraderBtn, tabExercisesBtn], [tabAuto, tabGrader, tabExercises]));
+  tabAutoBtn.addEventListener("click", () => {
+    activateTab(tabAutoBtn, tabAuto, [tabGraderBtn, tabClassListBtn, tabExercisesBtn, tabSettingsBtn], [tabGrader, tabClassList, tabExercises, tabSettings]);
+    autoGraderTab.triggerPageScan();
+  });
+  tabGraderBtn.addEventListener("click", () => activateTab(tabGraderBtn, tabGrader, [tabAutoBtn, tabClassListBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabClassList, tabExercises, tabSettings]));
+  tabClassListBtn.addEventListener("click", () => {
+    activateTab(tabClassListBtn, tabClassList, [tabAutoBtn, tabGraderBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabGrader, tabExercises, tabSettings]);
+    autoGraderTab.renderClassList();
+  });
+  tabExercisesBtn.addEventListener("click", () => activateTab(tabExercisesBtn, tabExercises, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabSettingsBtn], [tabAuto, tabGrader, tabClassList, tabSettings]));
+  tabSettingsBtn.addEventListener("click", () => activateTab(tabSettingsBtn, tabSettings, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabExercisesBtn], [tabAuto, tabGrader, tabClassList, tabExercises]));
 
   // --- Load configuration and verify status ---
   const loadStoredConfig = () => {

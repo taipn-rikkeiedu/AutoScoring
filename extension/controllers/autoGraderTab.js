@@ -293,9 +293,7 @@ export class AutoGraderTab {
   }
 
   initElements() {
-    // Mode selector elements
-    this.modeBulkGradeBtn = document.getElementById("mode-bulk-grade-btn");
-    this.modeClassListBtn = document.getElementById("mode-class-list-btn");
+    // Tab elements
     this.bulkGraderView = document.getElementById("bulk-grader-view");
     this.classListView = document.getElementById("class-list-view");
 
@@ -323,9 +321,7 @@ export class AutoGraderTab {
   }
 
   bindEvents() {
-    // Mode switcher triggers
-    this.modeBulkGradeBtn.addEventListener("click", () => this.switchMode("bulk"));
-    this.modeClassListBtn.addEventListener("click", () => this.switchMode("class"));
+    // Mode switcher triggers - removed because class list is now a separate tab
 
     // Mode 1: Bulk Grader events
     this.rescanPageBtn.addEventListener("click", () => this.triggerPageScan());
@@ -335,7 +331,7 @@ export class AutoGraderTab {
     // Mode 2: Class list events
     this.clearClassBtn.addEventListener("click", () => this.clearClassList());
     this.scanClassBtn.addEventListener("click", () => this.triggerClassScan());
-    this.exportClassCsvBtn.addEventListener("click", () => this.exportClassListCsv());
+    this.exportClassCsvBtn.addEventListener("click", () => this.exportClassListExcel());
   }
 
   toggleSelectAll(checked) {
@@ -939,21 +935,7 @@ export class AutoGraderTab {
     }, 4000);
   }
 
-  switchMode(mode) {
-    if (mode === "bulk") {
-      this.modeBulkGradeBtn.classList.add("active");
-      this.modeClassListBtn.classList.remove("active");
-      this.bulkGraderView.style.display = "flex";
-      this.classListView.style.display = "none";
-      this.triggerPageScan();
-    } else {
-      this.modeBulkGradeBtn.classList.remove("active");
-      this.modeClassListBtn.classList.add("active");
-      this.bulkGraderView.style.display = "none";
-      this.classListView.style.display = "flex";
-      this.renderClassList();
-    }
-  }
+    // switchMode method removed as class list is now a separate tab
 
   clearClassList() {
     if (confirm("Bạn có chắc chắn muốn xóa toàn bộ danh sách lớp học hiện tại? Dữ liệu điểm và nhận xét đã lưu sẽ bị xóa.")) {
@@ -1227,47 +1209,56 @@ export class AutoGraderTab {
     });
   }
 
-  exportClassListCsv() {
+  exportClassListExcel() {
     chrome.storage.local.get("classStudentList", (res) => {
       const studentList = res.classStudentList || [];
       if (studentList.length === 0) {
-        alert("Danh sách học viên trống.");
+        alert("Không có dữ liệu học viên để xuất Excel.");
         return;
       }
-      
-      const headers = ["Mã SV", "Họ Tên", "Tên Bài Tập", "Link GitHub", "Điểm Số", "Nhận Xét AI"];
-      
-      const escapeCSV = (val) => {
-        if (val === null || val === undefined) return "";
-        let str = String(val).trim();
-        str = str.replace(/"/g, '""');
-        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-          str = `"${str}"`;
-        }
-        return str;
-      };
-      
-      const rows = [headers.map(escapeCSV).join(',')];
-      
-      studentList.forEach(st => {
-        const row = [
-          st.studentId,
-          st.studentName,
-          st.assignmentName || "N/A",
-          st.githubUrl || "N/A",
-          st.score !== null ? st.score : "Chưa chấm",
-          st.comments || "N/A"
-        ];
-        rows.push(row.map(escapeCSV).join(','));
+
+      // Chuẩn bị dữ liệu cho SheetJS
+      const data = studentList.map(st => {
+        return {
+          "Mã SV": st.studentId || "",
+          "Họ và Tên": st.studentName || "",
+          "Trạng thái LMS": st.lmsStatus || "",
+          "Số bài đã nộp": st.submittedCount || 0,
+          "Số bài hoàn thành": st.completedCount || 0,
+          "Điểm số AI": st.score !== null && st.score !== undefined ? st.score : "Chưa chấm",
+          "Link GitHub": st.githubUrl || "",
+          "Link LMS": st.submissionUrl || "",
+          "Nhận xét AI": st.comments || ""
+        };
       });
+
+      // Tạo workbook và worksheet
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách lớp");
+
+      // Định cấu hình độ rộng cột cho đẹp mắt
+      const max_widths = [
+        { wch: 15 }, // Mã SV
+        { wch: 25 }, // Họ Tên
+        { wch: 18 }, // Trạng thái LMS
+        { wch: 15 }, // Số bài đã nộp
+        { wch: 18 }, // Số bài hoàn thành
+        { wch: 12 }, // Điểm số AI
+        { wch: 30 }, // Link GitHub
+        { wch: 30 }, // Link LMS
+        { wch: 50 }  // Nhận xét AI
+      ];
+      worksheet["!cols"] = max_widths;
+
+      // Xuất và tải file XLSX xuống
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       
-      const csvContent = "\ufeff" + rows.join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `Bao_cao_diem_lop_hoc_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `Bao_cao_diem_lop_hoc_${new Date().toISOString().slice(0,10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
