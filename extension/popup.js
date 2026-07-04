@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.5.3";
+  const appVersion = "3.5.4";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -127,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function testConnectionAndLoadExercises() {
     appVersionTag.innerText = `v${appVersion}`;
     connBanner.className = "connection-banner error";
-    connText.innerText = "Đang kiểm tra...";
+    connText.innerText = "AI: Đang check...";
     singleGraderTab.enableGradeButton(false);
 
     await loadStoredConfig();
@@ -155,10 +155,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (ready) {
       connBanner.className = "connection-banner success";
-      connText.innerText = "AI Sẵn Sàng (Serverless Mode)";
+      connText.innerText = "AI: Sẵn sàng";
     } else {
       connBanner.className = "connection-banner error";
-      connText.innerText = "Chưa cấu hình API Key hợp lệ";
+      connText.innerText = "AI: Chưa cấu hình";
       settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, false, "");
       singleGraderTab.disableSelectors();
       exercisesTab.disableSelectors();

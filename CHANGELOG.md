@@ -7,6 +7,14 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.4] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Tinh giản Connection Status Badge trong Header:**
+  - Di chuyển Connection Status Banner cũ từ bên dưới Header thành một Badge nhỏ gọn (`connection-banner`) đặt ngay cạnh version-tag ở góc phải của Header.
+  - Sử dụng phối màu bán trong suốt (semi-transparent green/red) hiện đại và chuyên nghiệp hơn.
+  - Rút ngắn các đoạn văn bản hiển thị trạng thái của AI (ví dụ: `AI: Sẵn sàng`, `AI: Chưa cấu hình`, `AI: Đang check...`) để tối ưu hóa không gian hiển thị.
+
 ## [v3.5.3] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa
