@@ -7,6 +7,12 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.4.3] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Đổi tên cột Điểm số:**
+  - Cập nhật tên tiêu đề cột hiển thị từ "Bài tập / Điểm" thành **"Bài hoàn thành / Đã nộp"** trong bảng quản lý danh sách lớp học của Extension để chuẩn xác hơn theo phản hồi của giảng viên.
+
 ## [v3.4.2] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa
