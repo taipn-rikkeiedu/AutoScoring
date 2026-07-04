@@ -7,6 +7,20 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.4.0] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Tối ưu hóa đọc file GitHub & Directory Tree Map:**
+  - Tự động phân tích và tạo Sơ đồ cây thư mục dạng text chèn vào đầu mã nguồn gửi lên AI giúp AI hiểu cấu trúc dự án tốt hơn.
+  - Trả về danh sách tệp tin (`fileList`) và số lượng file (`totalFiles`).
+  - Hiển thị danh sách file chi tiết dạng collapsible list trong Drawer của từng học viên ở tab Chấm Hàng Loạt và trong Results Box ở tab Chấm Đơn.
+- **Tối ưu hóa suy luận AI (Chain-of-Thought & XML Score Tagging):**
+  - Cấu trúc lại Prompt mặc định yêu cầu AI suy luận từng bước (Chain-of-Thought) chấm điểm theo tiêu chí cụ thể trước khi tính tổng điểm.
+  - Chuẩn hóa điểm số bọc trong thẻ `<score>...</score>` ở cuối nhận xét giúp hàm `parseScore` trích xuất điểm chính xác 100%.
+- **Đồng bộ học viên Rikkei LMS thông minh (Click Transition):**
+  - Thêm Content Script `content.js` để theo dõi và lưu trữ trạng thái sinh viên khi click nút "Chi tiết" tại trang danh sách lớp `/homework-checking`.
+  - Tự động nhận diện sinh viên đang chấm tại trang `/detailLinkGithub` dựa trên sự kiện click chuột chuyển tiếp và hiển thị banner thông tin sinh viên tương ứng một cách chính xác 100% (bảo mật tuyệt đối, không gửi bất kỳ request nào lên server).
+
 ## [v3.3.0] — 2026-07-04
 
 ### ✨ Tính năng mới

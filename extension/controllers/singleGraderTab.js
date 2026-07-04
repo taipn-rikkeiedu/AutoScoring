@@ -2,6 +2,30 @@ import { GitHubService } from '../githubService.js';
 import { AIService } from '../aiService.js';
 import { parseScore, DEFAULT_CRITERIA } from '../utils.js';
 
+function scrapeStudentDetailInfo() {
+  let studentName = '';
+  let studentId = '';
+  
+  const pageText = document.body.innerText || '';
+  // Tìm mã MSSV dạng PTIT-HCM-008 hoặc PTIT HCM 008, PTIT_HCM_008
+  const idMatch = pageText.match(/PTIT[-_\s]?[A-Z]+[-_\s]?\d+/i);
+  if (idMatch) {
+    studentId = idMatch[0].trim().replace(/[\s_]/g, '-').toUpperCase();
+  }
+  
+  // Dò tìm tên học sinh hiển thị trên các thẻ tiêu đề hoặc breadcrumbs
+  const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, .student-name, [class*="student-name"], [class*="user-name"], .breadcrumb, [class*="title"], [class*="header"]'));
+  for (const el of elements) {
+    const text = el.textContent.trim();
+    if (text && text.length > 2 && text.length < 50 && !text.includes('http') && !text.includes('/') && /^[A-ZÀ-Ỹ]/.test(text.split(' ')[0])) {
+      studentName = text.split('\n')[0].trim();
+      break;
+    }
+  }
+  
+  return { studentId, studentName };
+}
+
 export class SingleGraderTab {
   constructor(context) {
     this.context = context;
@@ -227,6 +251,69 @@ export class SingleGraderTab {
         this.reportHtml.innerText = report;
       }
 
+      // Render file list if present in repoData
+      const existingFileList = this.resultsBox.querySelector(".single-file-list-container");
+      if (existingFileList) existingFileList.remove();
+      
+      if (repoData.fileList && repoData.fileList.length > 0) {
+        const fileListDiv = document.createElement("div");
+        fileListDiv.className = "single-file-list-container";
+        fileListDiv.style.marginTop = "10px";
+        fileListDiv.style.padding = "8px";
+        fileListDiv.style.backgroundColor = "#f8fafc";
+        fileListDiv.style.borderRadius = "6px";
+        fileListDiv.style.border = "1px solid #e2e8f0";
+        
+        const header = document.createElement("div");
+        header.style.fontWeight = "600";
+        header.style.color = "#475569";
+        header.style.fontSize = "0.85rem";
+        header.style.cursor = "pointer";
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.gap = "4px";
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.textContent = '▶';
+        toggleIcon.style.fontSize = '0.75rem';
+        toggleIcon.style.transition = 'transform 0.2s';
+        
+        const headerText = document.createElement("span");
+        headerText.textContent = `📁 Xem danh sách tệp tin đã chấm (${repoData.fileList.length} file)`;
+        
+        header.appendChild(toggleIcon);
+        header.appendChild(headerText);
+        
+        const fileListUl = document.createElement("ul");
+        fileListUl.style.display = "none";
+        fileListUl.style.margin = "6px 0 0 16px";
+        fileListUl.style.padding = "0";
+        fileListUl.style.listStyleType = "none";
+        fileListUl.style.maxHeight = "150px";
+        fileListUl.style.overflowY = "auto";
+        fileListUl.style.fontSize = "0.8rem";
+        fileListUl.style.color = "#64748b";
+        
+        repoData.fileList.forEach(filePath => {
+          const li = document.createElement("li");
+          li.style.padding = "2px 0";
+          li.innerHTML = `📄 <span style="font-family: monospace;">${filePath}</span>`;
+          fileListUl.appendChild(li);
+        });
+        
+        header.addEventListener("click", () => {
+          const isCollapsed = fileListUl.style.display === "none";
+          fileListUl.style.display = isCollapsed ? "block" : "none";
+          toggleIcon.style.transform = isCollapsed ? "rotate(90deg)" : "rotate(0deg)";
+        });
+        
+        fileListDiv.appendChild(header);
+        fileListDiv.appendChild(fileListUl);
+        
+        // Append before reportHtml
+        this.resultsBox.insertBefore(fileListDiv, this.reportHtml);
+      }
+
       this.resultsBox.style.display = "flex";
 
       // Save to Class Student Database if matched
@@ -261,29 +348,73 @@ export class SingleGraderTab {
   resolveStudentFromTabUrl() {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs || !tabs[0]) return;
-      const url = tabs[0].url;
+      const activeTab = tabs[0];
+      const url = activeTab.url;
       if (!url) return;
       
       const normalizedTabUrl = url.split('?')[0].split('#')[0];
+      const isWebPage = url.startsWith("http://") || url.startsWith("https://");
       
-      chrome.storage.local.get("classStudentList", (res) => {
-        const studentList = res.classStudentList || [];
-        const matched = studentList.find(st => st.submissionUrl === normalizedTabUrl);
-        if (matched) {
-          this.activeStudent = matched;
-          if (this.studentResolvedBanner) {
-            this.studentResolvedBanner.style.display = "block";
+      const doMatching = (scrapedInfo = null) => {
+        const pageId = scrapedInfo?.studentId;
+        const pageName = scrapedInfo?.studentName;
+        
+        chrome.storage.local.get(["classStudentList", "activeStudentTransition"], (res) => {
+          const studentList = res.classStudentList || [];
+          const transition = res.activeStudentTransition || null;
+          
+          const matched = studentList.find(st => {
+            // Cấp độ 1: Khớp chính xác hoặc khớp URL chứa ID
+            if (st.submissionUrl === normalizedTabUrl) return true;
+            if (st.dbId && normalizedTabUrl.includes(st.dbId)) return true;
+            if (st.studentId && st.studentId !== 'N/A' && normalizedTabUrl.includes(st.studentId)) return true;
+            
+            // Cấp độ 2: Khớp mã MSSV cào được từ trang hiện tại
+            if (pageId && st.studentId && st.studentId !== 'N/A' && st.studentId.replace(/[\s_-]/g, '').toUpperCase() === pageId.replace(/[\s_-]/g, '').toUpperCase()) return true;
+            
+            // Cấp độ 3: Khớp họ tên cào được từ trang hiện tại
+            if (pageName && st.studentName && (st.studentName.toLowerCase().includes(pageName.toLowerCase()) || pageName.toLowerCase().includes(st.studentName.toLowerCase()))) return true;
+            
+            // Cấp độ 4: Khớp thông tin chuyển hướng vừa được click (activeStudentTransition)
+            if (transition && Date.now() - transition.timestamp < 300000) {
+              if (st.studentId && st.studentId !== 'N/A' && transition.studentId && st.studentId.toLowerCase() === transition.studentId.toLowerCase()) return true;
+              if (st.studentName && transition.studentName && st.studentName.toLowerCase() === transition.studentName.toLowerCase()) return true;
+            }
+            
+            return false;
+          });
+          
+          if (matched) {
+            this.activeStudent = matched;
+            if (this.studentResolvedBanner) {
+              this.studentResolvedBanner.style.display = "block";
+            }
+            if (this.studentResolvedInfo) {
+              this.studentResolvedInfo.textContent = `${matched.studentName} (${matched.studentId})`;
+            }
+          } else {
+            this.activeStudent = null;
+            if (this.studentResolvedBanner) {
+              this.studentResolvedBanner.style.display = "none";
+            }
           }
-          if (this.studentResolvedInfo) {
-            this.studentResolvedInfo.textContent = `${matched.studentName} (${matched.studentId})`;
+        });
+      };
+
+      if (isWebPage) {
+        chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          func: scrapeStudentDetailInfo
+        }, (results) => {
+          if (chrome.runtime.lastError || !results || !results[0]) {
+            doMatching(null);
+          } else {
+            doMatching(results[0].result);
           }
-        } else {
-          this.activeStudent = null;
-          if (this.studentResolvedBanner) {
-            this.studentResolvedBanner.style.display = "none";
-          }
-        }
-      });
+        });
+      } else {
+        doMatching(null);
+      }
     });
   }
 }

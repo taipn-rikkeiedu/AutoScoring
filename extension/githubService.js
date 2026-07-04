@@ -64,6 +64,35 @@ export class GitHubService {
     }
   }
 
+  buildDirectoryTree(filePaths) {
+    const tree = {};
+    for (const path of filePaths) {
+      const parts = path.split('/');
+      let current = tree;
+      for (const part of parts) {
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+    }
+
+    function renderTree(node, prefix = "") {
+      let result = "";
+      const keys = Object.keys(node).sort();
+      keys.forEach((key, index) => {
+        const isLast = index === keys.length - 1;
+        const connector = isLast ? "└── " : "├── ";
+        result += `${prefix}${connector}${key}\n`;
+        const nextPrefix = prefix + (isLast ? "    " : "│   ");
+        result += renderTree(node[key], nextPrefix);
+      });
+      return result;
+    }
+
+    return renderTree(tree);
+  }
+
   async getRepoContents(repoUrl, onProgress = null) {
     const { owner, repo } = this.parseUrl(repoUrl);
     if (onProgress) onProgress("Đang dò tìm nhánh mặc định...");
@@ -84,6 +113,7 @@ export class GitHubService {
 
     let payload = "";
     let processedFiles = 0;
+    const fileList = [];
 
     if (zipBlob) {
       if (onProgress) onProgress("Giải nén và phân tích mã nguồn...");
@@ -117,6 +147,8 @@ export class GitHubService {
           }
 
           const cleanPath = prefix ? name.replace(prefix, "") : name;
+          fileList.push(cleanPath);
+          
           payload += `\n\n=============================================\n`;
           payload += `FILE PATH: ${cleanPath}\n`;
           payload += `=============================================\n`;
@@ -131,7 +163,11 @@ export class GitHubService {
           }
         }
       }
-      return { content: payload, totalFiles: processedFiles };
+      
+      const treeStr = this.buildDirectoryTree(fileList);
+      payload = `[CẤU TRÚC THƯ MỤC DỰ ÁN]\n${treeStr}\n\n` + payload;
+      
+      return { content: payload, totalFiles: processedFiles, fileList: fileList };
     }
 
     if (onProgress) onProgress("Tải ZIP thất bại. Đang thử dùng Git Trees API...");
@@ -172,6 +208,8 @@ export class GitHubService {
           content = await fileRes.text();
         }
 
+        fileList.push(name);
+        
         payload += `\n\n=============================================\n`;
         payload += `FILE PATH: ${name}\n`;
         payload += `=============================================\n`;
@@ -188,6 +226,10 @@ export class GitHubService {
     }
 
     if (processedFiles === 0) throw new Error("Không tìm thấy mã nguồn hợp lệ trong Repo.");
-    return { content: payload, totalFiles: processedFiles };
+    
+    const treeStr = this.buildDirectoryTree(fileList);
+    payload = `[CẤU TRÚC THƯ MỤC DỰ ÁN]\n${treeStr}\n\n` + payload;
+    
+    return { content: payload, totalFiles: processedFiles, fileList: fileList };
   }
 }

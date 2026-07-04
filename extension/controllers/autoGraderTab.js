@@ -141,27 +141,57 @@ function scrapeClassPage() {
       studentId = cells[idColIndex].textContent.trim();
     }
     
-    let linkElement = null;
+    let actionElement = null;
+    let dbId = '';
     if (gradeLinkColIndex !== -1 && cells[gradeLinkColIndex]) {
-      linkElement = cells[gradeLinkColIndex].querySelector('a');
+      actionElement = cells[gradeLinkColIndex].querySelector('a, button, [class*="btn"], [class*="button"]');
     }
-    if (!linkElement) {
-      const allLinks = Array.from(row.querySelectorAll('a'));
-      linkElement = allLinks.find(a => {
-        const href = a.href.toLowerCase();
-        const text = a.textContent.toLowerCase();
-        return href && 
-               !href.includes('github.com') && 
-               !href.startsWith('javascript:') && 
-               (href.includes('grade') || href.includes('submission') || href.includes('assignment') || href.includes('user') || text.includes('chấm') || text.includes('chi tiết') || text.includes('xem'));
+    if (!actionElement) {
+      const clickables = Array.from(row.querySelectorAll('a, button, [class*="btn"]'));
+      actionElement = clickables.find(el => {
+        const text = el.textContent.toLowerCase();
+        return text.includes('chi tiết') || text.includes('chấm') || text.includes('xem');
       });
-      if (!linkElement && allLinks.length > 0) {
-        linkElement = allLinks.find(a => !a.href.includes('github.com') && !a.href.startsWith('javascript:')) || allLinks[allLinks.length - 1];
+      if (!actionElement && clickables.length > 0) {
+        actionElement = clickables[clickables.length - 1];
+      }
+    }
+
+    if (actionElement) {
+      if (actionElement.tagName.toLowerCase() === 'a' && actionElement.href && !actionElement.href.startsWith('javascript:')) {
+        submissionUrl = actionElement.href;
+      }
+      
+      // Extract student internal ID (dbId) from button attributes or onclick
+      const attrs = ['data-id', 'data-student-id', 'data-user-id', 'student-id', 'user-id', 'id', 'value'];
+      for (const attr of attrs) {
+        const val = actionElement.getAttribute(attr);
+        if (val && val.trim().length > 0 && val.trim().length < 50) {
+          dbId = val.trim();
+          break;
+        }
+      }
+      
+      if (!dbId) {
+        const onclick = actionElement.getAttribute('onclick') || '';
+        const match = onclick.match(/['"]?([a-zA-Z0-9_\-]+)['"]?\s*\)?$/);
+        if (match) {
+          dbId = match[1];
+        } else {
+          const matchDigits = onclick.match(/\d+/);
+          if (matchDigits) dbId = matchDigits[0];
+        }
       }
     }
     
-    if (linkElement && linkElement.href) {
-      submissionUrl = linkElement.href;
+    // Fallback: If no submissionUrl, construct a unique identifier URL based on studentId (MSSV) or dbId
+    if (!submissionUrl) {
+      const baseLoc = window.location.href.split('?')[0].split('#')[0].replace(/\/+$/, '');
+      if (dbId) {
+        submissionUrl = baseLoc + '/student/' + dbId;
+      } else if (studentId && studentId !== 'N/A') {
+        submissionUrl = baseLoc + '/student/' + studentId;
+      }
     }
     
     if (!studentName || !studentId) {
@@ -201,7 +231,8 @@ function scrapeClassPage() {
       students.push({
         studentId: studentId || 'N/A',
         studentName: studentName || 'Học viên ẩn danh',
-        submissionUrl: submissionUrl.split('?')[0].split('#')[0]
+        submissionUrl: submissionUrl.split('?')[0].split('#')[0],
+        dbId: dbId || ''
       });
     }
   });
@@ -519,6 +550,71 @@ export class AutoGraderTab {
       fieldGit.appendChild(inputGit);
       containerDiv.appendChild(fieldGit);
       
+      // File List collapsible section
+      const fileListDiv = document.createElement('div');
+      fileListDiv.className = 'detail-field file-list-container';
+      fileListDiv.style.marginTop = '8px';
+      
+      const fileListHeader = document.createElement('div');
+      fileListHeader.className = 'file-list-header';
+      fileListHeader.style.fontWeight = '600';
+      fileListHeader.style.color = '#475569';
+      fileListHeader.style.cursor = 'pointer';
+      fileListHeader.style.display = 'flex';
+      fileListHeader.style.alignItems = 'center';
+      fileListHeader.style.gap = '4px';
+      
+      const toggleIcon = document.createElement('span');
+      toggleIcon.textContent = '▶';
+      toggleIcon.style.fontSize = '0.75rem';
+      toggleIcon.style.transition = 'transform 0.2s';
+      
+      const headerText = document.createElement('span');
+      headerText.id = `file-list-header-text-${index}`;
+      headerText.textContent = sub.fileList ? `📁 Danh sách tệp tin (${sub.fileList.length} file)` : '📁 Danh sách tệp tin (Chưa tải)';
+      
+      fileListHeader.appendChild(toggleIcon);
+      fileListHeader.appendChild(headerText);
+      
+      const fileListUl = document.createElement('ul');
+      fileListUl.id = `file-list-items-${index}`;
+      fileListUl.className = 'file-list-items';
+      fileListUl.style.display = 'none';
+      fileListUl.style.margin = '4px 0 0 16px';
+      fileListUl.style.padding = '0';
+      fileListUl.style.listStyleType = 'none';
+      fileListUl.style.maxHeight = '150px';
+      fileListUl.style.overflowY = 'auto';
+      fileListUl.style.fontSize = '0.8rem';
+      fileListUl.style.color = '#64748b';
+      
+      if (sub.fileList) {
+        sub.fileList.forEach(filePath => {
+          const li = document.createElement('li');
+          li.style.padding = '2px 0';
+          li.style.display = 'flex';
+          li.style.alignItems = 'center';
+          li.style.gap = '4px';
+          li.innerHTML = `📄 <span style="font-family: monospace;">${filePath}</span>`;
+          fileListUl.appendChild(li);
+        });
+      } else {
+        const li = document.createElement('li');
+        li.style.fontStyle = 'italic';
+        li.textContent = 'Hãy chạy chấm điểm để xem danh sách file.';
+        fileListUl.appendChild(li);
+      }
+      
+      fileListHeader.addEventListener('click', () => {
+        const isCollapsed = fileListUl.style.display === 'none';
+        fileListUl.style.display = isCollapsed ? 'block' : 'none';
+        toggleIcon.style.transform = isCollapsed ? 'rotate(90deg)' : 'rotate(0deg)';
+      });
+      
+      fileListDiv.appendChild(fileListHeader);
+      fileListDiv.appendChild(fileListUl);
+      containerDiv.appendChild(fileListDiv);
+      
       const fieldPrompt = document.createElement('div');
       fieldPrompt.className = 'detail-field';
       fieldPrompt.style.marginTop = '8px';
@@ -725,6 +821,25 @@ export class AutoGraderTab {
         badgeEl.textContent = 'Tải code...';
       });
 
+      sub.fileList = repoData.fileList;
+      
+      // Update drawer file list dynamically
+      const domHeaderText = document.getElementById(`file-list-header-text-${index}`);
+      const domFileListUl = document.getElementById(`file-list-items-${index}`);
+      if (domHeaderText && domFileListUl && sub.fileList) {
+        domHeaderText.textContent = `📁 Danh sách tệp tin (${sub.fileList.length} file)`;
+        domFileListUl.innerHTML = '';
+        sub.fileList.forEach(filePath => {
+          const li = document.createElement('li');
+          li.style.padding = '2px 0';
+          li.style.display = 'flex';
+          li.style.alignItems = 'center';
+          li.style.gap = '4px';
+          li.innerHTML = `📄 <span style="font-family: monospace;">${filePath}</span>`;
+          domFileListUl.appendChild(li);
+        });
+      }
+
       sub.status = 'grading';
       this.updateStatusBadge(badgeEl, sub);
       
@@ -862,11 +977,12 @@ export class AutoGraderTab {
             chrome.storage.local.get("classStudentList", (res) => {
               const existingList = res.classStudentList || [];
               const updatedList = scrapedStudents.map(newSt => {
-                const existing = existingList.find(st => st.submissionUrl === newSt.submissionUrl);
+                const existing = existingList.find(st => st.submissionUrl === newSt.submissionUrl || (st.studentId && st.studentId !== 'N/A' && st.studentId === newSt.studentId));
                 return {
                   studentId: newSt.studentId,
                   studentName: newSt.studentName,
                   submissionUrl: newSt.submissionUrl,
+                  dbId: newSt.dbId || (existing ? (existing.dbId || '') : ''),
                   githubUrl: existing ? (existing.githubUrl || '') : '',
                   score: existing ? existing.score : null,
                   comments: existing ? existing.comments : null,
