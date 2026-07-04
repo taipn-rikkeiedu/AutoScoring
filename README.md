@@ -116,6 +116,50 @@ Vì REduX là ứng dụng Serverless chạy client-side, bạn không cần cà
 
 ---
 
+## 🖥️ Hướng Dẫn Sử Dụng Streamlit Web App & FastAPI Backend
+
+Ngoài Chrome Extension, REduX còn hỗ trợ giao diện ứng dụng Web độc lập (Streamlit) và máy chủ API cục bộ (FastAPI) viết bằng Python.
+
+### 1. Khởi chạy ứng dụng Web độc lập (Streamlit Web App)
+Giao diện Web Python hỗ trợ chấm điểm và quản lý ngoại tuyến rất tiện lợi:
+1. **Kích hoạt môi trường ảo Python:**
+   * **Windows (PowerShell):**
+     ```powershell
+     .\.venv\Scripts\activate
+     ```
+   * **Windows (Git Bash / Command Prompt) hoặc macOS/Linux:**
+     ```bash
+     source .venv/bin/activate  # hoặc .venv/Scripts/activate trên Windows Command Prompt
+     ```
+2. **Cài đặt các thư viện cần thiết:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Cấu hình biến môi trường (`.env`):**
+   Tạo file `.env` tại thư mục gốc của dự án (`/REduX/.env`) và cấu hình như sau:
+   ```env
+   GEMINI_API_KEY=AIzaSy...
+   GITHUB_TOKEN=ghp_...
+   AI_PROVIDER=gemini
+   LOCAL_MODEL_NAME=gemini-1.5-pro
+   ```
+4. **Khởi chạy ứng dụng:**
+   ```bash
+   streamlit run app.py
+   ```
+   Ứng dụng sẽ tự động mở trên trình duyệt tại địa chỉ mặc định `http://localhost:8501`.
+
+### 2. Khởi chạy máy chủ API cục bộ (FastAPI Backend)
+Nếu bạn muốn cấu hình Chrome Extension REduX chạy ở chế độ chuyển tiếp qua API cục bộ (thay vì Serverless gọi trực tiếp AI từ client):
+1. **Khởi chạy máy chủ FastAPI:**
+   ```bash
+   python api.py
+   ```
+2. Máy chủ uvicorn sẽ khởi chạy tại cổng mặc định `http://127.0.0.1:8000`.
+3. Mở tab **⚙️ Cài Đặt** của Extension REduX, tại mục **Nhà Cung Cấp AI**, chọn `Custom API` hoặc cấu hình tương ứng, trỏ URL về cổng máy chủ cục bộ này để định tuyến và theo dõi lịch sử API tập trung.
+
+---
+
 ## 📜 Quy Định Đóng Gói (Release/Version Control)
 * Tiện ích REduX tuân thủ quy trình phát triển và kiểm soát phiên bản nghiêm ngặt.
 * Mọi cập nhật liên quan đến chức năng, sửa lỗi đều phải được nâng cấp mã phiên bản (version) đồng bộ tại các tệp tin:
