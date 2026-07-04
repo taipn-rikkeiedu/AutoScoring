@@ -7,6 +7,18 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.3.0] — 2026-07-04
+
+### ✨ Tính năng mới
+- **Liên kết danh sách sinh viên lớp học đa trang (Cross-Page Student Mapping):**
+  - Tích hợp 2 chế độ quét trong tab Chấm Hàng Loạt: *Chấm Hàng Loạt (GitHub)* và *Quản Lý Danh Sách Lớp*.
+  - Cho phép quét và lưu thông tin định danh học viên (Mã SV, Họ tên, Link chấm bài) từ Trang danh sách lớp (Trang 1).
+  - Tự động nhận diện học viên tương ứng khi giảng viên đang mở trang chi tiết bài nộp của học viên đó (Trang 2) dựa trên đường dẫn URL chấm bài. Hiển thị banner chỉ dẫn: `👤 Đang chấm cho học viên: [Name] - [ID]`.
+  - Tự động cập nhật điểm số và nội dung nhận xét chi tiết của học viên tương ứng vào bộ nhớ cục bộ `chrome.storage.local` ngay sau khi AI chấm xong ở chế độ Chấm Đơn.
+- **Xuất báo cáo bảng điểm CSV chuẩn Excel (Excel-Compatible CSV Export):**
+  - Tích hợp nút bấm **Xuất Báo Cáo CSV** để xuất toàn bộ danh sách lớp học ra file CSV với đầy đủ cột thông tin: `Mã SV`, `Họ Tên`, `Tên Bài Tập`, `Link GitHub`, `Điểm Số`, `Nhận Xét AI`.
+  - Hỗ trợ ký tự Unicode UTF-8 BOM (`\ufeff`) giúp mở file trực tiếp bằng Microsoft Excel hiển thị đúng phông chữ Tiếng Việt không bị lỗi font.
+
 ## [v3.2.2] — 2026-07-04
 
 ### ✨ Tính năng mới & Sửa lỗi

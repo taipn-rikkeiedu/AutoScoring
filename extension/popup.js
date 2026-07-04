@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.2.2";
+  const appVersion = "3.3.0";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -71,6 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const singleGraderTab = new SingleGraderTab(context);
   const autoGraderTab = new AutoGraderTab(context);
   const exercisesTab = new ExercisesTab(context);
+
+  context.singleGraderTab = singleGraderTab;
+  context.autoGraderTab = autoGraderTab;
 
   // --- Tab Navigation ---
   const activateTab = (activeBtn, activeContent, inactiveBtns, inactiveContents) => {

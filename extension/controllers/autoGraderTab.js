@@ -104,14 +104,136 @@ function scrapeSubmissionsPage() {
   return uniqueSubmissions;
 }
 
+function scrapeClassPage() {
+  const students = [];
+  const rows = Array.from(document.querySelectorAll('tr'));
+  
+  let nameColIndex = -1;
+  let idColIndex = -1;
+  let gradeLinkColIndex = -1;
+  
+  const headers = Array.from(document.querySelectorAll('th, thead td'));
+  headers.forEach((header, index) => {
+    const text = header.textContent.trim().toLowerCase();
+    if (text.includes('tên') || text.includes('họ') || text.includes('sinh viên') || text.includes('học viên') || text.includes('name') || text.includes('student')) {
+      if (nameColIndex === -1) nameColIndex = index;
+    }
+    if (text.includes('mã') || text.includes('id') || text.includes('code') || text.includes('msv') || text.includes('mssv')) {
+      if (idColIndex === -1) idColIndex = index;
+    }
+    if (text.includes('chấm') || text.includes('nộp') || text.includes('grade') || text.includes('action') || text.includes('hành động') || text.includes('chi tiết') || text.includes('trạng thái')) {
+      if (gradeLinkColIndex === -1) gradeLinkColIndex = index;
+    }
+  });
+
+  rows.forEach((row) => {
+    const cells = Array.from(row.querySelectorAll('td'));
+    if (cells.length < 2) return;
+    
+    let studentName = '';
+    let studentId = '';
+    let submissionUrl = '';
+    
+    if (nameColIndex !== -1 && cells[nameColIndex]) {
+      studentName = cells[nameColIndex].textContent.trim();
+    }
+    if (idColIndex !== -1 && cells[idColIndex]) {
+      studentId = cells[idColIndex].textContent.trim();
+    }
+    
+    let linkElement = null;
+    if (gradeLinkColIndex !== -1 && cells[gradeLinkColIndex]) {
+      linkElement = cells[gradeLinkColIndex].querySelector('a');
+    }
+    if (!linkElement) {
+      const allLinks = Array.from(row.querySelectorAll('a'));
+      linkElement = allLinks.find(a => {
+        const href = a.href.toLowerCase();
+        const text = a.textContent.toLowerCase();
+        return href && 
+               !href.includes('github.com') && 
+               !href.startsWith('javascript:') && 
+               (href.includes('grade') || href.includes('submission') || href.includes('assignment') || href.includes('user') || text.includes('chấm') || text.includes('chi tiết') || text.includes('xem'));
+      });
+      if (!linkElement && allLinks.length > 0) {
+        linkElement = allLinks.find(a => !a.href.includes('github.com') && !a.href.startsWith('javascript:')) || allLinks[allLinks.length - 1];
+      }
+    }
+    
+    if (linkElement && linkElement.href) {
+      submissionUrl = linkElement.href;
+    }
+    
+    if (!studentName || !studentId) {
+      cells.forEach((cell) => {
+        const text = cell.textContent.trim();
+        if (!text) return;
+        
+        if (text.includes('@')) return;
+        
+        const isIdPattern = /^[A-Z0-9_\-]{4,15}$/i.test(text);
+        if (isIdPattern && !studentId && !isNaN(text.slice(-2))) {
+          studentId = text;
+          return;
+        }
+        
+        const words = text.split(/\s+/);
+        if (words.length >= 2 && words.length <= 5 && /^[A-ZÀ-Ỹ]/.test(words[0])) {
+          const lower = text.toLowerCase();
+          const isStatus = lower.includes('đã nộp') || lower.includes('chưa nộp') || lower.includes('đã chấm') || lower.includes('chưa chấm') || lower.includes('đạt') || lower.includes('trực tuyến') || lower.includes('hoàn thành');
+          if (!isStatus && !studentName) {
+            studentName = text;
+          }
+        }
+      });
+    }
+    
+    if (studentName) {
+      studentName = studentName.split('\n')[0].trim();
+      studentName = studentName.replace(/^(Học viên|Sinh viên|Học sinh):\s*/i, '');
+    }
+    
+    if (studentId) {
+      studentId = studentId.split('\n')[0].trim();
+    }
+    
+    if (submissionUrl && (studentName || studentId)) {
+      students.push({
+        studentId: studentId || 'N/A',
+        studentName: studentName || 'Học viên ẩn danh',
+        submissionUrl: submissionUrl.split('?')[0].split('#')[0]
+      });
+    }
+  });
+  
+  const uniqueStudents = [];
+  const urls = new Set();
+  students.forEach(st => {
+    if (!urls.has(st.submissionUrl)) {
+      urls.add(st.submissionUrl);
+      uniqueStudents.push(st);
+    }
+  });
+  
+  return uniqueStudents;
+}
+
 export class AutoGraderTab {
   constructor(context) {
     this.context = context;
     this.initElements();
     this.bindEvents();
+    this.renderClassList();
   }
 
   initElements() {
+    // Mode selector elements
+    this.modeBulkGradeBtn = document.getElementById("mode-bulk-grade-btn");
+    this.modeClassListBtn = document.getElementById("mode-class-list-btn");
+    this.bulkGraderView = document.getElementById("bulk-grader-view");
+    this.classListView = document.getElementById("class-list-view");
+
+    // Mode 1: Bulk Grader elements
     this.detectedTableEl = document.getElementById("detected-table-el");
     this.detectedListBody = document.getElementById("detected-list-body");
     this.autoEmptyState = document.getElementById("auto-empty-state");
@@ -122,12 +244,32 @@ export class AutoGraderTab {
     this.bulkProgressContainer = document.getElementById("bulk-progress-container");
     this.bulkProgressFill = document.getElementById("bulk-progress-fill");
     this.bulkProgressText = document.getElementById("bulk-progress-text");
+
+    // Mode 2: Class Student List elements
+    this.classTableEl = document.getElementById("class-table-el");
+    this.classListBody = document.getElementById("class-list-body");
+    this.classEmptyState = document.getElementById("class-empty-state");
+    this.classStatusBanner = document.getElementById("class-status-banner");
+    
+    this.clearClassBtn = document.getElementById("clear-class-btn");
+    this.scanClassBtn = document.getElementById("scan-class-btn");
+    this.exportClassCsvBtn = document.getElementById("export-class-csv-btn");
   }
 
   bindEvents() {
+    // Mode switcher triggers
+    this.modeBulkGradeBtn.addEventListener("click", () => this.switchMode("bulk"));
+    this.modeClassListBtn.addEventListener("click", () => this.switchMode("class"));
+
+    // Mode 1: Bulk Grader events
     this.rescanPageBtn.addEventListener("click", () => this.triggerPageScan());
     this.bulkGradeBtn.addEventListener("click", () => this.runBulkGrading());
     this.selectAllSubs.addEventListener("change", (e) => this.toggleSelectAll(e.target.checked));
+
+    // Mode 2: Class list events
+    this.clearClassBtn.addEventListener("click", () => this.clearClassList());
+    this.scanClassBtn.addEventListener("click", () => this.triggerClassScan());
+    this.exportClassCsvBtn.addEventListener("click", () => this.exportClassListCsv());
   }
 
   toggleSelectAll(checked) {
@@ -646,4 +788,276 @@ export class AutoGraderTab {
       this.bulkProgressText.style.display = 'none';
     }, 4000);
   }
+
+  switchMode(mode) {
+    if (mode === "bulk") {
+      this.modeBulkGradeBtn.classList.add("active");
+      this.modeClassListBtn.classList.remove("active");
+      this.bulkGraderView.style.display = "flex";
+      this.classListView.style.display = "none";
+      this.triggerPageScan();
+    } else {
+      this.modeBulkGradeBtn.classList.remove("active");
+      this.modeClassListBtn.classList.add("active");
+      this.bulkGraderView.style.display = "none";
+      this.classListView.style.display = "flex";
+      this.renderClassList();
+    }
+  }
+
+  clearClassList() {
+    if (confirm("Bạn có chắc chắn muốn xóa toàn bộ danh sách lớp học hiện tại? Dữ liệu điểm và nhận xét đã lưu sẽ bị xóa.")) {
+      chrome.storage.local.set({ classStudentList: [] }, () => {
+        this.renderClassList();
+        if (this.context.singleGraderTab) {
+          this.context.singleGraderTab.resolveStudentFromTabUrl();
+        }
+      });
+    }
+  }
+
+  triggerClassScan() {
+    this.classStatusBanner.innerHTML = "🔍 Đang cào danh sách lớp từ trang...";
+    this.classStatusBanner.style.backgroundColor = "#f1f5f9";
+    this.classStatusBanner.style.color = "#334155";
+    this.classStatusBanner.style.borderLeftColor = "#3b82f6";
+    
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) {
+        this.classStatusBanner.innerHTML = "❌ Lỗi: Không thể truy cập tab hiện tại.";
+        this.classStatusBanner.style.backgroundColor = "#fef2f2";
+        this.classStatusBanner.style.color = "#991b1b";
+        this.classStatusBanner.style.borderLeftColor = "#ef4444";
+        return;
+      }
+      
+      const activeTab = tabs[0];
+      const isWebPage = activeTab.url && (activeTab.url.startsWith("http://") || activeTab.url.startsWith("https://"));
+      
+      if (!isWebPage) {
+        this.classStatusBanner.innerHTML = "💡 Vui lòng mở trang danh sách lớp học trên LMS để quét.";
+        this.classStatusBanner.style.backgroundColor = "#fffbeb";
+        this.classStatusBanner.style.color = "#b45309";
+        this.classStatusBanner.style.borderLeftColor = "#f59e0b";
+        return;
+      }
+      
+      chrome.scripting.executeScript({
+        target: { tabId: activeTab.id },
+        func: scrapeClassPage
+      }, (results) => {
+        if (chrome.runtime.lastError) {
+          console.error(chrome.runtime.lastError);
+          this.classStatusBanner.innerHTML = "❌ Không thể quét trang: " + chrome.runtime.lastError.message;
+          this.classStatusBanner.style.backgroundColor = "#fef2f2";
+          this.classStatusBanner.style.color = "#991b1b";
+          this.classStatusBanner.style.borderLeftColor = "#ef4444";
+          return;
+        }
+        
+        if (results && results[0] && results[0].result) {
+          const scrapedStudents = results[0].result;
+          
+          if (scrapedStudents.length > 0) {
+            chrome.storage.local.get("classStudentList", (res) => {
+              const existingList = res.classStudentList || [];
+              const updatedList = scrapedStudents.map(newSt => {
+                const existing = existingList.find(st => st.submissionUrl === newSt.submissionUrl);
+                return {
+                  studentId: newSt.studentId,
+                  studentName: newSt.studentName,
+                  submissionUrl: newSt.submissionUrl,
+                  githubUrl: existing ? (existing.githubUrl || '') : '',
+                  score: existing ? existing.score : null,
+                  comments: existing ? existing.comments : null,
+                  assignmentName: existing ? (existing.assignmentName || '') : ''
+                };
+              });
+              
+              chrome.storage.local.set({ classStudentList: updatedList }, () => {
+                this.classStatusBanner.innerHTML = `✅ Đã quét thành công ${updatedList.length} học viên từ trang danh sách lớp.`;
+                this.classStatusBanner.style.backgroundColor = "#f0fdf4";
+                this.classStatusBanner.style.color = "#166534";
+                this.classStatusBanner.style.borderLeftColor = "#22c55e";
+                this.renderClassList();
+                
+                if (this.context.singleGraderTab) {
+                  this.context.singleGraderTab.resolveStudentFromTabUrl();
+                }
+              });
+            });
+          } else {
+            this.classStatusBanner.innerHTML = "❓ Không tìm thấy cấu trúc bảng/danh sách học viên trên trang.";
+            this.classStatusBanner.style.backgroundColor = "#fffbeb";
+            this.classStatusBanner.style.color = "#b45309";
+            this.classStatusBanner.style.borderLeftColor = "#f59e0b";
+          }
+        } else {
+          this.classStatusBanner.innerHTML = "❓ Không tìm thấy dữ liệu học viên.";
+          this.classStatusBanner.style.backgroundColor = "#f1f5f9";
+          this.classStatusBanner.style.color = "#475569";
+          this.classStatusBanner.style.borderLeftColor = "#64748b";
+        }
+      });
+    });
+  }
+
+  renderClassList() {
+    if (!this.classListBody) return; // Guard for initialization timing
+    chrome.storage.local.get("classStudentList", (res) => {
+      const studentList = res.classStudentList || [];
+      
+      if (studentList.length === 0) {
+        this.classTableEl.style.display = 'none';
+        this.classEmptyState.style.display = 'block';
+        this.exportClassCsvBtn.disabled = true;
+        return;
+      }
+      
+      this.classTableEl.style.display = 'table';
+      this.classEmptyState.style.display = 'none';
+      this.exportClassCsvBtn.disabled = false;
+      this.classListBody.innerHTML = '';
+      
+      const fragment = document.createDocumentFragment();
+      
+      studentList.forEach((st, index) => {
+        const tr = document.createElement('tr');
+        
+        const tdId = document.createElement('td');
+        tdId.style.fontWeight = '600';
+        tdId.style.color = '#475569';
+        tdId.textContent = st.studentId;
+        tr.appendChild(tdId);
+        
+        const tdName = document.createElement('td');
+        const nameSpan = document.createElement('span');
+        nameSpan.style.fontWeight = '600';
+        nameSpan.style.color = '#1e293b';
+        nameSpan.textContent = st.studentName;
+        tdName.appendChild(nameSpan);
+        
+        if (st.githubUrl) {
+          const githubLink = document.createElement('a');
+          githubLink.className = 'sub-repo-link';
+          githubLink.href = st.githubUrl;
+          githubLink.target = '_blank';
+          githubLink.textContent = st.githubUrl.replace(/^https?:\/\/(www\.)?github\.com\//, "");
+          tdName.appendChild(githubLink);
+        }
+        tr.appendChild(tdName);
+        
+        const tdUrl = document.createElement('td');
+        const urlLink = document.createElement('a');
+        urlLink.href = st.submissionUrl;
+        urlLink.target = '_blank';
+        urlLink.style.fontSize = '0.75rem';
+        urlLink.style.color = '#3b82f6';
+        urlLink.style.wordBreak = 'break-all';
+        urlLink.textContent = st.submissionUrl.replace(/^https?:\/\/[^\/]+\//, ".../");
+        tdUrl.appendChild(urlLink);
+        tr.appendChild(tdUrl);
+        
+        const tdScore = document.createElement('td');
+        tdScore.style.textAlign = 'center';
+        const scoreBadge = document.createElement('span');
+        scoreBadge.className = 'badge-status';
+        if (st.score !== null && st.score !== undefined) {
+          scoreBadge.className += ' success';
+          scoreBadge.textContent = `${st.score} / 100`;
+          if (st.comments) {
+            scoreBadge.style.cursor = 'pointer';
+            scoreBadge.title = 'Click để xem nhận xét';
+            scoreBadge.addEventListener('click', () => {
+              this.context.showReportModal({
+                exerciseName: `Báo cáo chấm điểm: ${st.studentName} - ${st.studentId}`,
+                score: st.score,
+                report: st.comments
+              });
+            });
+          }
+        } else {
+          scoreBadge.className += ' pending';
+          scoreBadge.textContent = 'Chưa chấm';
+        }
+        tdScore.appendChild(scoreBadge);
+        tr.appendChild(tdScore);
+        
+        const tdActions = document.createElement('td');
+        tdActions.style.textAlign = 'center';
+        
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'btn-row-action';
+        btnDelete.style.borderColor = '#fca5a5';
+        btnDelete.style.color = '#ef4444';
+        btnDelete.textContent = 'Xóa';
+        btnDelete.addEventListener('click', () => {
+          if (confirm(`Xóa học viên ${st.studentName} khỏi danh sách?`)) {
+            const updated = studentList.filter((_, idx) => idx !== index);
+            chrome.storage.local.set({ classStudentList: updated }, () => {
+              this.renderClassList();
+              if (this.context.singleGraderTab) {
+                this.context.singleGraderTab.resolveStudentFromTabUrl();
+              }
+            });
+          }
+        });
+        tdActions.appendChild(btnDelete);
+        tr.appendChild(tdActions);
+        
+        fragment.appendChild(tr);
+      });
+      
+      this.classListBody.appendChild(fragment);
+    });
+  }
+
+  exportClassListCsv() {
+    chrome.storage.local.get("classStudentList", (res) => {
+      const studentList = res.classStudentList || [];
+      if (studentList.length === 0) {
+        alert("Danh sách học viên trống.");
+        return;
+      }
+      
+      const headers = ["Mã SV", "Họ Tên", "Tên Bài Tập", "Link GitHub", "Điểm Số", "Nhận Xét AI"];
+      
+      const escapeCSV = (val) => {
+        if (val === null || val === undefined) return "";
+        let str = String(val).trim();
+        str = str.replace(/"/g, '""');
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+          str = `"${str}"`;
+        }
+        return str;
+      };
+      
+      const rows = [headers.map(escapeCSV).join(',')];
+      
+      studentList.forEach(st => {
+        const row = [
+          st.studentId,
+          st.studentName,
+          st.assignmentName || "N/A",
+          st.githubUrl || "N/A",
+          st.score !== null ? st.score : "Chưa chấm",
+          st.comments || "N/A"
+        ];
+        rows.push(row.map(escapeCSV).join(','));
+      });
+      
+      const csvContent = "\ufeff" + rows.join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Bao_cao_diem_lop_hoc_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
 }
+

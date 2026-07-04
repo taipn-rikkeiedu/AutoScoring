@@ -12,7 +12,7 @@
       <img src="icon.png" class="logo-img" alt="logo">
       <span class="logo-title">AI GitHub Grader</span>
     </div>
-    <span class="version-tag" id="app-version">v3.2.2</span>
+    <span class="version-tag" id="app-version">v3.3.0</span>
   </header>
 
   <nav class="tabs-bar">
@@ -32,54 +32,112 @@
 
     <!-- TAB 0: AUTO SCAN & BULK GRADER -->
     <div class="tab-content active" id="tab-auto" style="overflow-y: auto;">
-      <div id="detected-status-banner" style="font-size: 0.85rem; padding: 8px; background-color: #f1f5f9; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #3b82f6;">
-        🔍 Đang tìm kiếm các bài tập trên trang...
+      <!-- Mode Switcher -->
+      <div class="mode-selector-container" style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <button class="mode-btn active" id="mode-bulk-grade-btn">⚡ Chấm Hàng Loạt (GitHub)</button>
+        <button class="mode-btn" id="mode-class-list-btn">👥 Quản Lý Danh Sách Lớp</button>
       </div>
-      
-      <div style="flex: 1; min-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; background-color: #ffffff;">
-        <table class="detected-table" id="detected-table-el" style="display: none; margin-top: 0;">
-          <thead>
-            <tr>
-              <th style="width: 30px; text-align: center;"><input type="checkbox" id="select-all-subs" checked></th>
-              <th>Bài tập trên trang</th>
-              <th style="width: 200px;">Đề bài liên kết</th>
-              <th style="width: 90px; text-align: center;">Điểm số</th>
-              <th style="width: 110px; text-align: center;">Hành động</th>
-            </tr>
-          </thead>
-          <tbody id="detected-list-body">
-            <!-- Inject items dynamically -->
-          </tbody>
-        </table>
+
+      <!-- Mode 1: Bulk Grader (GitHub) -->
+      <div id="bulk-grader-view" style="display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 10px;">
+        <div id="detected-status-banner" style="font-size: 0.85rem; padding: 8px; background-color: #f1f5f9; border-radius: 6px; border-left: 4px solid #3b82f6;">
+          🔍 Đang tìm kiếm các bài tập trên trang...
+        </div>
         
-        <div class="empty-state" id="auto-empty-state">
-          <div class="empty-state-icon">🔍</div>
-          <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 5px;">Không tìm thấy bài tập nào</div>
-          <div style="font-size: 0.8rem; color: #94a3b8; max-width: 300px; margin: 0 auto;">Vui lòng chuyển tới trang danh sách nộp bài tập của học viên hoặc bấm nút quét lại trang.</div>
+        <div style="flex: 1; min-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; background-color: #ffffff;">
+          <table class="detected-table" id="detected-table-el" style="display: none; margin-top: 0;">
+            <thead>
+              <tr>
+                <th style="width: 30px; text-align: center;"><input type="checkbox" id="select-all-subs" checked></th>
+                <th>Bài tập trên trang</th>
+                <th style="width: 200px;">Đề bài liên kết</th>
+                <th style="width: 90px; text-align: center;">Điểm số</th>
+                <th style="width: 110px; text-align: center;">Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="detected-list-body">
+              <!-- Inject items dynamically -->
+            </tbody>
+          </table>
+          
+          <div class="empty-state" id="auto-empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 5px;">Không tìm thấy bài tập nào</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; max-width: 300px; margin: 0 auto;">Vui lòng chuyển tới trang danh sách nộp bài tập của học viên hoặc bấm nút quét lại trang.</div>
+          </div>
+        </div>
+        
+        <!-- Progress and bulk grader bar -->
+        <div class="progress-bar-container" id="bulk-progress-container">
+          <div class="progress-bar-fill" id="bulk-progress-fill"></div>
+        </div>
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px; display: none;" id="bulk-progress-text">
+          Đang chấm bài 0/0...
+        </div>
+        
+        <div class="bulk-action-bar">
+          <button class="btn-primary" id="rescan-page-btn" style="width: auto; padding: 8px 14px; background: #f1f5f9; color: #334155; border: 1px solid var(--border-color); box-shadow: none;">
+            🔄 Quét Lại Trang
+          </button>
+          <button class="btn-primary" id="bulk-grade-btn" style="width: auto; padding: 8px 16px;" disabled>
+            <span>🚀 Chấm 0 Bài Đã Chọn</span>
+          </button>
         </div>
       </div>
-      
-      <!-- Progress and bulk grader bar -->
-      <div class="progress-bar-container" id="bulk-progress-container">
-        <div class="progress-bar-fill" id="bulk-progress-fill"></div>
-      </div>
-      <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px; display: none;" id="bulk-progress-text">
-        Đang chấm bài 0/0...
-      </div>
-      
-      <div class="bulk-action-bar">
-        <button class="btn-primary" id="rescan-page-btn" style="width: auto; padding: 8px 14px; background: #f1f5f9; color: #334155; border: 1px solid var(--border-color); box-shadow: none;">
-          🔄 Quét Lại Trang
-        </button>
-        <button class="btn-primary" id="bulk-grade-btn" style="width: auto; padding: 8px 16px;" disabled>
-          <span>🚀 Chấm 0 Bài Đã Chọn</span>
-        </button>
+
+      <!-- Mode 2: Class List Manager -->
+      <div id="class-list-view" style="display: none; flex-direction: column; flex: 1; min-height: 0; gap: 10px;">
+        <div id="class-status-banner" style="font-size: 0.85rem; padding: 8px; background-color: #f1f5f9; border-radius: 6px; border-left: 4px solid #3b82f6;">
+          🔍 Sẵn sàng quét danh sách học viên từ trang...
+        </div>
+        
+        <div style="flex: 1; min-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; background-color: #ffffff;">
+          <table class="detected-table" id="class-table-el" style="display: none; margin-top: 0;">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Mã SV</th>
+                <th>Họ và Tên</th>
+                <th>Link Chấm Điểm</th>
+                <th style="width: 80px; text-align: center;">Điểm số</th>
+                <th style="width: 100px; text-align: center;">Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="class-list-body">
+              <!-- Inject class students dynamically -->
+            </tbody>
+          </table>
+          
+          <div class="empty-state" id="class-empty-state">
+            <div class="empty-state-icon">👥</div>
+            <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 5px;">Chưa có dữ liệu lớp học</div>
+            <div style="font-size: 0.8rem; color: #94a3b8; max-width: 300px; margin: 0 auto;">Hãy mở trang danh sách học viên trên LMS và bấm "Quét Danh Sách Lớp".</div>
+          </div>
+        </div>
+        
+        <div class="bulk-action-bar">
+          <button class="btn-primary" id="clear-class-btn" style="width: auto; padding: 8px 14px; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; box-shadow: none; font-weight: 600;">
+            ❌ Xóa Danh Sách
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-primary" id="scan-class-btn" style="width: auto; padding: 8px 16px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
+              <span>📥 Quét Danh Sách Lớp</span>
+            </button>
+            <button class="btn-primary" id="export-class-csv-btn" style="width: auto; padding: 8px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
+              <span>📊 Xuất Báo Cáo CSV</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- TAB 1: GRADER -->
     <div class="tab-content" id="tab-grader">
       
+      <!-- Student Resolved Banner -->
+      <div id="student-resolved-banner" style="display: none; font-size: 0.85rem; padding: 8px 12px; background-color: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e; margin-bottom: 8px; font-weight: 500; color: #166534;">
+        👤 Đang chấm cho học viên: <span id="student-resolved-info" style="font-weight: 700;">[Name] - [ID]</span>
+      </div>
+
       <div class="form-group" id="detected-select-group" style="display: none;">
         <label for="detected-submission-select">Chọn bài nộp phát hiện từ trang:</label>
         <select id="detected-submission-select" style="border-color: #3b82f6; background-color: #f0fdf4;">

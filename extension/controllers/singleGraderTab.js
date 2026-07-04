@@ -7,6 +7,7 @@ export class SingleGraderTab {
     this.context = context;
     this.initElements();
     this.bindEvents();
+    this.resolveStudentFromTabUrl();
   }
 
   initElements() {
@@ -24,6 +25,10 @@ export class SingleGraderTab {
     this.resultsBox = document.getElementById("results-box");
     this.scoreVal = document.getElementById("score-val");
     this.reportHtml = document.getElementById("report-html");
+
+    this.studentResolvedBanner = document.getElementById("student-resolved-banner");
+    this.studentResolvedInfo = document.getElementById("student-resolved-info");
+    this.activeStudent = null;
   }
 
   bindEvents() {
@@ -223,6 +228,27 @@ export class SingleGraderTab {
       }
 
       this.resultsBox.style.display = "flex";
+
+      // Save to Class Student Database if matched
+      if (this.activeStudent) {
+        chrome.storage.local.get("classStudentList", (res) => {
+          const studentList = res.classStudentList || [];
+          const idx = studentList.findIndex(st => st.submissionUrl === this.activeStudent.submissionUrl);
+          if (idx !== -1) {
+            studentList[idx].score = score ? parseInt(score, 10) : null;
+            studentList[idx].comments = report;
+            studentList[idx].githubUrl = repoUrl;
+            studentList[idx].assignmentName = assignmentName;
+            
+            chrome.storage.local.set({ classStudentList: studentList }, () => {
+              console.log("Updated student grading in list:", studentList[idx]);
+              if (this.context.autoGraderTab) {
+                this.context.autoGraderTab.renderClassList();
+              }
+            });
+          }
+        });
+      }
     } catch (err) {
       console.error(err);
       alert(`Lỗi: ${err.message}`);
@@ -230,5 +256,34 @@ export class SingleGraderTab {
     } finally {
       this.gradeBtn.disabled = false;
     }
+  }
+
+  resolveStudentFromTabUrl() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) return;
+      const url = tabs[0].url;
+      if (!url) return;
+      
+      const normalizedTabUrl = url.split('?')[0].split('#')[0];
+      
+      chrome.storage.local.get("classStudentList", (res) => {
+        const studentList = res.classStudentList || [];
+        const matched = studentList.find(st => st.submissionUrl === normalizedTabUrl);
+        if (matched) {
+          this.activeStudent = matched;
+          if (this.studentResolvedBanner) {
+            this.studentResolvedBanner.style.display = "block";
+          }
+          if (this.studentResolvedInfo) {
+            this.studentResolvedInfo.textContent = `${matched.studentName} (${matched.studentId})`;
+          }
+        } else {
+          this.activeStudent = null;
+          if (this.studentResolvedBanner) {
+            this.studentResolvedBanner.style.display = "none";
+          }
+        }
+      });
+    });
   }
 }
