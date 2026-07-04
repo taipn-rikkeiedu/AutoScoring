@@ -7,6 +7,15 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.5] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Tích hợp Logo REduX và Giao diện Header mới:**
+  - Tích hợp ảnh logo REduX (`logo.png`) vào thanh Header của ứng dụng, thay thế cho logo text cũ.
+  - Sử dụng Python cắt và căn lề một phần logo (chứa biểu tượng X mạch điện tử và bộ não) làm icon vuông `icon.png` (kích thước 128x128) đại diện cho Extension trên thanh trình duyệt.
+  - Chuyển giao diện Header sang màu trắng tối giản, tinh tế để tôn vinh màu sắc và đường nét của logo REduX.
+  - Tối ưu hóa độ tương phản cao cho các badge trạng thái AI trên nền trắng mới.
+
 ## [v3.5.4] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa
