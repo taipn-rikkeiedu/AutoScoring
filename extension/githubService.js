@@ -1,5 +1,5 @@
 export class GitHubService {
-  constructor(token = "", customIgnoreList = "") {
+  constructor(token = "", customIgnoreItems = null) {
     this.headers = {
       "Accept": "application/vnd.github.v3+json",
       "User-Agent": "AutoScoring/2.8"
@@ -11,41 +11,35 @@ export class GitHubService {
       ".py", ".java", ".js", ".ts", ".cpp", ".c", ".cs", ".html", ".css", ".go", 
       ".kt", ".php", ".gradle", ".xml", ".properties", ".yml", ".yaml", ".json", ".md", ".docx"
     ];
+    
+    // Thư mục và file mặc định luôn luôn bị loại trừ (không thể cấu hình bỏ chọn)
     this.excludedDirs = [
-      "node_modules/", ".venv", "env/", ".git/", "build/", "dist/", "target/", "__pycache__/", ".idea/", ".vscode/"
+      "node_modules/", ".venv/", ".git/"
     ];
     this.excludedFiles = [
-      "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "pom.xml.tag", 
-      ".gitignore", "LICENSE", "gradlew.bat", "gradlew", "mvnw.cmd", "mvnw"
+      "LICENSE"
     ];
 
-    // Tự động phân tích và thêm các danh sách loại trừ tùy chỉnh từ người dùng
-    if (customIgnoreList) {
-      const items = customIgnoreList.split(/[\n,]/).map(x => x.trim()).filter(Boolean);
-      items.forEach(item => {
-        if (item.endsWith('/')) {
-          if (!this.excludedDirs.includes(item)) {
-            this.excludedDirs.push(item);
-          }
-        } else {
-          // Phân biệt file/folder dựa trên sự hiện diện của dấu chấm mở rộng
-          if (item.includes('.')) {
-            if (!this.excludedFiles.includes(item)) {
-              this.excludedFiles.push(item);
-            }
-          } else {
-            // Nếu không có dấu chấm, coi như là cả tên thư mục lẫn tên file để đảm bảo loại bỏ triệt để
-            const dirPattern = item + '/';
-            if (!this.excludedDirs.includes(dirPattern)) {
-              this.excludedDirs.push(dirPattern);
-            }
-            if (!this.excludedFiles.includes(item)) {
-              this.excludedFiles.push(item);
-            }
-          }
+    // Nếu không truyền customIgnoreItems (hoặc null), loại trừ tất cả các mục mặc định để an toàn
+    const itemsToExclude = customIgnoreItems !== null ? customIgnoreItems : [
+      "build/", "dist/", "target/", "out/", ".vscode/", ".idea/", "env/", "__pycache__/",
+      "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "gradlew/mvnw", ".gitignore"
+    ];
+
+    // Phân tích danh sách loại trừ do giảng viên chọn
+    itemsToExclude.forEach(item => {
+      if (item === "gradlew/mvnw") {
+        this.excludedFiles.push("gradlew", "gradlew.bat", "mvnw", "mvnw.cmd");
+      } else if (item.endsWith('/')) {
+        if (!this.excludedDirs.includes(item)) {
+          this.excludedDirs.push(item);
         }
-      });
-    }
+      } else {
+        if (!this.excludedFiles.includes(item)) {
+          this.excludedFiles.push(item);
+        }
+      }
+    });
 
     this.maxFiles = 100;
     this.maxChars = 500000;

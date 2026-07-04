@@ -7,6 +7,15 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.2] — 2026-07-04
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Cải tiến Bộ lọc loại trừ (.graderignore) dạng danh sách Checkbox cụ thể:**
+  - Thay thế ô nhập văn bản tự gõ bằng danh sách 14 checkbox của từng thư mục/tệp cụ thể cần loại bỏ (ví dụ: `build/`, `dist/`, `.vscode/`, `package-lock.json`...).
+  - Giúp giảng viên lựa chọn trực quan, tránh lỗi gõ sai chính tả.
+  - Bổ sung nút tiện ích **Chọn tất cả** và **Bỏ chọn tất cả** để thao tác nhanh hơn.
+  - Tự động hóa hoàn toàn phần loại trừ cứng đối với các thư mục cốt lõi (`node_modules/`, `.venv/`, `.git/`) mà không cần cấu hình.
+
 ## [v3.5.1] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa

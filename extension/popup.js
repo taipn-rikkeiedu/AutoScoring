@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.5.1";
+  const appVersion = "3.5.2";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -41,7 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
       aiModelName: "gemini-1.5-pro",
       githubToken: "",
       systemPrompt: "",
-      graderIgnore: "",
+      graderIgnoreItems: [
+        "build/", "dist/", "target/", "out/", ".vscode/", ".idea/", "env/", "__pycache__/",
+        "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "gradlew/mvnw", ".gitignore"
+      ],
       exerciseSource: "local",
       exerciseApiUrl: "",
       exerciseApiToken: "",
@@ -103,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return new Promise((resolve) => {
       chrome.storage.local.get([
         "aiProvider", "aiApiKey", "aiApiUrl", "aiModelName", "githubToken", "systemPrompt",
-        "graderIgnore", "exerciseSource", "exerciseApiUrl", "exerciseApiToken", "uploadedExercises"
+        "graderIgnoreItems", "exerciseSource", "exerciseApiUrl", "exerciseApiToken", "uploadedExercises"
       ], (stored) => {
         if (stored.aiProvider) context.config.aiProvider = stored.aiProvider;
         if (stored.aiApiKey) context.config.aiApiKey = stored.aiApiKey;
@@ -111,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (stored.aiModelName) context.config.aiModelName = stored.aiModelName;
         if (stored.githubToken) context.config.githubToken = stored.githubToken;
         if (stored.systemPrompt) context.config.systemPrompt = stored.systemPrompt;
-        if (stored.graderIgnore !== undefined) context.config.graderIgnore = stored.graderIgnore;
+        if (stored.graderIgnoreItems !== undefined) context.config.graderIgnoreItems = stored.graderIgnoreItems;
         if (stored.exerciseSource) context.config.exerciseSource = stored.exerciseSource;
         if (stored.exerciseApiUrl) context.config.exerciseApiUrl = stored.exerciseApiUrl;
         if (stored.exerciseApiToken) context.config.exerciseApiToken = stored.exerciseApiToken;

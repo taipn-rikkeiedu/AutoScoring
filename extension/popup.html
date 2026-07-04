@@ -292,11 +292,30 @@
 
       <!-- Grader Ignore Section -->
       <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">📁 Bộ lọc loại trừ file (.graderignore)</h3>
-        <div class="form-group">
-          <label for="grader-ignore">Danh sách loại trừ (phân cách bằng dấu phẩy hoặc dòng mới):</label>
-          <textarea id="grader-ignore" class="resizable-textarea" style="height: 60px;" placeholder="Ví dụ: my_temp_folder/, secret_file.txt, .config"></textarea>
-          <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; line-height: 1.4;">Các file/thư mục này sẽ được bỏ qua khi tải code. <i>Lưu ý: node_modules, .venv, .vscode, .idea, .git đã luôn được tự động loại trừ mặc định.</i></span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="font-size: 1rem; font-weight: 700; margin: 0; color: #1e3a8a;">📁 Bộ lọc loại trừ file (.graderignore)</h3>
+          <div style="display: flex; gap: 8px;">
+            <button id="ignore-select-all-btn" style="background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0;">Chọn tất cả</button>
+            <span style="color: #cbd5e1; font-size: 0.75rem;">|</span>
+            <button id="ignore-deselect-all-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0;">Bỏ chọn tất cả</button>
+          </div>
+        </div>
+        <span style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px; display: block; line-height: 1.4;">Chọn các thư mục/tập tin cụ thể muốn bỏ qua khi chấm. <i>Lưu ý: node_modules, .venv, .git luôn tự động loại trừ.</i></span>
+        <div class="ignore-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px; margin-top: 6px; font-size: 0.8rem; color: #334155;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="build/"> <span>build/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="dist/"> <span>dist/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="target/"> <span>target/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="out/"> <span>out/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".vscode/"> <span>.vscode/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".idea/"> <span>.idea/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="env/"> <span>env/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="__pycache__/"> <span>__pycache__/</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="package-lock.json"> <span>package-lock.json</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="yarn.lock"> <span>yarn.lock</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="pnpm-lock.yaml"> <span>pnpm-lock.yaml</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="composer.lock"> <span>composer.lock</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="gradlew/mvnw"> <span>gradlew / mvnw</span></label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".gitignore"> <span>.gitignore</span></label>
         </div>
       </div>
 

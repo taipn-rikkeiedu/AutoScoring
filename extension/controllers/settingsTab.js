@@ -13,7 +13,9 @@ export class SettingsTab {
     this.aiApiUrlInput = document.getElementById("ai-api-url");
     this.aiModelNameInput = document.getElementById("ai-model-name");
     this.githubTokenInput = document.getElementById("github-token");
-    this.graderIgnoreInput = document.getElementById("grader-ignore");
+    this.graderIgnoreCbs = document.querySelectorAll(".ignore-item-cb");
+    this.ignoreSelectAllBtn = document.getElementById("ignore-select-all-btn");
+    this.ignoreDeselectAllBtn = document.getElementById("ignore-deselect-all-btn");
     this.systemPromptInput = document.getElementById("system-prompt");
     this.resetPromptBtn = document.getElementById("reset-prompt-btn");
     
@@ -34,6 +36,20 @@ export class SettingsTab {
     this.exerciseSourceSelect.addEventListener("change", () => this.updateFieldsVisibility());
     this.saveSettingsBtn.addEventListener("click", () => this.saveConfiguration());
     this.resetPromptBtn.addEventListener("click", () => this.resetSystemPrompt());
+    if (this.ignoreSelectAllBtn) {
+      this.ignoreSelectAllBtn.addEventListener("click", () => this.toggleAllIgnoreCbs(true));
+    }
+    if (this.ignoreDeselectAllBtn) {
+      this.ignoreDeselectAllBtn.addEventListener("click", () => this.toggleAllIgnoreCbs(false));
+    }
+  }
+
+  toggleAllIgnoreCbs(checked) {
+    if (this.graderIgnoreCbs) {
+      this.graderIgnoreCbs.forEach(cb => {
+        cb.checked = checked;
+      });
+    }
   }
 
   resetSystemPrompt() {
@@ -103,7 +119,14 @@ export class SettingsTab {
     this.aiApiUrlInput.value = config.aiApiUrl;
     this.aiModelNameInput.value = config.aiModelName;
     this.githubTokenInput.value = config.githubToken;
-    this.graderIgnoreInput.value = config.graderIgnore || "";
+    
+    const ignoreItems = config.graderIgnoreItems || [];
+    if (this.graderIgnoreCbs) {
+      this.graderIgnoreCbs.forEach(cb => {
+        cb.checked = ignoreItems.includes(cb.value);
+      });
+    }
+
     this.systemPromptInput.value = config.systemPrompt || DEFAULT_SYSTEM_PROMPT;
     this.exerciseSourceSelect.value = config.exerciseSource;
     this.exerciseApiUrlInput.value = config.exerciseApiUrl;
@@ -134,8 +157,16 @@ export class SettingsTab {
     const apiUrl = this.aiApiUrlInput.value.trim();
     const modelName = this.aiModelNameInput.value.trim();
     const githubToken = this.githubTokenInput.value.trim();
-    const graderIgnore = this.graderIgnoreInput.value.trim();
     const systemPrompt = this.systemPromptInput.value;
+    
+    const graderIgnoreItems = [];
+    if (this.graderIgnoreCbs) {
+      this.graderIgnoreCbs.forEach(cb => {
+        if (cb.checked) {
+          graderIgnoreItems.push(cb.value);
+        }
+      });
+    }
     
     const src = this.exerciseSourceSelect.value;
     const exerciseApiUrl = this.exerciseApiUrlInput.value.trim();
@@ -166,7 +197,7 @@ export class SettingsTab {
         aiModelName: modelName,
         githubToken: githubToken,
         systemPrompt: systemPrompt,
-        graderIgnore: graderIgnore,
+        graderIgnoreItems: graderIgnoreItems,
         exerciseSource: src,
         exerciseApiUrl: exerciseApiUrl,
         exerciseApiToken: exerciseApiToken,
