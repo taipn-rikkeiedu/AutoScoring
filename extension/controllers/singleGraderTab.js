@@ -1,0 +1,234 @@
+import { GitHubService } from '../githubService.js';
+import { AIService } from '../aiService.js';
+import { parseScore, DEFAULT_CRITERIA } from '../utils.js';
+
+export class SingleGraderTab {
+  constructor(context) {
+    this.context = context;
+    this.initElements();
+    this.bindEvents();
+  }
+
+  initElements() {
+    this.repoUrlInput = document.getElementById("repo-url");
+    this.chapterSelect = document.getElementById("chapter-select");
+    this.sessionSelect = document.getElementById("session-select");
+    this.assignmentSelect = document.getElementById("assignment-select");
+    this.gradeBtn = document.getElementById("grade-btn");
+    
+    this.detectedSelectGroup = document.getElementById("detected-select-group");
+    this.detectedSubmissionSelect = document.getElementById("detected-submission-select");
+
+    this.statusBox = document.getElementById("status-box");
+    this.statusMessage = document.getElementById("status-message");
+    this.resultsBox = document.getElementById("results-box");
+    this.scoreVal = document.getElementById("score-val");
+    this.reportHtml = document.getElementById("report-html");
+  }
+
+  bindEvents() {
+    this.chapterSelect.addEventListener("change", () => this.onChapterChanged());
+    this.sessionSelect.addEventListener("change", () => this.onSessionChanged());
+    this.detectedSubmissionSelect.addEventListener("change", (e) => this.onDetectedSubmissionChanged(e.target.value));
+    this.gradeBtn.addEventListener("click", () => this.gradeSingleSubmission());
+  }
+
+  disableSelectors() {
+    this.chapterSelect.innerHTML = '<option value="">-- Lỗi cấu hình bài tập --</option>';
+    this.sessionSelect.innerHTML = '<option value="">-- Chọn --</option>';
+    this.sessionSelect.disabled = true;
+    this.assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
+    this.assignmentSelect.disabled = true;
+  }
+
+  populateChapters() {
+    this.chapterSelect.innerHTML = '<option value="">-- Chọn Chương --</option>';
+    const templates = this.context.exerciseTemplates || {};
+    const chapters = Object.keys(templates);
+    
+    if (chapters.length === 0) {
+      this.chapterSelect.innerHTML = '<option value="">-- Thư viện trống --</option>';
+      return;
+    }
+
+    chapters.forEach(ch => {
+      const option = document.createElement("option");
+      option.value = ch;
+      option.textContent = ch;
+      this.chapterSelect.appendChild(option);
+    });
+
+    this.sessionSelect.innerHTML = '<option value="">-- Chọn --</option>';
+    this.sessionSelect.disabled = true;
+    this.assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
+    this.assignmentSelect.disabled = true;
+  }
+
+  onChapterChanged() {
+    const templates = this.context.exerciseTemplates || {};
+    const selectedChapter = this.chapterSelect.value;
+    this.sessionSelect.innerHTML = '<option value="">-- Chọn Session --</option>';
+    
+    if (!selectedChapter || !templates[selectedChapter]) {
+      this.sessionSelect.disabled = true;
+      this.assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
+      this.assignmentSelect.disabled = true;
+      return;
+    }
+
+    const sessions = Object.keys(templates[selectedChapter]);
+    sessions.forEach(sess => {
+      const option = document.createElement("option");
+      option.value = sess;
+      option.textContent = sess;
+      this.sessionSelect.appendChild(option);
+    });
+
+    this.sessionSelect.disabled = false;
+    this.assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
+    this.assignmentSelect.disabled = true;
+  }
+
+  onSessionChanged() {
+    const templates = this.context.exerciseTemplates || {};
+    const selectedChapter = this.chapterSelect.value;
+    const selectedSession = this.sessionSelect.value;
+    this.assignmentSelect.innerHTML = '<option value="">-- Chọn Bài tập --</option>';
+
+    if (!selectedSession || !templates[selectedChapter] || !templates[selectedChapter][selectedSession]) {
+      this.assignmentSelect.disabled = true;
+      return;
+    }
+
+    const assignments = Object.keys(templates[selectedChapter][selectedSession]);
+    assignments.forEach(ass => {
+      const option = document.createElement("option");
+      option.value = ass;
+      option.textContent = ass;
+      this.assignmentSelect.appendChild(option);
+    });
+
+    this.assignmentSelect.disabled = false;
+  }
+
+  updateDetectedSubmissionSelect() {
+    if (!this.detectedSubmissionSelect || !this.detectedSelectGroup) return;
+    
+    this.detectedSubmissionSelect.innerHTML = '<option value="">-- Chọn bài nộp phát hiện trên trang --</option>';
+    const submissions = this.context.submissions || [];
+    
+    if (submissions.length > 0) {
+      submissions.forEach((sub, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        const shortUrl = sub.githubUrl.replace(/^https?:\/\/(www\.)?github\.com\//, "");
+        option.textContent = `${sub.exerciseName} (${shortUrl})`;
+        this.detectedSubmissionSelect.appendChild(option);
+      });
+      this.detectedSelectGroup.style.display = "flex";
+    } else {
+      this.detectedSelectGroup.style.display = "none";
+    }
+  }
+
+  onDetectedSubmissionChanged(val) {
+    if (!val) {
+      this.repoUrlInput.value = "";
+      this.chapterSelect.value = "";
+      this.chapterSelect.dispatchEvent(new Event("change"));
+      return;
+    }
+    
+    const index = parseInt(val, 10);
+    const sub = this.context.submissions?.[index];
+    if (!sub) return;
+    
+    this.repoUrlInput.value = sub.githubUrl;
+    
+    if (sub.matchedTemplate) {
+      const { chapter, session, assignmentName } = sub.matchedTemplate;
+      
+      this.chapterSelect.value = chapter;
+      this.chapterSelect.dispatchEvent(new Event("change"));
+      
+      this.sessionSelect.value = session;
+      this.sessionSelect.dispatchEvent(new Event("change"));
+      
+      this.assignmentSelect.value = assignmentName;
+    } else {
+      this.chapterSelect.value = "";
+      this.chapterSelect.dispatchEvent(new Event("change"));
+    }
+  }
+
+  enableGradeButton(enabled) {
+    this.gradeBtn.disabled = !enabled;
+  }
+
+  async gradeSingleSubmission() {
+    const repoUrl = this.repoUrlInput.value.trim();
+    const chapter = this.chapterSelect.value;
+    const session = this.sessionSelect.value;
+    const assignmentName = this.assignmentSelect.value;
+
+    if (!repoUrl) {
+      alert("Vui lòng nhập GitHub Repository URL.");
+      return;
+    }
+    if (!chapter || !session || !assignmentName) {
+      alert("Vui lòng chọn đầy đủ Chương, Session và Bài tập.");
+      return;
+    }
+
+    this.gradeBtn.disabled = true;
+    this.resultsBox.style.display = "none";
+    this.statusBox.style.display = "flex";
+
+    try {
+      const template = this.context.exerciseTemplates?.[chapter]?.[session]?.[assignmentName];
+      if (!template || !template.assignment) {
+        throw new Error("Mẫu bài tập thiếu nội dung đề bài.");
+      }
+
+      const activeCriteria = template.criteria && template.criteria.trim().length > 0
+        ? template.criteria
+        : DEFAULT_CRITERIA;
+
+      const github = new GitHubService(this.context.config.githubToken);
+      const repoData = await github.getRepoContents(repoUrl, (msg) => {
+        this.statusMessage.innerText = msg;
+      });
+
+      this.statusMessage.innerText = "AI đang thực hiện chấm điểm...";
+      const ai = new AIService(this.context.config);
+      const report = await ai.generateGradingReport(template.assignment, activeCriteria, repoData.content);
+
+      this.statusBox.style.display = "none";
+      this.context.activeSingleReportMarkdown = report;
+
+      const score = parseScore(report);
+      this.scoreVal.innerText = score ? `${score} / 100` : "N/A";
+      
+      if (score) {
+        const val = parseInt(score, 10);
+        if (val >= 80) this.scoreVal.style.background = "linear-gradient(135deg, #16a34a, #15803d)";
+        else if (val >= 50) this.scoreVal.style.background = "linear-gradient(135deg, #d97706, #b45309)";
+        else this.scoreVal.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)";
+      }
+
+      if (typeof marked !== 'undefined') {
+        this.reportHtml.innerHTML = marked.parse(report);
+      } else {
+        this.reportHtml.innerText = report;
+      }
+
+      this.resultsBox.style.display = "flex";
+    } catch (err) {
+      console.error(err);
+      alert(`Lỗi: ${err.message}`);
+      this.statusBox.style.display = "none";
+    } finally {
+      this.gradeBtn.disabled = false;
+    }
+  }
+}

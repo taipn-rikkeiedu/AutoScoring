@@ -1,3 +1,5 @@
+import os
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 import traceback
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware

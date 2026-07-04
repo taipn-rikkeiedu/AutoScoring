@@ -1,0 +1,116 @@
+export function parseScore(reportText) {
+  if (!reportText) return null;
+  let match = reportText.match(/(\d+)\s*\/\s*100/);
+  if (match) return match[1];
+  
+  match = reportText.match(/(?:Tổng điểm|TỔNG|Score|Points):\s*\*?(\d+)\*?/i);
+  if (match) return match[1];
+  
+  return null;
+}
+
+export function normalizeText(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove Vietnamese accents
+    .replace(/[\[\](){}\-_.:,]/g, ' ') // replace punctuation with space
+    .replace(/\s+/g, ' ') // collapse spacing
+    .trim();
+}
+
+export function findMatchingTemplate(scrapedName, exerciseTemplates) {
+  if (!scrapedName || !exerciseTemplates) return null;
+  
+  const normScraped = normalizeText(scrapedName);
+  let bestMatch = null;
+  let maxScore = 0;
+  
+  for (const chapter in exerciseTemplates) {
+    for (const session in exerciseTemplates[chapter]) {
+      for (const assignmentName in exerciseTemplates[chapter][session]) {
+        const normTemplate = normalizeText(assignmentName);
+        
+        let score = 0;
+        if (normScraped === normTemplate) {
+          score = 100;
+        } else if (normScraped.includes(normTemplate) || normTemplate.includes(normScraped)) {
+          score = 80 + Math.min(normScraped.length, normTemplate.length) / Math.max(normScraped.length, normTemplate.length) * 10;
+        } else {
+          const wordsScraped = normScraped.split(' ').filter(w => w.length > 1);
+          const wordsTemplate = normTemplate.split(' ').filter(w => w.length > 1);
+          if (wordsScraped.length > 0 && wordsTemplate.length > 0) {
+            const intersection = wordsScraped.filter(w => wordsTemplate.includes(w));
+            const overlap = intersection.length / Math.max(wordsScraped.length, wordsTemplate.length);
+            score = overlap * 70;
+          }
+        }
+        
+        if (score > maxScore) {
+          maxScore = score;
+          bestMatch = { chapter, session, assignmentName, matchScore: score };
+        }
+      }
+    }
+  }
+  
+  return (bestMatch && bestMatch.matchScore >= 30) ? bestMatch : null;
+}
+
+export function extractComment(reportText) {
+  if (!reportText) return '';
+  const parts = reportText.split(/##\s*(?:ĐÁNH\s*GIÁ|NHẬN\s*XÉT)/i);
+  if (parts.length > 1) {
+    let comment = parts[1].trim();
+    comment = comment.split(/---\n/)[0].trim();
+    comment = comment.split(/##\s*/)[0].trim();
+    return comment;
+  }
+  return reportText.substring(0, 150) + '...';
+}
+
+export const DEFAULT_CRITERIA = `Đúng yêu cầu bài toán. Có thể không cần quan tâm phần Yêu cầu nộp bài.`;
+
+export const DEFAULT_SYSTEM_PROMPT = `Bạn là chuyên gia chấm điểm mã nguồn. Hãy đánh giá mã nguồn dưới đây theo thang 100 điểm dựa trên ĐỀ BÀI và TIÊU CHÍ.
+Yêu cầu phản hồi ngắn gọn, đi thẳng vào vấn đề và tuân thủ nghiêm ngặt định dạng Markdown dưới đây. Không viết lời mở đầu, lời chào hay kết luận ngoài mẫu này:
+
+## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT
+- **Sai ở đâu & Dòng nào**: [Chỉ rõ tên file và số dòng cụ thể bị lỗi trong code học viên]
+- **Tại sao sai**: [Giải thích ngắn gọn lý do tại sao sai]
+
+## TỔNG ĐIỂM
+Tổng điểm: **[Điểm số]/100**
+
+---
+ĐỀ BÀI:
+{{assignment}}
+
+TIÊU CHÍ:
+{{criteria}}
+
+MÃ NGUỒN:
+{{code}}`;
+
+export function extractCriteriaFromAssignment(assignmentText) {
+  if (!assignmentText) return { assignment: '', criteria: null };
+  
+  // Matches variant patterns like "Tiêu chí chấm bài (AI)::", "Tiêu chí chấm (AI):", "Tiêu chí đánh giá (AI)::"
+  const regex = /(?:Tiêu\s*chí\s*chấm\s*(?:bài|điểm)?|Tiêu\s*chí\s*đánh\s*giá|Grading\s*Criteria|AI\s*Criteria|Tiêu\s*chí\s*AI)\s*\(AI\)\s*:{1,2}([\s\S]+)$/i;
+  
+  const match = assignmentText.match(regex);
+  if (match) {
+    const criteriaText = match[1].trim();
+    // Strip the criteria block from the original prompt description
+    const cleanAssignment = assignmentText.replace(regex, '').trim();
+    return {
+      assignment: cleanAssignment,
+      criteria: criteriaText
+    };
+  }
+  
+  return {
+    assignment: assignmentText,
+    criteria: null
+  };
+}

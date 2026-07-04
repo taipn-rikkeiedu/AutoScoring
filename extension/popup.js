@@ -1,293 +1,271 @@
+import { SettingsTab } from './controllers/settingsTab.js';
+import { SingleGraderTab } from './controllers/singleGraderTab.js';
+import { AutoGraderTab } from './controllers/autoGraderTab.js';
+import { ExercisesTab } from './controllers/exercisesTab.js';
+
 document.addEventListener("DOMContentLoaded", () => {
-  // --- UI Elements ---
+  // --- Shared UI Elements ---
+  const tabAutoBtn = document.getElementById("tab-auto-btn");
   const tabGraderBtn = document.getElementById("tab-grader-btn");
+  const tabExercisesBtn = document.getElementById("tab-exercises-btn");
   const tabSettingsBtn = document.getElementById("tab-settings-btn");
+  
+  const tabAuto = document.getElementById("tab-auto");
   const tabGrader = document.getElementById("tab-grader");
+  const tabExercises = document.getElementById("tab-exercises");
   const tabSettings = document.getElementById("tab-settings");
 
   const connBanner = document.getElementById("conn-banner");
   const connText = document.getElementById("conn-text");
   const appVersionTag = document.getElementById("app-version");
 
-  const repoUrlInput = document.getElementById("repo-url");
-  const chapterSelect = document.getElementById("chapter-select");
-  const sessionSelect = document.getElementById("session-select");
-  const assignmentSelect = document.getElementById("assignment-select");
-  const gradeBtn = document.getElementById("grade-btn");
+  // Shared Modal Elements
+  const reportModal = document.getElementById("report-modal");
+  const closeModalBtn = document.getElementById("close-modal-btn");
+  const modalReportTitle = document.getElementById("modal-report-title");
+  const modalScoreVal = document.getElementById("modal-score-val");
+  const modalReportHtml = document.getElementById("modal-report-html");
+  const copyReportBtn = document.getElementById("copy-report-btn");
+  const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const statusBox = document.getElementById("status-box");
-  const statusMessage = document.getElementById("status-message");
-  const resultsBox = document.getElementById("results-box");
-  const scoreVal = document.getElementById("score-val");
-  const reportHtml = document.getElementById("report-html");
+  const appVersion = "3.2.2";
 
-  const apiUrlInput = document.getElementById("api-url");
-  const saveSettingsBtn = document.getElementById("save-settings-btn");
-  const providerInfo = document.getElementById("provider-info");
+  // --- Shared Context (State & Cross-Tab Callbacks) ---
+  const context = {
+    config: {
+      aiProvider: "gemini",
+      aiApiKey: "",
+      aiApiUrl: "",
+      aiModelName: "gemini-1.5-pro",
+      githubToken: "",
+      systemPrompt: "",
+      exerciseSource: "local",
+      exerciseApiUrl: "",
+      exerciseApiToken: "",
+      uploadedExercises: null
+    },
+    exerciseTemplates: {},
+    submissions: [],
+    activeReportMarkdown: "",
+    activeSingleReportMarkdown: "",
 
-  // --- State Variables ---
-  let backendApiUrl = "http://localhost:8000";
-  let exerciseTemplates = {};
+    updateDetectedSubmissionSelect() {
+      singleGraderTab.updateDetectedSubmissionSelect();
+    },
+    showReportModal(sub) {
+      showReportModal(sub);
+    },
+    onConfigSaved(newConfig) {
+      context.config = newConfig;
+      testConnectionAndLoadExercises();
+    },
+    onLibraryChanged() {
+      // Refresh options in both graders when library changes
+      singleGraderTab.populateChapters();
+      autoGraderTab.renderSubmissions();
+    }
+  };
+
+  // --- Initialize Controllers ---
+  const settingsTab = new SettingsTab(context);
+  const singleGraderTab = new SingleGraderTab(context);
+  const autoGraderTab = new AutoGraderTab(context);
+  const exercisesTab = new ExercisesTab(context);
 
   // --- Tab Navigation ---
-  tabGraderBtn.addEventListener("click", () => {
-    tabGraderBtn.classList.add("active");
-    tabSettingsBtn.classList.remove("active");
-    tabGrader.classList.add("active");
-    tabSettings.classList.remove("active");
-  });
+  const activateTab = (activeBtn, activeContent, inactiveBtns, inactiveContents) => {
+    activeBtn.classList.add("active");
+    activeContent.classList.add("active");
+    inactiveBtns.forEach(btn => btn.classList.remove("active"));
+    inactiveContents.forEach(c => c.classList.remove("active"));
+  };
 
-  tabSettingsBtn.addEventListener("click", () => {
-    tabSettingsBtn.classList.add("active");
-    tabGraderBtn.classList.remove("active");
-    tabSettings.classList.add("active");
-    tabGrader.classList.remove("active");
-  });
+  tabAutoBtn.addEventListener("click", () => activateTab(tabAutoBtn, tabAuto, [tabGraderBtn, tabExercisesBtn, tabSettingsBtn], [tabGrader, tabExercises, tabSettings]));
+  tabGraderBtn.addEventListener("click", () => activateTab(tabGraderBtn, tabGrader, [tabAutoBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabExercises, tabSettings]));
+  tabExercisesBtn.addEventListener("click", () => activateTab(tabExercisesBtn, tabExercises, [tabAutoBtn, tabGraderBtn, tabSettingsBtn], [tabAuto, tabGrader, tabSettings]));
+  tabSettingsBtn.addEventListener("click", () => activateTab(tabSettingsBtn, tabSettings, [tabAutoBtn, tabGraderBtn, tabExercisesBtn], [tabAuto, tabGrader, tabExercises]));
 
-  // --- Initialization ---
-  // Load saved API URL and query current tab
-  chrome.storage.local.get(["backendApiUrl"], (result) => {
-    if (result.backendApiUrl) {
-      backendApiUrl = result.backendApiUrl;
-    }
-    apiUrlInput.value = backendApiUrl;
-    
-    // Connect to Server
-    testConnectionAndLoadExercises();
-  });
-
-  // Get current active tab URL and auto-fill repository URL
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs && tabs[0] && tabs[0].url) {
-      const url = tabs[0].url;
-      const githubMatch = url.match(/^https?:\/\/(www\.)?github\.com\/([^/]+)\/([^/]+)/);
-      if (githubMatch) {
-        // Construct clean repo URL: https://github.com/owner/repo
-        const cleanRepoUrl = `https://github.com/${githubMatch[2]}/${githubMatch[3].split('?')[0].split('#')[0]}`;
-        repoUrlInput.value = cleanRepoUrl;
-      }
-    }
-  });
-
-  // --- Settings Events ---
-  saveSettingsBtn.addEventListener("click", () => {
-    let inputUrl = apiUrlInput.value.trim();
-    if (!inputUrl) {
-      alert("Vui lòng nhập URL của API Server Backend.");
-      return;
-    }
-    // Remove trailing slash
-    inputUrl = inputUrl.replace(/\/+$/, "");
-    backendApiUrl = inputUrl;
-
-    chrome.storage.local.set({ backendApiUrl: backendApiUrl }, () => {
-      alert("Đã lưu cấu hình địa chỉ API Server.");
-      testConnectionAndLoadExercises();
-    });
-  });
-
-  // --- Backend Connection & exercise loader ---
-  async function testConnectionAndLoadExercises() {
-    connBanner.className = "connection-banner error";
-    connText.innerText = "Đang kiểm tra kết nối...";
-    providerInfo.innerHTML = `• Trạng thái AI Provider: <i>Đang kết nối...</i><br>• Nguồn bài tập: <i>Đang kết nối...</i>`;
-    gradeBtn.disabled = true;
-
-    try {
-      // 1. Fetch Config
-      const configRes = await fetch(`${backendApiUrl}/api/config`);
-      if (!configRes.ok) throw new Error("Config request failed");
-      const config = await configRes.json();
-      
-      // Update UI Banner
-      connBanner.className = "connection-banner success";
-      connText.innerText = "Đã kết nối với API Server";
-      appVersionTag.innerText = `v${config.app_version || "1.0.0"}`;
-
-      // Update provider settings in UI
-      providerInfo.innerHTML = `
-        • Trạng thái AI Provider: <b>${config.provider_display}</b><br>
-        • Nguồn bài tập hiện tại: <b>${config.exercise_source === 'api' ? 'REST API (' + config.exercise_api_url + ')' : 'Local File JSON'}</b>
-      `;
-
-      // 2. Fetch Exercises
-      const exercisesRes = await fetch(`${backendApiUrl}/api/exercises`);
-      if (!exercisesRes.ok) throw new Error("Exercises request failed");
-      exerciseTemplates = await exercisesRes.json();
-
-      // Populate Chapters selector
-      populateChapters();
-      gradeBtn.disabled = false;
-    } catch (error) {
-      console.error(error);
-      connBanner.className = "connection-banner error";
-      connText.innerText = "Lỗi kết nối API Server";
-      providerInfo.innerHTML = `
-        <span style="color:#ef4444;">• Không thể kết nối tới Server: ${backendApiUrl}</span><br>
-        • Vui lòng kiểm tra lại server backend đã chạy hay chưa.
-      `;
-      gradeBtn.disabled = true;
-      disableSelectors();
-    }
-  }
-
-  function disableSelectors() {
-    chapterSelect.innerHTML = '<option value="">-- Lỗi kết nối API --</option>';
-    sessionSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    sessionSelect.disabled = true;
-    assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    assignmentSelect.disabled = true;
-  }
-
-  // --- Dropdown Management ---
-  function populateChapters() {
-    chapterSelect.innerHTML = '<option value="">-- Chọn Chương --</option>';
-    const chapters = Object.keys(exerciseTemplates);
-    
-    if (chapters.length === 0) {
-      chapterSelect.innerHTML = '<option value="">-- Thư viện trống --</option>';
-      return;
-    }
-
-    chapters.forEach(ch => {
-      const option = document.createElement("option");
-      option.value = ch;
-      option.textContent = ch;
-      chapterSelect.appendChild(option);
-    });
-
-    sessionSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    sessionSelect.disabled = true;
-    assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    assignmentSelect.disabled = true;
-  }
-
-  chapterSelect.addEventListener("change", () => {
-    const selectedChapter = chapterSelect.value;
-    sessionSelect.innerHTML = '<option value="">-- Chọn Session --</option>';
-    
-    if (!selectedChapter || !exerciseTemplates[selectedChapter]) {
-      sessionSelect.disabled = true;
-      assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-      assignmentSelect.disabled = true;
-      return;
-    }
-
-    const sessions = Object.keys(exerciseTemplates[selectedChapter]);
-    sessions.forEach(sess => {
-      const option = document.createElement("option");
-      option.value = sess;
-      option.textContent = sess;
-      sessionSelect.appendChild(option);
-    });
-
-    sessionSelect.disabled = false;
-    assignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    assignmentSelect.disabled = true;
-  });
-
-  sessionSelect.addEventListener("change", () => {
-    const selectedChapter = chapterSelect.value;
-    const selectedSession = sessionSelect.value;
-    assignmentSelect.innerHTML = '<option value="">-- Chọn Bài tập --</option>';
-
-    if (!selectedSession || !exerciseTemplates[selectedChapter] || !exerciseTemplates[selectedChapter][selectedSession]) {
-      assignmentSelect.disabled = true;
-      return;
-    }
-
-    const assignments = Object.keys(exerciseTemplates[selectedChapter][selectedSession]);
-    assignments.forEach(ass => {
-      const option = document.createElement("option");
-      option.value = ass;
-      option.textContent = ass;
-      assignmentSelect.appendChild(option);
-    });
-
-    assignmentSelect.disabled = false;
-  });
-
-  // --- Grading Logic ---
-  gradeBtn.addEventListener("click", async () => {
-    const repoUrl = repoUrlInput.value.trim();
-    const chapter = chapterSelect.value;
-    const session = sessionSelect.value;
-    const assignmentName = assignmentSelect.value;
-
-    if (!repoUrl) {
-      alert("Vui lòng nhập GitHub Repository URL.");
-      return;
-    }
-
-    if (!chapter || !session || !assignmentName) {
-      alert("Vui lòng chọn đầy đủ Chương, Session và Bài tập.");
-      return;
-    }
-
-    // Toggle loading UI
-    gradeBtn.disabled = true;
-    resultsBox.style.display = "none";
-    statusBox.style.display = "flex";
-    statusMessage.innerText = "Đang tải mã nguồn từ GitHub...";
-
-    try {
-      const payload = {
-        repo_url: repoUrl,
-        chapter: chapter,
-        session: session,
-        assignment_name: assignmentName
-      };
-
-      const response = await fetch(`${backendApiUrl}/api/grade`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
+  // --- Load configuration and verify status ---
+  const loadStoredConfig = () => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([
+        "aiProvider", "aiApiKey", "aiApiUrl", "aiModelName", "githubToken", "systemPrompt",
+        "exerciseSource", "exerciseApiUrl", "exerciseApiToken", "uploadedExercises"
+      ], (stored) => {
+        if (stored.aiProvider) context.config.aiProvider = stored.aiProvider;
+        if (stored.aiApiKey) context.config.aiApiKey = stored.aiApiKey;
+        if (stored.aiApiUrl) context.config.aiApiUrl = stored.aiApiUrl;
+        if (stored.aiModelName) context.config.aiModelName = stored.aiModelName;
+        if (stored.githubToken) context.config.githubToken = stored.githubToken;
+        if (stored.systemPrompt) context.config.systemPrompt = stored.systemPrompt;
+        if (stored.exerciseSource) context.config.exerciseSource = stored.exerciseSource;
+        if (stored.exerciseApiUrl) context.config.exerciseApiUrl = stored.exerciseApiUrl;
+        if (stored.exerciseApiToken) context.config.exerciseApiToken = stored.exerciseApiToken;
+        if (stored.uploadedExercises) context.config.uploadedExercises = stored.uploadedExercises;
+        resolve();
       });
+    });
+  };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Yêu cầu chấm điểm thất bại.");
-      }
+  async function testConnectionAndLoadExercises() {
+    appVersionTag.innerText = `v${appVersion}`;
+    connBanner.className = "connection-banner error";
+    connText.innerText = "Đang kiểm tra...";
+    singleGraderTab.enableGradeButton(false);
 
-      statusMessage.innerText = "AI đang chấm điểm và lập báo cáo...";
-      const result = await response.json();
+    await loadStoredConfig();
+    settingsTab.updateConfigFields(context.config);
 
-      if (result.success) {
-        statusBox.style.display = "none";
-        
-        // Show metric
-        scoreVal.innerText = result.score ? `${result.score} / 100` : "N/A";
-        if (result.score) {
-          const score = parseInt(result.score, 10);
-          if (score >= 80) {
-            scoreVal.style.background = "linear-gradient(135deg, #16a34a, #15803d)"; // Green
-          } else if (score >= 50) {
-            scoreVal.style.background = "linear-gradient(135deg, #d97706, #b45309)"; // Orange
-          } else {
-            scoreVal.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)"; // Red
-          }
-        }
+    let ready = false;
+    let providerNameText = "";
 
-        // Render Markdown
-        if (typeof marked !== 'undefined') {
-          reportHtml.innerHTML = marked.parse(result.report);
+    if (context.config.aiProvider === "gemini") {
+      ready = !!context.config.aiApiKey;
+      providerNameText = `Google Gemini (${context.config.aiModelName})`;
+    } else if (context.config.aiProvider === "deepseek") {
+      ready = !!context.config.aiApiKey;
+      providerNameText = `DeepSeek API (${context.config.aiModelName})`;
+    } else if (context.config.aiProvider === "openrouter") {
+      ready = !!context.config.aiApiKey;
+      providerNameText = `OpenRouter (${context.config.aiModelName})`;
+    } else if (context.config.aiProvider === "custom") {
+      ready = !!context.config.aiApiKey && !!context.config.aiApiUrl;
+      providerNameText = `Custom API (${context.config.aiModelName})`;
+    } else if (context.config.aiProvider === "local") {
+      ready = !!context.config.aiApiUrl;
+      providerNameText = `Ollama Local (${context.config.aiModelName})`;
+    }
+
+    if (ready) {
+      connBanner.className = "connection-banner success";
+      connText.innerText = "AI Sẵn Sàng (Serverless Mode)";
+    } else {
+      connBanner.className = "connection-banner error";
+      connText.innerText = "Chưa cấu hình API Key hợp lệ";
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, false, "");
+      singleGraderTab.disableSelectors();
+      exercisesTab.disableSelectors();
+      return;
+    }
+
+    let exercisesSourceText = "";
+    try {
+      if (context.config.exerciseSource === "local") {
+        exercisesSourceText = "Cục bộ (exercises.json)";
+        const res = await fetch(chrome.runtime.getURL("exercises.json"));
+        if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
+        context.exerciseTemplates = await res.json();
+      } else if (context.config.exerciseSource === "upload") {
+        exercisesSourceText = "Tải từ file templates.json của người dùng";
+        if (context.config.uploadedExercises) {
+          context.exerciseTemplates = context.config.uploadedExercises;
         } else {
-          // Fallback text
-          reportHtml.innerText = result.report;
+          exercisesSourceText += " <span style='color:#ef4444;'>(Chưa có file upload, dùng fallback local)</span>";
+          const res = await fetch(chrome.runtime.getURL("exercises.json"));
+          context.exerciseTemplates = await res.json();
         }
-
-        resultsBox.style.display = "flex";
-      } else {
-        throw new Error("Lỗi không xác định khi xử lý báo cáo.");
+      } else if (context.config.exerciseSource === "api") {
+        exercisesSourceText = `REST API (${context.config.exerciseApiUrl})`;
+        const headers = {};
+        if (context.config.exerciseApiToken) {
+          headers["Authorization"] = `Bearer ${context.config.exerciseApiToken}`;
+        }
+        const res = await fetch(context.config.exerciseApiUrl, { headers });
+        if (!res.ok) throw new Error(`API trả về HTTP ${res.status}`);
+        context.exerciseTemplates = await res.json();
       }
-    } catch (error) {
-      console.error(error);
-      alert(`Lỗi: ${error.message}`);
-      statusBox.style.display = "none";
-    } finally {
-      gradeBtn.disabled = false;
+
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, true, exercisesSourceText);
+      singleGraderTab.populateChapters();
+      exercisesTab.populateChapters();
+      singleGraderTab.enableGradeButton(true);
+      
+      autoGraderTab.triggerPageScan();
+    } catch (err) {
+      console.error(err);
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, true, `${exercisesSourceText} (Lỗi: ${err.message})`);
+      try {
+        const res = await fetch(chrome.runtime.getURL("exercises.json"));
+        context.exerciseTemplates = await res.json();
+        singleGraderTab.populateChapters();
+        exercisesTab.populateChapters();
+        singleGraderTab.enableGradeButton(true);
+        autoGraderTab.triggerPageScan();
+      } catch (fallbackErr) {
+        singleGraderTab.disableSelectors();
+        exercisesTab.disableSelectors();
+      }
+    }
+  }
+
+  // --- Modal Helpers ---
+  function showReportModal(sub) {
+    if (!sub || !sub.report) return;
+    context.activeReportMarkdown = sub.report;
+    modalReportTitle.innerText = sub.exerciseName;
+    modalScoreVal.innerText = sub.score ? `${sub.score} / 100` : '-- / 100';
+    
+    if (sub.score) {
+      const score = parseInt(sub.score, 10);
+      if (score >= 80) {
+        modalScoreVal.style.background = "linear-gradient(135deg, #16a34a, #15803d)";
+      } else if (score >= 50) {
+        modalScoreVal.style.background = "linear-gradient(135deg, #d97706, #b45309)";
+      } else {
+        modalScoreVal.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)";
+      }
+    }
+    
+    if (typeof marked !== 'undefined') {
+      modalReportHtml.innerHTML = marked.parse(sub.report);
+    } else {
+      modalReportHtml.innerText = sub.report;
+    }
+    reportModal.style.display = 'flex';
+  }
+
+  closeModalBtn.addEventListener("click", () => {
+    reportModal.style.display = "none";
+  });
+
+  window.addEventListener("click", (e) => {
+    if (e.target === reportModal) {
+      reportModal.style.display = "none";
     }
   });
+
+  // --- Copy to Clipboard ---
+  copyReportBtn.addEventListener("click", () => {
+    if (!context.activeReportMarkdown) return;
+    navigator.clipboard.writeText(context.activeReportMarkdown).then(() => {
+      const origHTML = copyReportBtn.innerHTML;
+      copyReportBtn.innerHTML = "✅ Đã sao chép!";
+      copyReportBtn.disabled = true;
+      setTimeout(() => {
+        copyReportBtn.innerHTML = origHTML;
+        copyReportBtn.disabled = false;
+      }, 1500);
+    }).catch(err => {
+      console.error(err);
+      alert("Không thể sao chép báo cáo.");
+    });
+  });
+
+  copySingleReportBtn.addEventListener("click", () => {
+    if (!context.activeSingleReportMarkdown) return;
+    navigator.clipboard.writeText(context.activeSingleReportMarkdown).then(() => {
+      const origHTML = copySingleReportBtn.innerHTML;
+      copySingleReportBtn.innerHTML = "✅ Đã sao chép!";
+      copySingleReportBtn.disabled = true;
+      setTimeout(() => {
+        copySingleReportBtn.innerHTML = origHTML;
+        copySingleReportBtn.disabled = false;
+      }, 1500);
+    }).catch(err => {
+      console.error(err);
+      alert("Không thể sao chép báo cáo.");
+    });
+  });
+
+  testConnectionAndLoadExercises();
 });

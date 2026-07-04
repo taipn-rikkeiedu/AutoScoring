@@ -7,6 +7,132 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.2.2] — 2026-07-04
+
+### ✨ Tính năng mới & Sửa lỗi
+- **Tự động tách Tiêu chí chấm điểm khi cào Đề bài LMS (LMS Criteria Auto-extraction):**
+  - Bổ sung bộ phân tích biểu thức chính quy để phát hiện nếu trong phần nội dung đề bài LMS nạp về có phần tiêu chí viết sẵn (dạng `Tiêu chí chấm bài (AI)::`, `Tiêu chí đánh giá (AI):`, v.v.).
+  - Tự động tách phần tiêu chí này ra khỏi đề bài chính, làm sạch đề bài và điền tự động vào ô nhập liệu **Tiêu chí chấm điểm (AI Rubric)** trong modal xác nhận. Nếu không tìm thấy, hệ thống sẽ sử dụng tiêu chí mặc định ban đầu.
+
+---
+
+## [v3.2.1] — 2026-07-04
+
+### 🐛 Sửa lỗi
+- **Cấu hình Mẫu System Prompt Ngắn gọn & Đơn giản hóa (Concise Default System Prompt):**
+  - Chuyển đổi định dạng prompt mặc định thành dạng đánh giá ngắn gọn, tập trung thẳng vào chi tiết lỗi sai: chỉ rõ sai ở file nào, dòng nào, lý do tại sao sai và đề xuất cách sửa chi tiết kèm theo điểm số `/100`.
+  - Tối ưu hóa hàm trích xuất nhận xét từ AI (`extractComment`) để hỗ trợ đồng thời cả các tiêu đề báo cáo dạng cũ lẫn dạng mới (`## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT`).
+
+---
+
+## [v3.2.0] — 2026-07-04
+
+### ✨ Tính năng mới
+- **Cấu hình tùy chọn Mẫu System Prompt Chấm Điểm (Custom System Prompt Template):**
+  - Tích hợp khung chỉnh sửa System Prompt trực tiếp trong tab **Cài Đặt (Settings)**, hỗ trợ tối đa khả năng tùy biến luật chấm điểm của AI.
+  - Hỗ trợ các biến đại diện thông minh: `{{assignment}}` (Đề bài), `{{criteria}}` (Tiêu chí chấm), và `{{code}}` (Mã nguồn học viên đã nén).
+  - Thêm nút **Khôi phục mặc định (Reset to Default)** giúp nhanh chóng quay lại prompt mẫu ban đầu bất cứ lúc nào.
+  - Đồng bộ lưu trữ và nạp tự động qua `chrome.storage.local`.
+
+---
+
+## [v3.1.7] — 2026-07-04
+
+### 🐛 Sửa lỗi
+- **Loại bỏ chữ nút bấm hành động khi cào tên Khóa học (Action Button Text Stripping):**
+  - Khắc phục lỗi tên khóa học bị dính chữ nút bấm con (Ví dụ: `[IT-215] Phát triển dịch vụ Web với FastAPIThêm chương học`).
+  - Cải tiến hàm cào bằng cách tạo bản sao DOM cục bộ (cloned element) và xóa sạch tất cả các phần tử con dạng nút bấm (`button`), liên kết (`a`), các input nhập liệu, hoặc các thẻ hành động trước khi đọc văn bản tiêu đề của chương học.
+
+---
+
+## [v3.1.6] — 2026-07-04
+
+### 🐛 Sửa lỗi
+- **Tối ưu hóa cào tên Khóa học (Chapter Scraper Code Match):**
+  - Khắc phục lỗi cào thừa ký tự hoặc nhận diện sai tên Chương/Khóa học do các tiêu đề khác xuất hiện trước trong DOM.
+  - Thiết lập bộ lọc Regex ưu tiên tìm kiếm các phần tử chứa mã lớp học trong ngoặc vuông (dạng `[IT-215]`), đồng thời tự động trích xuất chuỗi ký tự bắt đầu từ dấu `[` để loại bỏ các nút điều hướng (mũi tên quay lại `←`) hoặc khoảng trắng thừa thãi.
+
+---
+
+## [v3.1.5] — 2026-07-04
+
+### 🎨 Cải tiến & Tối ưu hóa UI/UX
+- **Tối ưu hóa tiêu chí chấm điểm mặc định bám sát đề bài (AI Rubric Simplification):**
+  - Cập nhật mẫu `DEFAULT_CRITERIA` sang phân bổ điểm tập trung: **70% cho việc hoàn thành đúng và đủ các chức năng nghiệp vụ** được mô tả trong đề bài và **30% cho chất lượng tổ chức mã nguồn**.
+  - Loại bỏ các tiêu chuẩn nộp bài chung hoặc các điều kiện bảo mật/xác thực không liên quan (như JWT, Validate, v.v.), giúp AI chấm điểm bám sát đề bài thực tế mà giảng viên đã tải lên.
+
+---
+
+## [v3.1.4] — 2026-07-04
+
+### ⚡ Tối ưu hóa hiệu suất
+- **Tối ưu hóa tốc độ tải và giảm giật lag giao diện (Performance Optimization):**
+  - **Khử trùng lặp chuỗi Dropdown (Select Caching):** Tránh việc duyệt lặp lại toàn bộ ngân hàng bài tập để dựng chuỗi HTML Dropdown cho từng dòng học sinh. Danh sách lựa chọn được lưu đệm (cached) một lần duy nhất và tái sử dụng cho tất cả các dòng, gán giá trị chọn trực tiếp bằng JS.
+  - **Giảm số lần vẽ lại trang (DocumentFragment Batching):** Gom tất cả các dòng học sinh và khung chi tiết ẩn vào một DocumentFragment để đưa vào DOM trong một lần thao tác duy nhất. Cải tiến này giúp loại bỏ hiện tượng Layout Thrashing (trình duyệt tính toán lại giao diện liên tục), triệt tiêu hoàn toàn dấu hiệu giật lag khi quét trang chứa nhiều bài nộp.
+
+---
+
+## [v3.1.3] — 2026-07-04
+
+### 🐛 Sửa lỗi
+- **Cấu hình tùy chọn cho Tiêu chí chấm điểm (Optional Grading Criteria):**
+  - Khắc phục lỗi đổ vỡ tiến trình chấm bài (cả chấm đơn và chấm hàng loạt) khi gặp các bài tập không khai báo hoặc để trống phần tiêu chí chấm (rubric).
+  - Tách hàm dữ liệu dùng chung `DEFAULT_CRITERIA` sang `utils.js` để làm giá trị fallback mặc định. Nếu phần tiêu chí chấm trống, AI sẽ tự động sử dụng tiêu chí mặc định thay vì báo lỗi dừng chương trình.
+
+---
+
+## [v3.1.2] — 2026-07-04
+
+### 🐛 Sửa lỗi
+- **Sửa lỗi nhận diện sai thư mục Session khi cào đề bài LMS (LMS Session Scraper Bug):**
+  - Khắc phục triệt để lỗi thuật toán cào DOM luôn tự động nhận diện tất cả bài tập thuộc về "Session 01" (do việc quét DOM đi lên các thẻ cha quá rộng và tìm thấy thẻ Session đầu tiên ở đỉnh danh sách bên trái).
+  - Triển khai thuật toán dò ngược document order từ bài tập đang chọn bôi xanh ngược lên trên để định vị chính xác header `Session X` / `Chương X` gần nhất, đảm bảo phân loại bài tập đúng thư mục tương ứng.
+
+---
+
+## [v3.1.1] — 2026-07-04
+
+### 🐛 Sửa lỗi
+- **Sửa lỗi tràn ô tiêu chí chấm điểm và đề bài (UI Overflow Bug):**
+  - Khắc phục lỗi tràn cửa sổ bằng cách cấu hình thuộc tính cuộn độc lập `overflow-y: auto` cho từng tab và tắt thanh cuộn kép ở `content-container`.
+  - Giảm nhẹ chiều cao textarea của đề bài/tiêu chí xuống `95px` để vừa vặn hoàn hảo trong tầm nhìn popup.
+  - Sửa lỗi tràn chiều cao của biểu mẫu modal xác nhận cào LMS bằng cách cho phép container modal tự động điều chỉnh độ cao (`height: auto`) và tự cuộn nội dung bên trong khi vượt kích cỡ màn hình.
+
+---
+
+## [v3.1.0] — 2026-07-04
+
+### ✨ Tính năng mới
+- **Phân tách Tab "Quản lý Đề Bài" độc lập:** 
+  - Tạo bộ điều khiển mới `exercisesTab.js` quản lý giao diện, sự kiện cào LMS, xem và lưu trữ đề bài độc lập với tab Chấm Đơn.
+  - Hỗ trợ nút **Xóa đề** để loại bỏ bài tập khỏi ngân hàng bài tập (được lưu vào `chrome.storage.local`).
+  - Tự động phát sự kiện `onLibraryChanged` để đồng bộ làm mới danh sách bài tập ở các Tab Chấm Đơn & Chấm Hàng Loạt.
+- **Tách tệp thiết kế CSS:**
+  - Di chuyển toàn bộ mã CSS hơn 600 dòng từ `popup.html` sang tệp stylesheet độc lập `popup.css`, giúp mã HTML gọn gàng và dễ bảo trì.
+
+### 🎨 Cải tiến & Tối ưu hóa UI/UX
+- **Chống tràn dữ liệu (Textarea Overflow Handling):**
+  - Giới hạn chiều cao (`max-height: 145px`) cho các khung nhập liệu Đề bài (Prompt) và Tiêu chí (AI Rubric).
+  - Áp dụng thuộc tính cuộn dọc độc lập `overflow-y: auto` kèm thanh cuộn tùy chỉnh siêu mỏng (`5px`) màu xám nhạt, đảm bảo nội dung đề bài dài không phá vỡ bố cục giao diện của popup.
+
+---
+
+## [v3.0.0] — 2026-07-04
+
+### ✨ Tính năng mới
+- **Kiến trúc Serverless & Chạy Phía Client hoàn toàn:**
+  - Chuyển đổi Extension từ việc phụ thuộc vào Python backend thành công cụ độc lập, kết nối trực tiếp với GitHub API và các nhà cung cấp AI (Gemini, DeepSeek, OpenRouter, Ollama) trực tiếp từ trình duyệt.
+  - Tích hợp dịch vụ `githubService.js` giải nén file ZIP code bằng thư viện `jszip.min.js` phía client.
+  - Tích hợp dịch vụ `aiService.js` gửi API trực tiếp và hiển thị báo cáo Markdown qua `marked.min.js`.
+- **Tái cấu trúc Modular hóa (Tab Controllers):**
+  - Chia nhỏ mã nguồn UI phình to thành các module quản lý Tab riêng biệt dưới thư mục `controllers/`: `settingsTab.js`, `singleGraderTab.js`, `autoGraderTab.js`.
+  - Kết nối chia sẻ trạng thái thông qua đối tượng `context` tập trung ở `popup.js`.
+- **Tích hợp Rikkei LMS Scraper & Editor:**
+  - Cho phép người dùng chỉnh sửa trực tiếp nội dung đề bài/tiêu chí đánh giá của bài tập đã chọn.
+  - Hỗ trợ nút **Cào đề bài từ LMS** kích hoạt tệp `lmsScraper.js` để tự động thu thập thông tin đề bài từ cây cấu trúc và nội dung chi tiết trên Rikkei LMS, đưa vào modal xác nhận lưu trữ.
+
+---
+
 ## [v2.8.1] — 2026-06-29
 
 ### 🐛 Sửa lỗi

@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "AI GitHub Grader Helper",
-  "version": "1.0.0",
+  "version": "3.2.2",
   "description": "Chấm điểm trực tiếp repository GitHub của học viên thông qua mô hình Trí Tuệ Nhân Tạo.",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"
