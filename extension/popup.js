@@ -154,10 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
       appVersionTag.className = "version-tag success";
     } else {
       appVersionTag.className = "version-tag error";
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, false, "");
-      singleGraderTab.disableSelectors();
-      exercisesTab.disableSelectors();
-      return;
     }
 
     let exercisesSourceText = "";
@@ -187,21 +183,21 @@ document.addEventListener("DOMContentLoaded", () => {
         context.exerciseTemplates = await res.json();
       }
 
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, true, exercisesSourceText);
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, exercisesSourceText);
       singleGraderTab.populateChapters();
       exercisesTab.populateChapters();
-      singleGraderTab.enableGradeButton(true);
+      singleGraderTab.enableGradeButton(ready);
       
       autoGraderTab.triggerPageScan();
     } catch (err) {
       console.error(err);
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, true, `${exercisesSourceText} (Lỗi: ${err.message})`);
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, `${exercisesSourceText} (Lỗi: ${err.message})`);
       try {
         const res = await fetch(chrome.runtime.getURL("exercises.json"));
         context.exerciseTemplates = await res.json();
         singleGraderTab.populateChapters();
         exercisesTab.populateChapters();
-        singleGraderTab.enableGradeButton(true);
+        singleGraderTab.enableGradeButton(ready);
         autoGraderTab.triggerPageScan();
       } catch (fallbackErr) {
         singleGraderTab.disableSelectors();
