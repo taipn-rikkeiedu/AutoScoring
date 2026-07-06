@@ -165,7 +165,7 @@ export class ExercisesTab {
         uploadedExercises: templates,
         exerciseSource: "upload"
       }, () => {
-        alert("Đã cập nhật thay đổi đề bài & tiêu chí thành công!");
+        window.showToast("Đã cập nhật thay đổi đề bài & tiêu chí thành công!", "success");
         this.context.config.exerciseSource = "upload";
         // Notify context that library has changed to reload other tabs' dropdowns
         if (this.context.onLibraryChanged) {
@@ -204,7 +204,7 @@ export class ExercisesTab {
         uploadedExercises: templates,
         exerciseSource: "upload"
       }, () => {
-        alert("Đã xóa bài tập thành công!");
+        window.showToast("Đã xóa bài tập thành công!", "success");
         this.context.config.exerciseSource = "upload";
         
         // Notify other tabs
@@ -224,7 +224,7 @@ export class ExercisesTab {
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs || !tabs[0]) {
-        alert("Không thể kết nối đến trang hiện tại.");
+        window.showToast("Không thể kết nối đến trang hiện tại.", "error");
         this.resetScrapeButton();
         return;
       }
@@ -233,39 +233,73 @@ export class ExercisesTab {
       const isWebPage = activeTab.url && (activeTab.url.startsWith("http://") || activeTab.url.startsWith("https://"));
 
       if (!isWebPage) {
-        alert("Vui lòng mở trang web LMS học viên để cào đề bài.");
+        window.showToast("Vui lòng mở trang web LMS học viên để cào đề bài.", "warning");
         this.resetScrapeButton();
         return;
       }
 
       chrome.scripting.executeScript({
-        target: { tabId: activeTab.id },
+        target: { tabId: activeTab.id, allFrames: true },
         files: ['lmsScraper.js']
       }, (results) => {
         this.resetScrapeButton();
 
         if (chrome.runtime.lastError) {
-          alert("Lỗi cào dữ liệu: " + chrome.runtime.lastError.message);
+          window.showToast("Lỗi cào dữ liệu: " + chrome.runtime.lastError.message, "error");
           return;
         }
 
-        if (results && results[0] && results[0].result) {
-          const res = results[0].result;
-          if (res.success) {
-            const parsed = extractCriteriaFromAssignment(res.assignment);
-
-            this.scrapeChapterInput.value = res.chapter;
-            this.scrapeSessionInput.value = res.session;
-            this.scrapeAssignmentNameInput.value = res.assignmentName;
-            this.scrapeAssignmentTextInput.value = parsed.assignment;
-            this.scrapeCriteriaTextInput.value = parsed.criteria || DEFAULT_CRITERIA;
-
-            this.scrapeModal.style.display = "flex";
-          } else {
-            alert("Lỗi scraper: " + res.error);
+        let bestRes = null;
+        if (results && results.length > 0) {
+          for (const frameResult of results) {
+            const res = frameResult.result;
+            if (res && res.success) {
+              if (!bestRes) {
+                bestRes = res;
+              } else {
+                const currentLen = (bestRes.assignment || "").trim().length;
+                const newLen = (res.assignment || "").trim().length;
+                
+                const isDefaultMsg = (text) => !text || text.includes("Không tìm thấy nội dung đề bài tự động");
+                
+                if (isDefaultMsg(bestRes.assignment) && !isDefaultMsg(res.assignment)) {
+                  bestRes = res;
+                } else if (!isDefaultMsg(res.assignment) && newLen > currentLen) {
+                  bestRes = res;
+                }
+                
+                if (!bestRes.chapter || bestRes.chapter === "Khóa học mặc định") {
+                  if (res.chapter && res.chapter !== "Khóa học mặc định") {
+                    bestRes.chapter = res.chapter;
+                  }
+                }
+                if (!bestRes.session || bestRes.session === "Session 01: Nhập môn") {
+                  if (res.session && res.session !== "Session 01: Nhập môn") {
+                    bestRes.session = res.session;
+                  }
+                }
+                if (!bestRes.assignmentName || bestRes.assignmentName === "Bài tập mới") {
+                  if (res.assignmentName && res.assignmentName !== "Bài tập mới") {
+                    bestRes.assignmentName = res.assignmentName;
+                  }
+                }
+              }
+            }
           }
+        }
+
+        if (bestRes && bestRes.success) {
+          const parsed = extractCriteriaFromAssignment(bestRes.assignment);
+
+          this.scrapeChapterInput.value = bestRes.chapter;
+          this.scrapeSessionInput.value = bestRes.session;
+          this.scrapeAssignmentNameInput.value = bestRes.assignmentName;
+          this.scrapeAssignmentTextInput.value = parsed.assignment;
+          this.scrapeCriteriaTextInput.value = parsed.criteria || DEFAULT_CRITERIA;
+
+          this.scrapeModal.style.display = "flex";
         } else {
-          alert("Không lấy được kết quả từ trang web. Vui lòng mở trang chứa đề bài.");
+          window.showToast("Không lấy được kết quả từ trang web. Vui lòng mở trang chứa đề bài.", "warning");
         }
       });
     });
@@ -284,7 +318,7 @@ export class ExercisesTab {
     const criteria = this.scrapeCriteriaTextInput.value.trim();
 
     if (!chapter || !session || !name || !assignment) {
-      alert("Vui lòng nhập đầy đủ thông tin bài tập.");
+      window.showToast("Vui lòng nhập đầy đủ thông tin bài tập.", "warning");
       return;
     }
 
@@ -303,7 +337,7 @@ export class ExercisesTab {
       uploadedExercises: templates,
       exerciseSource: "upload"
     }, () => {
-      alert(`Đã thêm bài tập "${name}" vào Chương "${chapter}" thành công!`);
+      window.showToast(`Đã thêm bài tập "${name}" vào Chương "${chapter}" thành công!`, "success");
       this.context.config.exerciseSource = "upload";
       this.scrapeModal.style.display = "none";
 

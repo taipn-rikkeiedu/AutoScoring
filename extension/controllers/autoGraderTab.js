@@ -386,7 +386,7 @@ export class AutoGraderTab {
       badgeEl.className += ' error';
       badgeEl.textContent = 'Lỗi';
       badgeEl.style.cursor = 'pointer';
-      badgeEl.onclick = () => alert(sub.error || 'Lỗi không xác định khi chấm bài.');
+      badgeEl.onclick = () => window.showToast(sub.error || 'Lỗi không xác định khi chấm bài.', 'error');
     }
   }
 
@@ -813,11 +813,11 @@ export class AutoGraderTab {
   async gradeSingleRow(index) {
     const sub = this.context.submissions[index];
     if (!sub.githubUrl) {
-      alert("Vui lòng điền GitHub URL.");
+      window.showToast("Vui lòng điền GitHub URL.", "warning");
       return;
     }
     if (!sub.matchedTemplate) {
-      alert("Vui lòng liên kết bài tập với đề bài trong hệ thống.");
+      window.showToast("Vui lòng liên kết bài tập với đề bài trong hệ thống.", "warning");
       return;
     }
     
@@ -1213,7 +1213,7 @@ export class AutoGraderTab {
     chrome.storage.local.get("classStudentList", (res) => {
       const studentList = res.classStudentList || [];
       if (studentList.length === 0) {
-        alert("Không có dữ liệu học viên để xuất Excel.");
+        window.showToast("Không có dữ liệu học viên để xuất Excel.", "warning");
         return;
       }
 

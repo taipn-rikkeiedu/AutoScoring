@@ -201,11 +201,11 @@ export class SingleGraderTab {
     const assignmentName = this.assignmentSelect.value;
 
     if (!repoUrl) {
-      alert("Vui lòng nhập GitHub Repository URL.");
+      window.showToast("Vui lòng nhập GitHub Repository URL.", "warning");
       return;
     }
     if (!chapter || !session || !assignmentName) {
-      alert("Vui lòng chọn đầy đủ Chương, Session và Bài tập.");
+      window.showToast("Vui lòng chọn đầy đủ Chương, Session và Bài tập.", "warning");
       return;
     }
 
@@ -338,7 +338,7 @@ export class SingleGraderTab {
       }
     } catch (err) {
       console.error(err);
-      alert(`Lỗi: ${err.message}`);
+      window.showToast(`Lỗi: ${err.message}`, "error");
       this.statusBox.style.display = "none";
     } finally {
       this.gradeBtn.disabled = false;

@@ -173,19 +173,19 @@ export class SettingsTab {
     const exerciseApiToken = this.exerciseApiTokenInput.value.trim();
 
     if (provider !== "local" && !apiKey) {
-      alert("Vui lòng nhập API Key cho nhà cung cấp AI đã chọn.");
+      window.showToast("Vui lòng nhập API Key cho nhà cung cấp AI đã chọn.", "warning");
       return;
     }
     if ((provider === "custom" || provider === "local") && !apiUrl) {
-      alert("Vui lòng nhập URL của API.");
+      window.showToast("Vui lòng nhập URL của API.", "warning");
       return;
     }
     if (!modelName) {
-      alert("Vui lòng nhập tên Model.");
+      window.showToast("Vui lòng nhập tên Model.", "warning");
       return;
     }
     if (src === "api" && !exerciseApiUrl) {
-      alert("Vui lòng nhập API URL để tải danh sách bài tập.");
+      window.showToast("Vui lòng nhập API URL để tải danh sách bài tập.", "warning");
       return;
     }
 
@@ -205,7 +205,7 @@ export class SettingsTab {
       };
 
       chrome.storage.local.set(newConfig, () => {
-        alert("Đã lưu cấu hình thành công!");
+        window.showToast("Đã lưu cấu hình thành công!", "success");
         this.context.onConfigSaved(newConfig);
       });
     };
@@ -219,7 +219,7 @@ export class SettingsTab {
           this.context.config.uploadedExercises = json;
           saveConfig();
         } catch (err) {
-          alert("Lỗi phân tích file templates.json: " + err.message);
+          window.showToast("Lỗi phân tích file templates.json: " + err.message, "error");
         }
       };
       reader.readAsText(file);

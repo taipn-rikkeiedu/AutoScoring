@@ -7,6 +7,19 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.5.7] — 2026-07-06
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Hệ thống Toast Notification chuyên nghiệp:**
+  - Thay thế toàn bộ các thông báo dạng `alert()` mặc định của trình duyệt bằng hệ thống thông báo Toast hiển thị trực quan ở góc trên bên phải của popup.
+  - Hỗ trợ các trạng thái: Thành công (xanh lục), Lỗi (đỏ), Cảnh báo (vàng/cam) và Thông tin (xanh lam), tự động ẩn sau 3 giây hoặc tắt bằng dấu `×`.
+- **Tối ưu hóa bộ cào đề bài LMS Rikkei Education:**
+  - Hỗ trợ cào đa frame (`allFrames: true`) để chọc vào các iframe khác nguồn (cross-origin) và chọn lọc nội dung đề bài đầy đủ nhất.
+  - Sửa lỗi không nhận diện lớp học chứa khoảng trắng trong tên mã lớp (ví dụ: `[RA JV240311]`).
+  - Mở rộng regex nhận diện phiên học (Session) với các từ khóa tiếng Việt như `Bài`, `Lab`, `Tuần`, `Ngày`, `Chuyên đề`.
+  - Cải tiến loại bỏ các tag chỉnh sửa/xóa/icon trong cây sơ đồ trước khi trích xuất tên bài tập.
+  - Thêm phương pháp cào theo ngữ nghĩa (semantic search) dựa trên từ khóa tiếng Việt (`Mục tiêu`, `Yêu cầu`, `Bối cảnh`, `Dữ liệu mẫu`) làm cơ chế dự phòng khi cấu trúc lớp CSS thay đổi.
+
 ## [v3.5.6] — 2026-07-04
 
 ### ✨ Tính năng mới & Tối ưu hóa
