@@ -17,6 +17,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabSettings = document.getElementById("tab-settings");
 
   const appVersionTag = document.getElementById("app-version");
+  const supabaseStatusTag = document.getElementById("supabase-status-tag");
+
+  if (supabaseStatusTag) {
+    supabaseStatusTag.addEventListener("click", () => {
+      tabSelect.value = "tab-settings";
+      activateTabById("tab-settings");
+    });
+  }
 
   // Shared Modal Elements
   const reportModal = document.getElementById("report-modal");
@@ -241,9 +249,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let supabaseStatusText = "Chưa kích hoạt";
       if (SupabaseService.isEnabled(context.config)) {
+        supabaseStatusTag.style.display = "inline-block";
         try {
           const cloudExercises = await SupabaseService.pullExercises(context.config);
           supabaseStatusText = "🟢 Sẵn sàng";
+          supabaseStatusTag.className = "version-tag success";
+          supabaseStatusTag.title = "Supabase Cloud: Đồng bộ sẵn sàng";
           if (cloudExercises && cloudExercises.length > 0) {
             cloudExercises.forEach(ex => {
               const chap = ex.chapter;
@@ -260,7 +271,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (exErr) {
           console.error("Lỗi đồng bộ đề bài từ Supabase:", exErr);
           supabaseStatusText = "🔴 Lỗi kết nối CSDL";
+          supabaseStatusTag.className = "version-tag error";
+          supabaseStatusTag.title = "Supabase Cloud: Lỗi kết nối CSDL";
         }
+      } else {
+        supabaseStatusTag.style.display = "none";
       }
 
       settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, exercisesSourceText, supabaseStatusText);
@@ -274,12 +289,19 @@ document.addEventListener("DOMContentLoaded", () => {
       
       let supabaseStatusText = "Chưa kích hoạt";
       if (SupabaseService.isEnabled(context.config)) {
+        supabaseStatusTag.style.display = "inline-block";
         try {
           await SupabaseService.pullExercises(context.config);
           supabaseStatusText = "🟢 Sẵn sàng";
+          supabaseStatusTag.className = "version-tag success";
+          supabaseStatusTag.title = "Supabase Cloud: Đồng bộ sẵn sàng";
         } catch (exErr) {
           supabaseStatusText = "🔴 Lỗi kết nối CSDL";
+          supabaseStatusTag.className = "version-tag error";
+          supabaseStatusTag.title = "Supabase Cloud: Lỗi kết nối CSDL";
         }
+      } else {
+        supabaseStatusTag.style.display = "none";
       }
 
       settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, `${exercisesSourceText} (Lỗi: ${err.message})`, supabaseStatusText);
@@ -288,8 +310,11 @@ document.addEventListener("DOMContentLoaded", () => {
         context.exerciseTemplates = await res.json();
 
         if (SupabaseService.isEnabled(context.config)) {
+          supabaseStatusTag.style.display = "inline-block";
           try {
             const cloudExercises = await SupabaseService.pullExercises(context.config);
+            supabaseStatusTag.className = "version-tag success";
+            supabaseStatusTag.title = "Supabase Cloud: Đồng bộ sẵn sàng";
             if (cloudExercises && cloudExercises.length > 0) {
               cloudExercises.forEach(ex => {
                 const chap = ex.chapter;
@@ -305,7 +330,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           } catch (exErr) {
             console.error("Lỗi đồng bộ đề bài từ Supabase:", exErr);
+            supabaseStatusTag.className = "version-tag error";
+            supabaseStatusTag.title = "Supabase Cloud: Lỗi kết nối CSDL";
           }
+        } else {
+          supabaseStatusTag.style.display = "none";
         }
 
         singleGraderTab.populateChapters();
