@@ -2,14 +2,14 @@ export function parseScore(reportText) {
   if (!reportText) return null;
   
   // Ưu tiên trích xuất từ thẻ XML <score>
-  let match = reportText.match(/<score>\s*(\d+)\s*<\/score>/i);
-  if (match) return match[1];
+  let match = reportText.match(/<score>\s*(\d+(?:[.,]\d+)?)\s*<\/score>/i);
+  if (match) return match[1].replace(',', '.');
 
-  match = reportText.match(/(\d+)\s*\/\s*100/);
-  if (match) return match[1];
+  match = reportText.match(/(\d+(?:[.,]\d+)?)\s*\/\s*100/);
+  if (match) return match[1].replace(',', '.');
   
-  match = reportText.match(/(?:Tổng điểm|TỔNG|Score|Points):\s*\*?(\d+)\*?/i);
-  if (match) return match[1];
+  match = reportText.match(/(?:Tổng điểm|TỔNG|Score|Points):\s*\*{0,2}(\d+(?:[.,]\d+)?)\*{0,2}/i);
+  if (match) return match[1].replace(',', '.');
   
   return null;
 }
@@ -29,6 +29,16 @@ export function findMatchingTemplate(scrapedName, exerciseTemplates) {
   if (!scrapedName || !exerciseTemplates) return null;
   
   const normScraped = normalizeText(scrapedName);
+  
+  // Bỏ qua các tên bài tập chung chung/fallback để tránh tự động chọn sai đề bài mẫu
+  const genericNames = [
+    'bai tap', 'bai thuc hanh', 'thuc hanh', 'homework', 'project', 'quiz', 'lab',
+    'bai tap github', 'bai tap khong ro ten'
+  ];
+  if (genericNames.includes(normScraped)) {
+    return null;
+  }
+  
   let bestMatch = null;
   let maxScore = 0;
   

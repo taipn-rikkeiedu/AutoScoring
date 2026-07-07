@@ -14,7 +14,7 @@ export class GitHubService {
     
     // Thư mục và file mặc định luôn luôn bị loại trừ (không thể cấu hình bỏ chọn)
     this.excludedDirs = [
-      "node_modules/", ".venv/", ".git/"
+      "node_modules", ".venv", "venv", ".git", "__pycache__"
     ];
     this.excludedFiles = [
       "LICENSE"
@@ -22,8 +22,9 @@ export class GitHubService {
 
     // Nếu không truyền customIgnoreItems (hoặc null), loại trừ tất cả các mục mặc định để an toàn
     const itemsToExclude = customIgnoreItems !== null ? customIgnoreItems : [
-      "build/", "dist/", "target/", "out/", ".vscode/", ".idea/", "env/", "__pycache__/",
-      "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "gradlew/mvnw", ".gitignore"
+      "build/", "dist/", "target/", "out/", ".vscode/", ".idea/", "env/", "venv/", "__pycache__/",
+      "Scripts/", "Lib/", "scripts/", "lib/", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", 
+      "composer.lock", "gradlew/mvnw", ".gitignore"
     ];
 
     // Phân tích danh sách loại trừ do giảng viên chọn
@@ -31,8 +32,9 @@ export class GitHubService {
       if (item === "gradlew/mvnw") {
         this.excludedFiles.push("gradlew", "gradlew.bat", "mvnw", "mvnw.cmd");
       } else if (item.endsWith('/')) {
-        if (!this.excludedDirs.includes(item)) {
-          this.excludedDirs.push(item);
+        const cleanDir = item.slice(0, -1);
+        if (cleanDir && !this.excludedDirs.includes(cleanDir)) {
+          this.excludedDirs.push(cleanDir);
         }
       } else {
         if (!this.excludedFiles.includes(item)) {
@@ -150,9 +152,18 @@ export class GitHubService {
         const fileEntry = zip.files[name];
         if (fileEntry.dir) continue;
 
-        const isAllowed = this.allowedExtensions.some(ext => name.endsWith(ext));
-        const isExcluded = this.excludedDirs.some(dir => name.includes(dir)) || 
-                           this.excludedFiles.includes(name.split("/").pop());
+        const normalizedPath = name.replace(/\\/g, '/');
+        const segments = normalizedPath.split("/");
+        const filename = segments.pop();
+
+        const isAllowed = this.allowedExtensions.some(ext => normalizedPath.endsWith(ext));
+        const isExcludedDir = segments.some(seg => 
+          this.excludedDirs.some(dir => seg.toLowerCase() === dir.toLowerCase())
+        );
+        const isExcludedFile = this.excludedFiles.some(file => 
+          filename.toLowerCase() === file.toLowerCase()
+        );
+        const isExcluded = isExcludedDir || isExcludedFile;
 
         if (isAllowed && !isExcluded) {
           let content = "";
@@ -205,9 +216,18 @@ export class GitHubService {
       if (file.type !== "blob") continue;
       const name = file.path;
 
-      const isAllowed = this.allowedExtensions.some(ext => name.endsWith(ext));
-      const isExcluded = this.excludedDirs.some(dir => name.includes(dir)) || 
-                         this.excludedFiles.includes(name.split("/").pop());
+      const normalizedPath = name.replace(/\\/g, '/');
+      const segments = normalizedPath.split("/");
+      const filename = segments.pop();
+
+      const isAllowed = this.allowedExtensions.some(ext => normalizedPath.endsWith(ext));
+      const isExcludedDir = segments.some(seg => 
+        this.excludedDirs.some(dir => seg.toLowerCase() === dir.toLowerCase())
+      );
+      const isExcludedFile = this.excludedFiles.some(file => 
+        filename.toLowerCase() === file.toLowerCase()
+      );
+      const isExcluded = isExcludedDir || isExcludedFile;
 
       if (isAllowed && !isExcluded) {
         if (onProgress) onProgress(`Đang tải file: ${name.split("/").pop()} (${processedFiles + 1})...`);

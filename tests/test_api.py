@@ -1,13 +1,13 @@
 import unittest
 from unittest.mock import patch, Mock
 from fastapi.testclient import TestClient
-from extension.api_server import app
+from api_server import app
 
 class APITest(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
-    @patch("extension.api_server.get_ai_config")
+    @patch("api_server.get_ai_config")
     def test_get_config(self, mock_get_config):
         mock_get_config.return_value = {
             "provider": "gemini",
@@ -26,7 +26,7 @@ class APITest(unittest.TestCase):
         # Ensure API key is NOT leaked
         self.assertNotIn("gemini_api_key", data)
 
-    @patch("extension.api_server.ExerciseService.load_templates")
+    @patch("api_server.ExerciseService.load_templates")
     def test_get_exercises(self, mock_load_templates):
         mock_load_templates.return_value = {
             "Chương 1": {
@@ -45,9 +45,9 @@ class APITest(unittest.TestCase):
         self.assertIn("Chương 1", data)
         self.assertIn("Session 1", data["Chương 1"])
 
-    @patch("extension.api_server.get_cached_report")
-    @patch("extension.api_server.GitHubService.get_repo_contents")
-    @patch("extension.api_server.ExerciseService.load_templates")
+    @patch("api_server.get_cached_report")
+    @patch("api_server.GitHubService.get_repo_contents")
+    @patch("api_server.ExerciseService.load_templates")
     def test_grade_assignment_cached(self, mock_load_templates, mock_get_repo, mock_get_cached):
         # Setup mocks
         mock_load_templates.return_value = {
@@ -81,6 +81,25 @@ class APITest(unittest.TestCase):
         self.assertEqual(data["score"], "90")
         self.assertEqual(data["total_files"], 2)
         self.assertIn("TỔNG", data["report"])
+
+    def test_parse_score_decimals(self):
+        from utils.helpers import parse_score
+        
+        # Test exact fractions
+        self.assertEqual(parse_score("Điểm số của học viên: 99.5/100"), "99.5")
+        self.assertEqual(parse_score("Tổng điểm: 99,5/100"), "99.5")
+        self.assertEqual(parse_score("Score: 5/100"), "5")
+        
+        # Test XML tags
+        self.assertEqual(parse_score("<score>99.5</score>"), "99.5")
+        self.assertEqual(parse_score("<score> 99,5 </score>"), "99.5")
+        self.assertEqual(parse_score("<score>80</score>"), "80")
+        
+        # Test text fallback patterns
+        self.assertEqual(parse_score("Tổng điểm: 99.5"), "99.5")
+        self.assertEqual(parse_score("TỔNG: 99,5"), "99.5")
+        self.assertEqual(parse_score("Score: **99.5**"), "99.5")
+        self.assertEqual(parse_score("Points: 90"), "90")
 
 if __name__ == "__main__":
     unittest.main()

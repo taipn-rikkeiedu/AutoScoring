@@ -4,18 +4,58 @@ import { parseScore, findMatchingTemplate, extractComment, DEFAULT_CRITERIA } fr
 
 function scrapeSubmissionsPage() {
   const submissions = [];
+  
+  // Thu thập tên bài tập cấp trang làm mặc định (tránh trường hợp bảng không có cột Tên bài tập)
+  let pageExerciseName = "";
+  const activeSelectors = [
+    '.ant-tree-node-selected', 
+    '.is-active', 
+    '.active', 
+    '.selected', 
+    '[class*="node-selected"]', 
+    '[class*="menu-item-selected"]',
+    '[class*="active-menu"]'
+  ];
+  let activeNode = null;
+  for (const selector of activeSelectors) {
+    activeNode = document.querySelector(selector);
+    if (activeNode && activeNode.textContent.trim().length > 3) {
+      break;
+    }
+  }
+  if (activeNode) {
+    const clone = activeNode.cloneNode(true);
+    const extra = clone.querySelectorAll('button, a, input, svg, i, [class*="btn"], [class*="button"], [class*="icon"]');
+    extra.forEach(el => el.remove());
+    pageExerciseName = clone.textContent.trim().split('\n')[0].trim();
+    pageExerciseName = pageExerciseName.replace(/^[\[\]0-9a-zA-Z\s\-]+Thực hành\s*\d*\]\s*/i, '');
+    pageExerciseName = pageExerciseName.replace(/^\[[^\]]+\]\s*/, '');
+  }
+  if (!pageExerciseName) {
+    const pageTitle = document.querySelector('.title, .header, h2, h1');
+    if (pageTitle) {
+      pageExerciseName = pageTitle.textContent.trim().split('\n')[0].trim();
+    }
+  }
+
   const rows = document.querySelectorAll('tr');
   if (rows.length > 0) {
     let exerciseColIndex = -1;
     let linkColIndex = -1;
+    let nameColIndex = -1;
     const headers = document.querySelectorAll('th, thead td');
     headers.forEach((header, index) => {
       const text = header.textContent.trim().toLowerCase();
-      if (text.includes('bài tập') || text.includes('đề bài') || text.includes('tên')) {
+      if (text.includes('bài tập') || text.includes('đề bài') || text.includes('tên bài')) {
         exerciseColIndex = index;
       }
       if (text.includes('link') || text.includes('github') || text.includes('liên kết')) {
         linkColIndex = index;
+      }
+      if (text.includes('tên') || text.includes('học viên') || text.includes('sinh viên') || text.includes('họ tên')) {
+        if (!text.includes('bài tập') && !text.includes('đề bài')) {
+          nameColIndex = index;
+        }
       }
     });
     
@@ -24,30 +64,44 @@ function scrapeSubmissionsPage() {
       if (cells.length > 0) {
         let githubUrl = '';
         let exerciseName = '';
+        let studentName = '';
         
         if (exerciseColIndex !== -1 && cells[exerciseColIndex]) {
           exerciseName = cells[exerciseColIndex].textContent.trim();
+        } else if (pageExerciseName) {
+          exerciseName = pageExerciseName;
         }
+        
+        if (nameColIndex !== -1 && cells[nameColIndex]) {
+          studentName = cells[nameColIndex].textContent.trim().split('\n')[0].trim();
+        }
+        
         if (linkColIndex !== -1 && cells[linkColIndex]) {
           const a = cells[linkColIndex].querySelector('a[href*="github.com"]');
           if (a) githubUrl = a.href;
         }
         
-        if (!githubUrl || !exerciseName) {
+        if (!githubUrl) {
           const a = row.querySelector('a[href*="github.com"]');
-          if (a) {
-            githubUrl = a.href;
-            if (!exerciseName) {
-              for (let i = 0; i < cells.length; i++) {
-                const cellText = cells[i].textContent.trim();
-                if (cellText && 
-                    !cellText.includes('http') && 
-                    !cellText.includes('Github') && 
-                    !/^\d{1,2}\/\d{1,2}\/\d{4}/.test(cellText) && 
-                    !/^[a-zA-Z0-9.\-_]{1,5}$/.test(cellText) && 
-                    !['đã nộp', 'chưa nộp', 'xem github', 'chưa có nhận xét', 'sửa nhận xét'].includes(cellText.toLowerCase())) {
-                  exerciseName = cellText;
-                  break;
+          if (a) githubUrl = a.href;
+        }
+        
+        // Tìm kiếm dự phòng nếu các chỉ số cột không rõ ràng
+        if (!studentName || !exerciseName) {
+          for (let i = 0; i < cells.length; i++) {
+            const cellText = cells[i].textContent.trim();
+            if (cellText && 
+                !cellText.includes('http') && 
+                !cellText.includes('Github') && 
+                !/^\d{1,2}\/\d{1,2}\/\d{4}/.test(cellText) && 
+                !/^[a-zA-Z0-9.\-_]{1,5}$/.test(cellText)) {
+              const lower = cellText.toLowerCase();
+              const isStatus = ['đã nộp', 'chưa nộp', 'xem github', 'chưa có nhận xét', 'sửa nhận xét'].includes(lower);
+              if (!isStatus) {
+                if (!studentName && /^[A-ZÀ-Ỹ]/.test(cellText.split(' ')[0])) {
+                  studentName = cellText.split('\n')[0].trim();
+                } else if (!exerciseName) {
+                  exerciseName = cellText.split('\n')[0].trim();
                 }
               }
             }
@@ -57,7 +111,8 @@ function scrapeSubmissionsPage() {
         if (githubUrl) {
           const cleanGithub = githubUrl.split('?')[0].split('#')[0];
           submissions.push({
-            exerciseName: exerciseName || 'Bài tập không rõ tên',
+            exerciseName: exerciseName || pageExerciseName || 'Bài tập Github',
+            studentName: studentName || '',
             githubUrl: cleanGithub
           });
         }
@@ -71,6 +126,7 @@ function scrapeSubmissionsPage() {
       const href = a.href.split('?')[0].split('#')[0];
       let parent = a.parentElement;
       let labelText = '';
+      let sName = '';
       for (let depth = 0; depth < 4; depth++) {
         if (!parent) break;
         const text = parent.innerText || parent.textContent || '';
@@ -81,12 +137,23 @@ function scrapeSubmissionsPage() {
         );
         if (exerciseLine) {
           labelText = exerciseLine;
-          break;
         }
+        
+        const nameLine = lines.find(l => 
+          /^[A-ZÀ-Ỹ]/.test(l.split(' ')[0]) && 
+          l.split(' ').length >= 2 && 
+          l.split(' ').length <= 5 && 
+          !l.includes('Bài tập') && !l.includes('Bài ') && !l.includes('API') && !l.includes('[') && !l.includes('github.com')
+        );
+        if (nameLine) {
+          sName = nameLine;
+        }
+        if (labelText && sName) break;
         parent = parent.parentElement;
       }
       submissions.push({
-        exerciseName: labelText || 'Bài tập Github',
+        exerciseName: labelText || pageExerciseName || 'Bài tập Github',
+        studentName: sName || '',
         githubUrl: href
       });
     });
@@ -481,7 +548,17 @@ export class AutoGraderTab {
       const titleSpan = document.createElement('span');
       titleSpan.style.fontWeight = '600';
       titleSpan.style.color = '#334155';
-      titleSpan.textContent = sub.exerciseName;
+      if (sub.studentName) {
+        titleSpan.textContent = `${sub.studentName} `;
+        const subNameSpan = document.createElement('span');
+        subNameSpan.style.fontWeight = 'normal';
+        subNameSpan.style.color = '#64748b';
+        subNameSpan.style.fontSize = '0.75rem';
+        subNameSpan.textContent = `(${sub.exerciseName})`;
+        titleSpan.appendChild(subNameSpan);
+      } else {
+        titleSpan.textContent = sub.exerciseName;
+      }
       tdName.appendChild(titleSpan);
       
       const linkA = document.createElement('a');
@@ -774,6 +851,7 @@ export class AutoGraderTab {
             const match = findMatchingTemplate(item.exerciseName, this.context.exerciseTemplates);
             return {
               exerciseName: item.exerciseName,
+              studentName: item.studentName || '',
               githubUrl: item.githubUrl,
               checked: true,
               matchedTemplate: match,
@@ -1041,14 +1119,37 @@ export class AutoGraderTab {
   renderClassList() {
     if (!this.classListBody) return; // Guard for initialization timing
     chrome.storage.local.get("classStudentList", (res) => {
-      const studentList = res.classStudentList || [];
+      const studentListRaw = res.classStudentList || [];
       
-      if (studentList.length === 0) {
+      if (studentListRaw.length === 0) {
         this.classTableEl.style.display = 'none';
         this.classEmptyState.style.display = 'block';
         this.exportClassCsvBtn.disabled = true;
         return;
       }
+
+      // Sắp xếp: Đang chờ kiểm tra (Priority 1) -> Chưa hoàn thành (Priority 2) -> Hoàn thành (Priority 3)
+      const studentList = [...studentListRaw].sort((a, b) => {
+        const statusA = a.lmsStatus ? a.lmsStatus.trim().toUpperCase() : '';
+        const isCompletedA = statusA.includes('HOÀN THÀNH') && !statusA.includes('CHƯA');
+        const isPendingA = statusA.includes('CHỜ KIỂM TRA') || statusA.includes('ĐANG CHỜ') || statusA.includes('KIỂM TRA');
+        const isNotCompletedA = statusA.includes('CHƯA HOÀN THÀNH') || (!isCompletedA && !isPendingA && statusA.length > 0);
+
+        const statusB = b.lmsStatus ? b.lmsStatus.trim().toUpperCase() : '';
+        const isCompletedB = statusB.includes('HOÀN THÀNH') && !statusB.includes('CHƯA');
+        const isPendingB = statusB.includes('CHỜ KIỂM TRA') || statusB.includes('ĐANG CHỜ') || statusB.includes('KIỂM TRA');
+        const isNotCompletedB = statusB.includes('CHƯA HOÀN THÀNH') || (!isCompletedB && !isPendingB && statusB.length > 0);
+
+        let pA = 3;
+        if (isPendingA) pA = 1;
+        else if (isNotCompletedA) pA = 2;
+
+        let pB = 3;
+        if (isPendingB) pB = 1;
+        else if (isNotCompletedB) pB = 2;
+
+        return pA - pB;
+      });
       
       this.classTableEl.style.display = 'table';
       this.classEmptyState.style.display = 'none';
@@ -1082,7 +1183,14 @@ export class AutoGraderTab {
         }
       });
       
-      this.classStatusBanner.innerHTML = `📊 <b>Thống kê lớp học:</b> Sĩ số: <b>${total}</b> | Hoàn thành: <span class="badge-status success" style="font-weight:bold;">${completedCount}</span> | Chưa hoàn thành: <span class="badge-status pending" style="font-weight:bold;">${notCompletedCount}</span> | Chờ kiểm tra: <span class="badge-status warning" style="font-weight:bold;">${pendingCount}</span> | Đã chấm: <b>${gradedCount}</b>`;
+      this.classStatusBanner.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 5px;">📊 Thống kê lớp học: Sĩ số <b>${total}</b> | Đã chấm <b>${gradedCount}</b></div>
+        <div class="stats-grid">
+          <span class="stats-grid-item">Hoàn thành: <span class="badge-status success" style="font-weight:bold;">${completedCount}</span></span>
+          <span class="stats-grid-item">Chưa hoàn thành: <span class="badge-status pending" style="font-weight:bold;">${notCompletedCount}</span></span>
+          <span class="stats-grid-item">Chờ kiểm tra: <span class="badge-status warning" style="font-weight:bold;">${pendingCount}</span></span>
+        </div>
+      `;
       this.classStatusBanner.style.backgroundColor = "#f8fafc";
       this.classStatusBanner.style.color = "#1e293b";
       this.classStatusBanner.style.borderLeftColor = "#3b82f6";
@@ -1090,10 +1198,39 @@ export class AutoGraderTab {
       studentList.forEach((st, index) => {
         const tr = document.createElement('tr');
         
+        const statusTextForHighlight = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : '';
+        const isCompletedForHighlight = statusTextForHighlight.includes('HOÀN THÀNH') && !statusTextForHighlight.includes('CHƯA');
+        const isPendingForHighlight = statusTextForHighlight.includes('CHỜ KIỂM TRA') || statusTextForHighlight.includes('ĐANG CHỜ') || statusTextForHighlight.includes('KIỂM TRA');
+        const isNotCompletedForHighlight = statusTextForHighlight.includes('CHƯA HOÀN THÀNH') || (!isCompletedForHighlight && !isPendingForHighlight && statusTextForHighlight.length > 0);
+
+        if (isPendingForHighlight) {
+          tr.classList.add('row-pending');
+        } else if (isNotCompletedForHighlight) {
+          tr.classList.add('row-not-completed');
+        }
+
+        const handleStudentClick = (e) => {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs && tabs[0]) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                action: 'scrollToStudent',
+                studentId: st.studentId,
+                studentName: st.studentName
+              }, (response) => {
+                if (chrome.runtime.lastError) {
+                  console.log("Error sending scrollToStudent message:", chrome.runtime.lastError.message);
+                }
+              });
+            }
+          });
+        };
+        
         const tdId = document.createElement('td');
         tdId.style.fontWeight = '600';
         tdId.style.color = '#475569';
+        tdId.style.cursor = 'pointer';
         tdId.textContent = st.studentId;
+        tdId.addEventListener('click', handleStudentClick);
         tr.appendChild(tdId);
         
         const tdName = document.createElement('td');
@@ -1103,7 +1240,13 @@ export class AutoGraderTab {
         nameLink.style.fontWeight = '600';
         nameLink.style.color = '#1e293b';
         nameLink.style.textDecoration = 'none';
+        nameLink.style.cursor = 'pointer';
         nameLink.textContent = st.studentName;
+        nameLink.addEventListener('click', (e) => {
+          if (e.ctrlKey || e.metaKey) return;
+          e.preventDefault();
+          handleStudentClick(e);
+        });
         tdName.appendChild(nameLink);
         
         if (st.githubUrl) {
@@ -1224,11 +1367,7 @@ export class AutoGraderTab {
           "Họ và Tên": st.studentName || "",
           "Trạng thái LMS": st.lmsStatus || "",
           "Số bài đã nộp": st.submittedCount || 0,
-          "Số bài hoàn thành": st.completedCount || 0,
-          "Điểm số AI": st.score !== null && st.score !== undefined ? st.score : "Chưa chấm",
-          "Link GitHub": st.githubUrl || "",
-          "Link LMS": st.submissionUrl || "",
-          "Nhận xét AI": st.comments || ""
+          "Số bài hoàn thành": st.completedCount || 0
         };
       });
 
@@ -1243,11 +1382,7 @@ export class AutoGraderTab {
         { wch: 25 }, // Họ Tên
         { wch: 18 }, // Trạng thái LMS
         { wch: 15 }, // Số bài đã nộp
-        { wch: 18 }, // Số bài hoàn thành
-        { wch: 12 }, // Điểm số AI
-        { wch: 30 }, // Link GitHub
-        { wch: 30 }, // Link LMS
-        { wch: 50 }  // Nhận xét AI
+        { wch: 18 }  // Số bài hoàn thành
       ];
       worksheet["!cols"] = max_widths;
 

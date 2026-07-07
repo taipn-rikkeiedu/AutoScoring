@@ -2,18 +2,21 @@ import { SettingsTab } from './controllers/settingsTab.js';
 import { SingleGraderTab } from './controllers/singleGraderTab.js';
 import { AutoGraderTab } from './controllers/autoGraderTab.js';
 import { ExercisesTab } from './controllers/exercisesTab.js';
+import { CareTab } from './controllers/careTab.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- Shared UI Elements ---
   const tabAutoBtn = document.getElementById("tab-auto-btn");
   const tabGraderBtn = document.getElementById("tab-grader-btn");
   const tabClassListBtn = document.getElementById("tab-class-list-btn");
+  const tabCareBtn = document.getElementById("tab-care-btn");
   const tabExercisesBtn = document.getElementById("tab-exercises-btn");
   const tabSettingsBtn = document.getElementById("tab-settings-btn");
   
   const tabAuto = document.getElementById("tab-auto");
   const tabGrader = document.getElementById("tab-grader");
   const tabClassList = document.getElementById("tab-class-list");
+  const tabCare = document.getElementById("tab-care");
   const tabExercises = document.getElementById("tab-exercises");
   const tabSettings = document.getElementById("tab-settings");
 
@@ -28,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.5.7";
+  const appVersion = "3.6.0";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -40,8 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
       githubToken: "",
       systemPrompt: "",
       graderIgnoreItems: [
-        "build/", "dist/", "target/", "out/", ".vscode/", ".idea/", "env/", "__pycache__/",
-        "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "gradlew/mvnw", ".gitignore"
+        "build/", "dist/", "target/", "out/", ".vscode/", ".idea/", "env/", "venv/",
+        "Scripts/", "Lib/", "scripts/", "lib/", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", 
+        "composer.lock", "gradlew/mvnw", ".gitignore"
       ],
       exerciseSource: "local",
       exerciseApiUrl: "",
@@ -75,9 +79,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const singleGraderTab = new SingleGraderTab(context);
   const autoGraderTab = new AutoGraderTab(context);
   const exercisesTab = new ExercisesTab(context);
+  const careTab = new CareTab(context);
 
   context.singleGraderTab = singleGraderTab;
   context.autoGraderTab = autoGraderTab;
+  context.careTab = careTab;
 
   // --- Tab Navigation ---
   const activateTab = (activeBtn, activeContent, inactiveBtns, inactiveContents) => {
@@ -88,16 +94,20 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   tabAutoBtn.addEventListener("click", () => {
-    activateTab(tabAutoBtn, tabAuto, [tabGraderBtn, tabClassListBtn, tabExercisesBtn, tabSettingsBtn], [tabGrader, tabClassList, tabExercises, tabSettings]);
+    activateTab(tabAutoBtn, tabAuto, [tabGraderBtn, tabClassListBtn, tabCareBtn, tabExercisesBtn, tabSettingsBtn], [tabGrader, tabClassList, tabCare, tabExercises, tabSettings]);
     autoGraderTab.triggerPageScan();
   });
-  tabGraderBtn.addEventListener("click", () => activateTab(tabGraderBtn, tabGrader, [tabAutoBtn, tabClassListBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabClassList, tabExercises, tabSettings]));
+  tabGraderBtn.addEventListener("click", () => activateTab(tabGraderBtn, tabGrader, [tabAutoBtn, tabClassListBtn, tabCareBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabClassList, tabCare, tabExercises, tabSettings]));
   tabClassListBtn.addEventListener("click", () => {
-    activateTab(tabClassListBtn, tabClassList, [tabAutoBtn, tabGraderBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabGrader, tabExercises, tabSettings]);
+    activateTab(tabClassListBtn, tabClassList, [tabAutoBtn, tabGraderBtn, tabCareBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabGrader, tabCare, tabExercises, tabSettings]);
     autoGraderTab.renderClassList();
   });
-  tabExercisesBtn.addEventListener("click", () => activateTab(tabExercisesBtn, tabExercises, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabSettingsBtn], [tabAuto, tabGrader, tabClassList, tabSettings]));
-  tabSettingsBtn.addEventListener("click", () => activateTab(tabSettingsBtn, tabSettings, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabExercisesBtn], [tabAuto, tabGrader, tabClassList, tabExercises]));
+  tabCareBtn.addEventListener("click", () => {
+    activateTab(tabCareBtn, tabCare, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabGrader, tabClassList, tabExercises, tabSettings]);
+    careTab.detectActiveTabAndLoad();
+  });
+  tabExercisesBtn.addEventListener("click", () => activateTab(tabExercisesBtn, tabExercises, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabCareBtn, tabSettingsBtn], [tabAuto, tabGrader, tabClassList, tabCare, tabSettings]));
+  tabSettingsBtn.addEventListener("click", () => activateTab(tabSettingsBtn, tabSettings, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabCareBtn, tabExercisesBtn], [tabAuto, tabGrader, tabClassList, tabCare, tabExercises]));
 
   // --- Load configuration and verify status ---
   const loadStoredConfig = () => {
@@ -214,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modalScoreVal.innerText = sub.score ? `${sub.score} / 100` : '-- / 100';
     
     if (sub.score) {
-      const score = parseInt(sub.score, 10);
+      const score = parseFloat(sub.score);
       if (score >= 80) {
         modalScoreVal.style.background = "linear-gradient(135deg, #16a34a, #15803d)";
       } else if (score >= 50) {

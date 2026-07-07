@@ -118,10 +118,28 @@ class GitHubService:
                 for name in names:
                     if not name.endswith(Settings.ALLOWED_EXTENSIONS):
                         continue
-                    if any(ex_dir in name for ex_dir in Settings.EXCLUDED_DIRS):
-                        continue
-                    basename = name.split("/")[-1]
-                    if basename in Settings.EXCLUDED_FILES:
+
+                    # Normalize path
+                    normalized_path = name.replace("\\", "/")
+                    segments = normalized_path.split("/")
+                    filename = segments[-1]
+                    dir_segments = segments[:-1]
+
+                    # Clean and normalize EXCLUDED_DIRS
+                    excluded_dirs_clean = [d.rstrip("/") for d in Settings.EXCLUDED_DIRS]
+
+                    # Case-insensitive path segment matching
+                    is_excluded_dir = any(
+                        seg.lower() == ex_dir.lower()
+                        for seg in dir_segments
+                        for ex_dir in excluded_dirs_clean
+                    )
+                    is_excluded_file = any(
+                        filename.lower() == ex_file.lower()
+                        for ex_file in Settings.EXCLUDED_FILES
+                    )
+
+                    if is_excluded_dir or is_excluded_file:
                         continue
                     if name.endswith("/"):
                         continue
@@ -258,10 +276,28 @@ class GitHubService:
                     continue
                 if not item_path.endswith(Settings.ALLOWED_EXTENSIONS):
                      continue
-                if any(ex_dir in item_path for ex_dir in Settings.EXCLUDED_DIRS):
-                     continue
-                basename = item_path.split("/")[-1]
-                if basename in Settings.EXCLUDED_FILES:
+
+                # Normalize path
+                normalized_path = item_path.replace("\\", "/")
+                segments = normalized_path.split("/")
+                filename = segments[-1]
+                dir_segments = segments[:-1]
+
+                # Clean and normalize EXCLUDED_DIRS
+                excluded_dirs_clean = [d.rstrip("/") for d in Settings.EXCLUDED_DIRS]
+
+                # Case-insensitive path segment matching
+                is_excluded_dir = any(
+                    seg.lower() == ex_dir.lower()
+                    for seg in dir_segments
+                    for ex_dir in excluded_dirs_clean
+                )
+                is_excluded_file = any(
+                    filename.lower() == ex_file.lower()
+                    for ex_file in Settings.EXCLUDED_FILES
+                )
+
+                if is_excluded_dir or is_excluded_file:
                      continue
                 eligible.append(item)
 

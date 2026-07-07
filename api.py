@@ -7,4 +7,4 @@ import uvicorn
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("extension.api_server:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("api_server:app", host="0.0.0.0", port=port, reload=True)

@@ -34,7 +34,7 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "2.8.1"
+    APP_VERSION = "3.6.0"
     LOCAL_DATA_ROOT = "C:/AutoScoring" if os.name == "nt" else "./data_root"
     LOCAL_CONFIG_PATH = f"{LOCAL_DATA_ROOT}/config/config.json"
     LOCAL_TEMPLATES_PATH = f"{LOCAL_DATA_ROOT}/data/templates.json"
@@ -82,7 +82,8 @@ class Settings:
     )
     EXCLUDED_DIRS = (
         "node_modules/",
-        ".venv",
+        ".venv/",
+        "venv/",
         "env/",
         ".git/",
         "build/",
@@ -91,6 +92,9 @@ class Settings:
         "__pycache__/",
         ".idea/",
         ".vscode/",
+        "Scripts/",
+        "Lib/",
+        "scripts/",
     )
     try:
         GRADING_MAX_SCORE = int(_get_secret("GRADING_MAX_SCORE", "100"))

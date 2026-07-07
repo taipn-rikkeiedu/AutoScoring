@@ -239,7 +239,7 @@ export class SingleGraderTab {
       this.scoreVal.innerText = score ? `${score} / 100` : "N/A";
       
       if (score) {
-        const val = parseInt(score, 10);
+        const val = parseFloat(score);
         if (val >= 80) this.scoreVal.style.background = "linear-gradient(135deg, #16a34a, #15803d)";
         else if (val >= 50) this.scoreVal.style.background = "linear-gradient(135deg, #d97706, #b45309)";
         else this.scoreVal.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)";
@@ -322,7 +322,7 @@ export class SingleGraderTab {
           const studentList = res.classStudentList || [];
           const idx = studentList.findIndex(st => st.submissionUrl === this.activeStudent.submissionUrl);
           if (idx !== -1) {
-            studentList[idx].score = score ? parseInt(score, 10) : null;
+            studentList[idx].score = score ? parseFloat(score) : null;
             studentList[idx].comments = report;
             studentList[idx].githubUrl = repoUrl;
             studentList[idx].assignmentName = assignmentName;

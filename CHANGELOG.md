@@ -7,6 +7,41 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.6.0] — 2026-07-07
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Tích hợp Tab Chăm Sóc SV mới:**
+  - Quét dữ liệu sinh viên trực tiếp từ đường dẫn LMS chăm sóc học viên `/class/*/take-care`.
+  - Cung cấp ô nhập ghi chú/thông tin liên hệ ngay cạnh từng học viên và tự động lưu trữ xuống bộ nhớ `chrome.storage.local`.
+  - Xuất báo cáo danh sách chăm sóc lớp học định dạng Excel (.xlsx).
+
+## [v3.5.9] — 2026-07-07
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Hỗ trợ chấm điểm float/thập phân:**
+  - Nâng cấp bộ phân giải regex điểm số để nhận diện chính xác các thang điểm lẻ như `99.5` và `99,5` hoặc in đậm `**99.5**`.
+- **Khắc phục lỗi nạp Extension do cache bytecode python:**
+  - Di chuyển `api_server.py` ra ngoài thư mục extension để ngăn python sinh thư mục biên dịch bytecode `__pycache__` bắt đầu bằng dấu gạch dưới bị Chrome cấm.
+- **Tùy biến bộ lọc loại trừ (.graderignore) và UI:**
+  - Bổ sung cấu hình loại trừ cho `venv`, `Scripts`, `Lib` độc lập và đồng bộ. Dọn dẹp checkbox `__pycache__` thừa trong cấu hình.
+- **Tránh trùng lặp / sai sót prompt cào dữ liệu:**
+  - Tự động nhận diện tiêu đề bài học từ Header/Menu cấp trang làm bài tập đại diện khi bảng không chứa cột bài tập, ngăn chặn việc nhận diện sai tên học viên làm tên bài tập để so khớp đề bài mẫu.
+  - Bỏ qua việc tự động so khớp mẫu đối với các từ khóa chung chung như "Bài tập Github".
+
+## [v3.5.8] — 2026-07-06
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Di chuyển sang Chrome Side Panel:**
+  - Cấu hình chạy Extension dưới dạng Chrome Side Panel luôn mở và duy trì trạng thái khi chuyển tab mới.
+  - Cải tiến giao diện thích ứng (Responsive CSS), cho phép cuộn ngang thanh tab điều hướng và các bảng dữ liệu trên màn hình hẹp của Side Panel.
+- **Tô màu trạng thái trong Quản Lý Lớp Học:**
+  - Học viên có trạng thái "Đang chờ kiểm tra" được highlight màu vàng nhạt (`row-pending`).
+  - Học viên có trạng thái "Chưa hoàn thành" được highlight màu đỏ nhạt (`row-not-completed`).
+- **Tự động cuộn trang LMS đến học viên:**
+  - Nhấp chọn Mã sinh viên hoặc Tên học viên trên Extension sẽ tự động gửi thông điệp điều khiển cuộn trang LMS đến đúng hàng của học viên đó và nhấp nháy sáng nền màu vàng trong 1.5 giây.
+- **Tối giản xuất Excel báo cáo lớp học:**
+  - Loại bỏ cột Nhận xét AI ra khỏi file Excel để dữ liệu điểm số và các link liên kết (GitHub, LMS) hiển thị gọn gàng hơn.
+
 ## [v3.5.7] — 2026-07-06
 
 ### ✨ Tính năng mới & Tối ưu hóa

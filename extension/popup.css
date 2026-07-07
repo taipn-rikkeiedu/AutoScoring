@@ -21,6 +21,7 @@
 body {
   width: 780px;
   height: 600px;
+  margin: 0;
   font-family: var(--font-family);
   font-size: 14px;
   color: var(--text-color);
@@ -72,16 +73,23 @@ header {
 /* Navigation Tabs */
 .tabs-bar {
   display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--secondary-bg);
+  scrollbar-width: none; /* Firefox */
+}
+.tabs-bar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .tab-btn {
   flex: 1;
+  flex-shrink: 0;
   background: none;
   border: none;
   outline: none;
-  padding: 10px 0;
+  padding: 10px 16px;
   font-family: var(--font-family);
   font-weight: 600;
   font-size: 0.9rem;
@@ -339,6 +347,18 @@ input[type="text"]:focus, select:focus {
 }
 .detected-table tr:hover {
   background-color: #f8fafc;
+}
+.detected-table tr.row-pending {
+  background-color: #fffbeb !important;
+}
+.detected-table tr.row-pending:hover {
+  background-color: #fef3c7 !important;
+}
+.detected-table tr.row-not-completed {
+  background-color: #fef2f2 !important;
+}
+.detected-table tr.row-not-completed:hover {
+  background-color: #fee2e2 !important;
 }
 
 .assignment-map-select {
@@ -774,5 +794,113 @@ input[type="text"]:focus, select:focus {
     transform: translateY(-10px) scale(0.95);
     opacity: 0;
   }
+}
+
+@media (max-width: 550px) {
+  /* Tighten paddings for the narrow side panel context */
+  header {
+    padding: 8px 12px;
+  }
+  .content-container {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  /* Make tab bar items slightly smaller */
+  .tab-btn {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+
+  /* Form row elements stack vertically */
+  .select-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Action bars stack vertically and fill width */
+  .bulk-action-bar {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+    padding: 8px 0;
+  }
+  .bulk-action-bar button,
+  .bulk-action-bar div {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+  .bulk-action-bar div {
+    display: flex;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  /* Table layout adjustments */
+  .detected-table th, .detected-table td {
+    padding: 6px 6px;
+    font-size: 0.8rem;
+  }
+  
+  /* Settings page checklist details */
+  .ignore-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modal turns into a full-height overlay */
+  .modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    padding: 15px !important;
+  }
+  .close-modal {
+    top: 10px;
+    right: 14px;
+  }
+  .modal .result-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .modal .result-header div {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  margin-top: 4px;
+}
+.stats-grid-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+/* Care note input field styling */
+.care-note-input {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.82rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 4px;
+  background-color: #f8fafc;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.care-note-input:focus {
+  border-color: #3b82f6;
+  background-color: #ffffff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 

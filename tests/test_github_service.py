@@ -128,6 +128,57 @@ class GitHubServiceTest(unittest.TestCase):
         parsed_text = service._parse_docx_bytes(docx_bytes)
         self.assertEqual(parsed_text, "Hello from docx parser!\nSecond paragraph.")
 
+    @patch("core.github_service.requests.get")
+    def test_ignore_list_case_insensitive_and_segment_matching(self, mock_get):
+        service = GitHubService()
+        
+        # Test archive path extraction filtering
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as zf:
+            # Should be kept
+            zf.writestr("myrepo-main/src/helper.py", "print('keep')")
+            # Should be excluded due to Scripts/ directory segment
+            zf.writestr("myrepo-main/Scripts/helper.py", "print('exclude')")
+            # Should be excluded due to venv/ directory segment
+            zf.writestr("myrepo-main/venv/file.py", "print('exclude')")
+            # Should be kept even if it contains 'venv' as part of folder name (but not exact segment)
+            zf.writestr("myrepo-main/my-venv-folder/file.py", "print('keep')")
+            # Should be excluded due to Lib/ directory segment
+            zf.writestr("myrepo-main/Lib/site-packages/file.py", "print('exclude')")
+        archive_bytes = buffer.getvalue()
+
+        def side_effect(url, headers=None, timeout=None):
+            if url == "https://api.github.com/repos/octocat/hello-world":
+                return Mock(status_code=200, json=lambda: {"default_branch": "main"})
+            if (
+                url
+                == "https://api.github.com/repos/octocat/hello-world/git/trees/main?recursive=1"
+            ):
+                return Mock(status_code=404, json=lambda: {})
+            if (
+                url
+                == "https://api.github.com/repos/octocat/hello-world/contents?ref=main"
+            ):
+                return Mock(status_code=404, json=lambda: {})
+            if (
+                url
+                == "https://codeload.github.com/octocat/hello-world/zip/refs/heads/main"
+            ):
+                return Mock(status_code=200, content=archive_bytes)
+            return Mock(status_code=404, json=lambda: {})
+
+        mock_get.side_effect = side_effect
+
+        result = service.get_repo_contents("https://github.com/octocat/hello-world")
+
+        # Verify only the kept files are in the result
+        self.assertEqual(result["total_files"], 2)
+        self.assertIn("src/helper.py", result["content"])
+        self.assertIn("my-venv-folder/file.py", result["content"])
+        self.assertNotIn("Scripts/helper.py", result["content"])
+        self.assertNotIn("venv/file.py", result["content"])
+        self.assertNotIn("Lib/site-packages/file.py", result["content"])
+
 
 if __name__ == "__main__":
     unittest.main()
