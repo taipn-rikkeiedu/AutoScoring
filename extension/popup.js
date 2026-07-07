@@ -6,12 +6,7 @@ import { CareTab } from './controllers/careTab.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- Shared UI Elements ---
-  const tabAutoBtn = document.getElementById("tab-auto-btn");
-  const tabGraderBtn = document.getElementById("tab-grader-btn");
-  const tabClassListBtn = document.getElementById("tab-class-list-btn");
-  const tabCareBtn = document.getElementById("tab-care-btn");
-  const tabExercisesBtn = document.getElementById("tab-exercises-btn");
-  const tabSettingsBtn = document.getElementById("tab-settings-btn");
+  const tabSelect = document.getElementById("tab-navigator-select");
   
   const tabAuto = document.getElementById("tab-auto");
   const tabGrader = document.getElementById("tab-grader");
@@ -86,28 +81,29 @@ document.addEventListener("DOMContentLoaded", () => {
   context.careTab = careTab;
 
   // --- Tab Navigation ---
-  const activateTab = (activeBtn, activeContent, inactiveBtns, inactiveContents) => {
-    activeBtn.classList.add("active");
-    activeContent.classList.add("active");
-    inactiveBtns.forEach(btn => btn.classList.remove("active"));
-    inactiveContents.forEach(c => c.classList.remove("active"));
+  const activateTabById = (targetId) => {
+    const tabContents = [tabAuto, tabGrader, tabClassList, tabCare, tabExercises, tabSettings];
+    tabContents.forEach(content => {
+      if (content.id === targetId) {
+        content.classList.add("active");
+      } else {
+        content.classList.remove("active");
+      }
+    });
+
+    // Run tab-specific actions
+    if (targetId === "tab-auto") {
+      autoGraderTab.triggerPageScan();
+    } else if (targetId === "tab-class-list") {
+      autoGraderTab.renderClassList();
+    } else if (targetId === "tab-care") {
+      careTab.detectActiveTabAndLoad();
+    }
   };
 
-  tabAutoBtn.addEventListener("click", () => {
-    activateTab(tabAutoBtn, tabAuto, [tabGraderBtn, tabClassListBtn, tabCareBtn, tabExercisesBtn, tabSettingsBtn], [tabGrader, tabClassList, tabCare, tabExercises, tabSettings]);
-    autoGraderTab.triggerPageScan();
+  tabSelect.addEventListener("change", (e) => {
+    activateTabById(e.target.value);
   });
-  tabGraderBtn.addEventListener("click", () => activateTab(tabGraderBtn, tabGrader, [tabAutoBtn, tabClassListBtn, tabCareBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabClassList, tabCare, tabExercises, tabSettings]));
-  tabClassListBtn.addEventListener("click", () => {
-    activateTab(tabClassListBtn, tabClassList, [tabAutoBtn, tabGraderBtn, tabCareBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabGrader, tabCare, tabExercises, tabSettings]);
-    autoGraderTab.renderClassList();
-  });
-  tabCareBtn.addEventListener("click", () => {
-    activateTab(tabCareBtn, tabCare, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabExercisesBtn, tabSettingsBtn], [tabAuto, tabGrader, tabClassList, tabExercises, tabSettings]);
-    careTab.detectActiveTabAndLoad();
-  });
-  tabExercisesBtn.addEventListener("click", () => activateTab(tabExercisesBtn, tabExercises, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabCareBtn, tabSettingsBtn], [tabAuto, tabGrader, tabClassList, tabCare, tabSettings]));
-  tabSettingsBtn.addEventListener("click", () => activateTab(tabSettingsBtn, tabSettings, [tabAutoBtn, tabGraderBtn, tabClassListBtn, tabCareBtn, tabExercisesBtn], [tabAuto, tabGrader, tabClassList, tabCare, tabExercises]));
 
   // --- Load configuration and verify status ---
   const loadStoredConfig = () => {

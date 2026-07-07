@@ -904,3 +904,36 @@ input[type="text"]:focus, select:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
+/* Header Tab Navigation Dropdown */
+.nav-dropdown-container {
+  flex: 1;
+  max-width: 170px;
+  margin: 0 15px;
+}
+
+.nav-select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  background-color: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.nav-select:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.nav-select:focus {
+  border-color: #3b82f6;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
