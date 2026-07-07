@@ -1,6 +1,7 @@
 import { GitHubService } from '../githubService.js';
 import { AIService } from '../aiService.js';
 import { parseScore, findMatchingTemplate, extractComment, DEFAULT_CRITERIA } from '../utils.js';
+import { SupabaseService } from '../supabaseService.js';
 
 function scrapeSubmissionsPage() {
   const submissions = [];
@@ -966,6 +967,39 @@ export class AutoGraderTab {
       sub.status = 'success';
       sub.score = score;
       sub.report = report;
+
+      if (sub.studentName) {
+        let pageId = null;
+        let pageName = sub.studentName;
+        const parenMatch = sub.studentName.match(/(.*?)\s*\((.*?)\)/);
+        if (parenMatch) {
+          pageName = parenMatch[1].trim();
+          pageId = parenMatch[2].trim();
+        }
+
+        const res = await new Promise(resolve => chrome.storage.local.get("classStudentList", resolve));
+        const studentList = res.classStudentList || [];
+        const matched = studentList.find(st => {
+          if (pageId && st.studentId && st.studentId !== 'N/A' && st.studentId.replace(/[\s_-]/g, '').toUpperCase() === pageId.replace(/[\s_-]/g, '').toUpperCase()) return true;
+          if (pageName && st.studentName && (st.studentName.toLowerCase().includes(pageName.toLowerCase()) || pageName.toLowerCase().includes(st.studentName.toLowerCase()))) return true;
+          return false;
+        });
+
+        if (matched) {
+          matched.score = score ? parseFloat(score) : null;
+          matched.comments = report;
+          matched.githubUrl = sub.githubUrl || "";
+          matched.assignmentName = assignmentName;
+          
+          await new Promise(resolve => chrome.storage.local.set({ classStudentList: studentList }, resolve));
+          
+          const classIdMatch = (matched.submissionUrl || "").match(/\/homework-checking\/(\d+)/);
+          const classId = classIdMatch ? classIdMatch[1] : "unknown";
+          if (SupabaseService.isEnabled(this.context.config) && classId !== "unknown") {
+            await SupabaseService.upsertClassStudents(this.context.config, classId, [matched]);
+          }
+        }
+      }
       
       this.updateStatusBadge(badgeEl, sub);
       if (aiResultsDiv && aiComment) {
@@ -1133,13 +1167,21 @@ export class AutoGraderTab {
                 };
               });
               
-              chrome.storage.local.set({ classStudentList: updatedList }, () => {
+              const url = activeTab.url || "";
+              const classIdMatch = url.match(/\/homework-checking\/(\d+)/);
+              const classId = classIdMatch ? classIdMatch[1] : "unknown";
+
+              chrome.storage.local.set({ classStudentList: updatedList }, async () => {
                 this.classStatusBanner.innerHTML = `✅ Đã quét thành công ${updatedList.length} học viên từ trang danh sách lớp.`;
                 this.classStatusBanner.style.backgroundColor = "#f0fdf4";
                 this.classStatusBanner.style.color = "#166534";
                 this.classStatusBanner.style.borderLeftColor = "#22c55e";
                 this.renderClassList();
                 
+                if (SupabaseService.isEnabled(this.context.config) && classId !== "unknown") {
+                  await SupabaseService.upsertClassStudents(this.context.config, classId, updatedList);
+                }
+
                 if (this.context.singleGraderTab) {
                   this.context.singleGraderTab.resolveStudentFromTabUrl();
                 }
@@ -1159,6 +1201,54 @@ export class AutoGraderTab {
         }
       });
     });
+  }
+
+  async loadClassListData(classId) {
+    if (SupabaseService.isEnabled(this.context.config)) {
+      this.classStatusBanner.innerHTML = `☁️ Đang đồng bộ danh sách lớp từ Supabase...`;
+      this.classStatusBanner.style.backgroundColor = "#eff6ff";
+      this.classStatusBanner.style.color = "#1e40af";
+      this.classStatusBanner.style.borderLeftColor = "#3b82f6";
+      
+      const cloudStudents = await SupabaseService.pullClassStudents(this.context.config, classId);
+      if (cloudStudents && cloudStudents.length > 0) {
+        const res = await new Promise(resolve => chrome.storage.local.get("classStudentList", resolve));
+        let localList = res.classStudentList || [];
+        
+        cloudStudents.forEach(cloud => {
+          const local = localList.find(st => st.studentId === cloud.student_id);
+          if (local) {
+            local.score = cloud.score !== null ? parseFloat(cloud.score) : null;
+            local.comments = cloud.comments || "";
+            local.githubUrl = cloud.github_url || "";
+            local.assignmentName = cloud.assignment_name || "";
+            local.lmsStatus = cloud.lms_status || "";
+            local.dbId = cloud.db_id || "";
+          } else {
+            localList.push({
+              studentId: cloud.student_id,
+              studentName: cloud.student_name,
+              submissionUrl: cloud.submission_url || "",
+              githubUrl: cloud.github_url || "",
+              score: cloud.score !== null ? parseFloat(cloud.score) : null,
+              comments: cloud.comments || "",
+              assignmentName: cloud.assignment_name || "",
+              lmsStatus: cloud.lms_status || "",
+              dbId: cloud.db_id || ""
+            });
+          }
+        });
+        
+        await new Promise(resolve => chrome.storage.local.set({ classStudentList: localList }, resolve));
+      }
+      
+      this.classStatusBanner.innerHTML = `📋 Đã tải danh sách lớp ${classId} và đồng bộ với Cloud.`;
+      this.classStatusBanner.style.backgroundColor = "#f0fdf4";
+      this.classStatusBanner.style.color = "#166534";
+      this.classStatusBanner.style.borderLeftColor = "#22c55e";
+    }
+    
+    this.renderClassList();
   }
 
   renderClassList() {

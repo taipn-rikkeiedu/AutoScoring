@@ -1,3 +1,5 @@
+import { SupabaseService } from '../supabaseService.js';
+
 export class CareTab {
   constructor(context) {
     this.context = context;
@@ -183,8 +185,10 @@ export class CareTab {
       const classStudents = allCareStudents[this.currentClassId] || [];
 
       const student = classStudents.find(st => st.studentId === studentId);
+      let studentName = "";
       if (student) {
         student.note = noteValue;
+        studentName = student.studentName;
       } else {
         const currentSt = this.students.find(st => st.studentId === studentId);
         if (currentSt) {
@@ -193,16 +197,29 @@ export class CareTab {
             studentName: currentSt.studentName,
             note: noteValue
           });
+          studentName = currentSt.studentName;
         }
       }
 
       // Cập nhật mảng cục bộ
       const localSt = this.students.find(st => st.studentId === studentId);
-      if (localSt) localSt.note = noteValue;
+      if (localSt) {
+        localSt.note = noteValue;
+        if (!studentName) studentName = localSt.studentName;
+      }
 
       allCareStudents[this.currentClassId] = classStudents;
-      chrome.storage.local.set({ careStudents: allCareStudents }, () => {
+      chrome.storage.local.set({ careStudents: allCareStudents }, async () => {
         window.showToast("Đã lưu ghi chú thành công!", "success");
+        if (SupabaseService.isEnabled(this.context.config) && studentName) {
+          await SupabaseService.upsertCareNote(
+            this.context.config,
+            this.currentClassId,
+            studentId,
+            studentName,
+            noteValue
+          );
+        }
       });
     });
   }
@@ -228,9 +245,36 @@ export class CareTab {
 
   loadClassData(classId) {
     this.currentClassId = classId;
-    chrome.storage.local.get("careStudents", (res) => {
+    chrome.storage.local.get("careStudents", async (res) => {
       const allCareStudents = res.careStudents || {};
-      this.students = allCareStudents[classId] || [];
+      let localStudents = allCareStudents[classId] || [];
+      
+      if (SupabaseService.isEnabled(this.context.config)) {
+        this.statusBanner.innerHTML = `☁️ Đang đồng bộ dữ liệu chăm sóc từ Supabase...`;
+        this.statusBanner.style.backgroundColor = "#eff6ff";
+        this.statusBanner.style.color = "#1e40af";
+        this.statusBanner.style.borderLeftColor = "#3b82f6";
+        
+        const cloudNotes = await SupabaseService.pullCareNotes(this.context.config, classId);
+        if (cloudNotes && cloudNotes.length > 0) {
+          cloudNotes.forEach(cloud => {
+            const local = localStudents.find(st => st.studentId === cloud.student_id);
+            if (local) {
+              local.note = cloud.note || "";
+            } else {
+              localStudents.push({
+                studentId: cloud.student_id,
+                studentName: cloud.student_name,
+                note: cloud.note || ""
+              });
+            }
+          });
+          allCareStudents[classId] = localStudents;
+          await new Promise(resolve => chrome.storage.local.set({ careStudents: allCareStudents }, resolve));
+        }
+      }
+      
+      this.students = localStudents;
       this.renderList();
       
       if (this.students.length > 0) {

@@ -1,6 +1,7 @@
 import { GitHubService } from '../githubService.js';
 import { AIService } from '../aiService.js';
 import { parseScore, DEFAULT_CRITERIA } from '../utils.js';
+import { SupabaseService } from '../supabaseService.js';
 
 function scrapeStudentDetailInfo() {
   let studentName = '';
@@ -327,12 +328,18 @@ export class SingleGraderTab {
             studentList[idx].githubUrl = repoUrl;
             studentList[idx].assignmentName = assignmentName;
             
-            chrome.storage.local.set({ classStudentList: studentList }, () => {
-              console.log("Updated student grading in list:", studentList[idx]);
-              if (this.context.autoGraderTab) {
-                this.context.autoGraderTab.renderClassList();
-              }
-            });
+             const classIdMatch = (studentList[idx].submissionUrl || "").match(/\/homework-checking\/(\d+)/);
+             const classId = classIdMatch ? classIdMatch[1] : "unknown";
+
+             chrome.storage.local.set({ classStudentList: studentList }, async () => {
+               console.log("Updated student grading in list:", studentList[idx]);
+               if (SupabaseService.isEnabled(this.context.config) && classId !== "unknown") {
+                 await SupabaseService.upsertClassStudents(this.context.config, classId, [studentList[idx]]);
+               }
+               if (this.context.autoGraderTab) {
+                 this.context.autoGraderTab.renderClassList();
+               }
+             });
           }
         });
       }

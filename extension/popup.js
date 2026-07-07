@@ -3,6 +3,7 @@ import { SingleGraderTab } from './controllers/singleGraderTab.js';
 import { AutoGraderTab } from './controllers/autoGraderTab.js';
 import { ExercisesTab } from './controllers/exercisesTab.js';
 import { CareTab } from './controllers/careTab.js';
+import { SupabaseService } from './supabaseService.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- Shared UI Elements ---
@@ -81,6 +82,22 @@ document.addEventListener("DOMContentLoaded", () => {
   context.careTab = careTab;
 
   // --- Tab Navigation ---
+  const detectAndLoadClassListSync = () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0]) {
+        const url = tabs[0].url || "";
+        const match = url.match(/\/homework-checking\/(\d+)/);
+        if (match && autoGraderTab) {
+          autoGraderTab.loadClassListData(match[1]);
+        } else {
+          autoGraderTab.renderClassList();
+        }
+      } else {
+        autoGraderTab.renderClassList();
+      }
+    });
+  };
+
   const activateTabById = (targetId) => {
     const tabContents = [tabAuto, tabGrader, tabClassList, tabCare, tabExercises, tabSettings];
     tabContents.forEach(content => {
@@ -95,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (targetId === "tab-auto") {
       autoGraderTab.triggerPageScan();
     } else if (targetId === "tab-class-list") {
-      autoGraderTab.renderClassList();
+      detectAndLoadClassListSync();
     } else if (targetId === "tab-care") {
       careTab.detectActiveTabAndLoad();
     }
@@ -140,7 +157,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return new Promise((resolve) => {
       chrome.storage.local.get([
         "aiProvider", "aiApiKey", "aiApiUrl", "aiModelName", "githubToken", "systemPrompt",
-        "graderIgnoreItems", "exerciseSource", "exerciseApiUrl", "exerciseApiToken", "uploadedExercises"
+        "graderIgnoreItems", "exerciseSource", "exerciseApiUrl", "exerciseApiToken", "uploadedExercises",
+        "supabaseSyncEnabled", "supabaseUrl", "supabaseAnonKey"
       ], (stored) => {
         if (stored.aiProvider) context.config.aiProvider = stored.aiProvider;
         if (stored.aiApiKey) context.config.aiApiKey = stored.aiApiKey;
@@ -153,6 +171,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (stored.exerciseApiUrl) context.config.exerciseApiUrl = stored.exerciseApiUrl;
         if (stored.exerciseApiToken) context.config.exerciseApiToken = stored.exerciseApiToken;
         if (stored.uploadedExercises) context.config.uploadedExercises = stored.uploadedExercises;
+        if (stored.supabaseSyncEnabled !== undefined) context.config.supabaseSyncEnabled = stored.supabaseSyncEnabled;
+        if (stored.supabaseUrl) context.config.supabaseUrl = stored.supabaseUrl;
+        if (stored.supabaseAnonKey) context.config.supabaseAnonKey = stored.supabaseAnonKey;
         resolve();
       });
     });
@@ -216,7 +237,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const res = await fetch(context.config.exerciseApiUrl, { headers });
         if (!res.ok) throw new Error(`API trả về HTTP ${res.status}`);
-        context.exerciseTemplates = await res.json();
+      }
+
+      if (SupabaseService.isEnabled(context.config)) {
+        try {
+          const cloudExercises = await SupabaseService.pullExercises(context.config);
+          if (cloudExercises && cloudExercises.length > 0) {
+            cloudExercises.forEach(ex => {
+              const chap = ex.chapter;
+              const sess = ex.session;
+              const name = ex.assignment_name;
+              if (!context.exerciseTemplates[chap]) context.exerciseTemplates[chap] = {};
+              if (!context.exerciseTemplates[chap][sess]) context.exerciseTemplates[chap][sess] = {};
+              context.exerciseTemplates[chap][sess][name] = {
+                assignment: ex.assignment_text || "",
+                criteria: ex.criteria || ""
+              };
+            });
+          }
+        } catch (exErr) {
+          console.error("Lỗi đồng bộ đề bài từ Supabase:", exErr);
+        }
       }
 
       settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, exercisesSourceText);
@@ -231,6 +272,28 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const res = await fetch(chrome.runtime.getURL("exercises.json"));
         context.exerciseTemplates = await res.json();
+
+        if (SupabaseService.isEnabled(context.config)) {
+          try {
+            const cloudExercises = await SupabaseService.pullExercises(context.config);
+            if (cloudExercises && cloudExercises.length > 0) {
+              cloudExercises.forEach(ex => {
+                const chap = ex.chapter;
+                const sess = ex.session;
+                const name = ex.assignment_name;
+                if (!context.exerciseTemplates[chap]) context.exerciseTemplates[chap] = {};
+                if (!context.exerciseTemplates[chap][sess]) context.exerciseTemplates[chap][sess] = {};
+                context.exerciseTemplates[chap][sess][name] = {
+                  assignment: ex.assignment_text || "",
+                  criteria: ex.criteria || ""
+                };
+              });
+            }
+          } catch (exErr) {
+            console.error("Lỗi đồng bộ đề bài từ Supabase:", exErr);
+          }
+        }
+
         singleGraderTab.populateChapters();
         exercisesTab.populateChapters();
         singleGraderTab.enableGradeButton(ready);

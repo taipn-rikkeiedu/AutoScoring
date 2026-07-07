@@ -421,6 +421,27 @@
         </div>
       </div>
 
+      <!-- Supabase Cloud Sync Section -->
+      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">☁️ Đồng bộ đám mây (Supabase)</h3>
+        
+        <div class="form-group" style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="supabase-sync-enabled" style="width: 16px; height: 16px; cursor: pointer;">
+          <label for="supabase-sync-enabled" style="font-weight: 600; cursor: pointer; margin: 0;">Kích hoạt đồng bộ đám mây</label>
+        </div>
+
+        <div id="supabase-config-group" style="display: none;">
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="supabase-url">Supabase Project URL:</label>
+            <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
+          </div>
+          <div class="form-group">
+            <label for="supabase-anon-key">Supabase Anon Key:</label>
+            <input type="password" id="supabase-anon-key" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="public-anon-key">
+          </div>
+        </div>
+      </div>
+
       <button class="btn-primary" id="save-settings-btn">
         <span>💾 Lưu Cấu Hình</span>
       </button>

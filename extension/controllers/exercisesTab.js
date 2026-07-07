@@ -1,4 +1,5 @@
 import { DEFAULT_CRITERIA, extractCriteriaFromAssignment } from '../utils.js';
+import { SupabaseService } from '../supabaseService.js';
 
 export class ExercisesTab {
   constructor(context) {
@@ -164,10 +165,21 @@ export class ExercisesTab {
       chrome.storage.local.set({
         uploadedExercises: templates,
         exerciseSource: "upload"
-      }, () => {
+      }, async () => {
         window.showToast("Đã cập nhật thay đổi đề bài & tiêu chí thành công!", "success");
         this.context.config.exerciseSource = "upload";
-        // Notify context that library has changed to reload other tabs' dropdowns
+        
+        if (SupabaseService.isEnabled(this.context.config)) {
+          await SupabaseService.upsertExercise(
+            this.context.config,
+            chapter,
+            session,
+            assignmentName,
+            this.exPromptText.value,
+            this.exCriteriaText.value
+          );
+        }
+
         if (this.context.onLibraryChanged) {
           this.context.onLibraryChanged();
         }
@@ -336,12 +348,22 @@ export class ExercisesTab {
     chrome.storage.local.set({
       uploadedExercises: templates,
       exerciseSource: "upload"
-    }, () => {
+    }, async () => {
       window.showToast(`Đã thêm bài tập "${name}" vào Chương "${chapter}" thành công!`, "success");
       this.context.config.exerciseSource = "upload";
       this.scrapeModal.style.display = "none";
 
-      // Notify other tabs
+      if (SupabaseService.isEnabled(this.context.config)) {
+        await SupabaseService.upsertExercise(
+          this.context.config,
+          chapter,
+          session,
+          name,
+          assignment,
+          criteria
+        );
+      }
+
       if (this.context.onLibraryChanged) {
         this.context.onLibraryChanged();
       }

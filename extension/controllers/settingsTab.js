@@ -29,11 +29,17 @@ export class SettingsTab {
     
     this.saveSettingsBtn = document.getElementById("save-settings-btn");
     this.providerInfo = document.getElementById("provider-info");
+    
+    this.supabaseSyncEnabledCheckbox = document.getElementById("supabase-sync-enabled");
+    this.supabaseConfigGroup = document.getElementById("supabase-config-group");
+    this.supabaseUrlInput = document.getElementById("supabase-url");
+    this.supabaseAnonKeyInput = document.getElementById("supabase-anon-key");
   }
 
   bindEvents() {
     this.aiProviderSelect.addEventListener("change", () => this.updateFieldsVisibility());
     this.exerciseSourceSelect.addEventListener("change", () => this.updateFieldsVisibility());
+    this.supabaseSyncEnabledCheckbox.addEventListener("change", () => this.updateFieldsVisibility());
     this.saveSettingsBtn.addEventListener("click", () => this.saveConfiguration());
     this.resetPromptBtn.addEventListener("click", () => this.resetSystemPrompt());
     if (this.ignoreSelectAllBtn) {
@@ -111,6 +117,12 @@ export class SettingsTab {
       this.exerciseApiGroup.style.display = "none";
       this.exerciseUploadGroup.style.display = "block";
     }
+
+    if (this.supabaseSyncEnabledCheckbox.checked) {
+      this.supabaseConfigGroup.style.display = "block";
+    } else {
+      this.supabaseConfigGroup.style.display = "none";
+    }
   }
 
   updateConfigFields(config) {
@@ -131,6 +143,9 @@ export class SettingsTab {
     this.exerciseSourceSelect.value = config.exerciseSource;
     this.exerciseApiUrlInput.value = config.exerciseApiUrl;
     this.exerciseApiTokenInput.value = config.exerciseApiToken;
+    this.supabaseSyncEnabledCheckbox.checked = !!config.supabaseSyncEnabled;
+    this.supabaseUrlInput.value = config.supabaseUrl || "";
+    this.supabaseAnonKeyInput.value = config.supabaseAnonKey || "";
     this.updateFieldsVisibility();
   }
 
@@ -189,6 +204,15 @@ export class SettingsTab {
       return;
     }
 
+    const supabaseSyncEnabled = this.supabaseSyncEnabledCheckbox.checked;
+    const supabaseUrl = this.supabaseUrlInput.value.trim();
+    const supabaseAnonKey = this.supabaseAnonKeyInput.value.trim();
+
+    if (supabaseSyncEnabled && (!supabaseUrl || !supabaseAnonKey)) {
+      window.showToast("Vui lòng nhập đầy đủ Supabase URL và Anon Key khi bật đồng bộ.", "warning");
+      return;
+    }
+
     const saveConfig = () => {
       const newConfig = {
         aiProvider: provider,
@@ -201,6 +225,9 @@ export class SettingsTab {
         exerciseSource: src,
         exerciseApiUrl: exerciseApiUrl,
         exerciseApiToken: exerciseApiToken,
+        supabaseSyncEnabled: supabaseSyncEnabled,
+        supabaseUrl: supabaseUrl,
+        supabaseAnonKey: supabaseAnonKey,
         uploadedExercises: this.context.config.uploadedExercises
       };
 
