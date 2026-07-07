@@ -1,6 +1,6 @@
 # REduX 🚀 — Giải Pháp Chấm Điểm Lớp Học Tự Động Bằng Trí Tuệ Nhân Tạo
 
-**REduX** (phiên bản v3.5.6) là một Chrome/Edge Extension chuyên nghiệp, hỗ trợ giảng viên quét danh sách nộp bài tập từ hệ thống LMS, tự động tải mã nguồn từ GitHub của học viên, lọc cấu hình thông minh và chấm điểm tự động thông qua các mô hình AI tiên tiến nhất hiện nay (Google Gemini, DeepSeek, OpenRouter, hoặc Ollama chạy Local Offline).
+**REduX** (phiên bản v3.6.0) là một Chrome/Edge Extension chuyên nghiệp, hỗ trợ giảng viên quét danh sách nộp bài tập từ hệ thống LMS, tự động tải mã nguồn từ GitHub của học viên, lọc cấu hình thông minh và chấm điểm tự động thông qua các mô hình AI tiên tiến nhất hiện nay (Google Gemini, DeepSeek, OpenRouter, hoặc Ollama chạy Local Offline).
 
 Dự án được thiết kế theo kiến trúc **Serverless 100% (Client-Side Only)** hoạt động độc lập và trực tiếp trên trình duyệt của giảng viên, bảo mật dữ liệu tuyệt đối và tối ưu hóa chi phí vận hành.
 
@@ -11,26 +11,33 @@ Dự án được thiết kế theo kiến trúc **Serverless 100% (Client-Side 
 ### 1. ⚡ Chấm Hàng Loạt & Khớp Đề Bài Thông Minh (Bulk Grader)
 * **Tự động quét trang:** Chỉ với 1-click, REduX sẽ quét toàn bộ danh sách nộp bài của học sinh chứa liên kết GitHub trên trang LMS.
 * **Fuzzy Matching thông minh:** So sánh tương đối tên bài nộp của học sinh với cơ sở dữ liệu để tự động liên kết (map) đúng đề bài & tiêu chí chấm điểm tương ứng.
-* **Tải & Lọc mã nguồn tối ưu:** Tải trực tiếp mã nguồn của học viên qua API GitHub. Sử dụng **Bộ lọc loại trừ (.graderignore) dạng Checkbox trực quan** để lọc bỏ các thư mục rác, build, hoặc dependencies nặng (như `node_modules/`, `build/`, `dist/`...) giúp tiết kiệm token gửi lên AI và tăng tốc độ xử lý mà vẫn giữ lại tài liệu quan trọng như `README.md`.
-* **Chấm điểm song song song song:** Hỗ trợ chấm đồng thời nhiều học viên qua API AI để tối ưu hóa thời gian chờ.
+* **Tải & Lọc mã nguồn tối ưu:** Tải trực tiếp mã nguồn của học viên qua API GitHub. Sử dụng **Bộ lọc loại trừ (.graderignore) dạng Checkbox trực quan** để lọc bỏ các thư mục rác, build, hoặc các dependencies/môi trường ảo nặng (như `node_modules/`, `build/`, `dist/`, `.venv/`, `venv/`, `Scripts/`, `Lib/`...) giúp tiết kiệm token gửi lên AI và tăng tốc độ xử lý mà vẫn giữ lại tài liệu quan trọng như `README.md`.
+* **Hiển thị tiến trình trực quan:** Banner hiển thị chi tiết thông tin sinh viên đang được chấm trực tiếp dạng `👤 Đang chấm cho học viên: [Tên học viên] ([MSSV])` giúp giảng viên dễ dàng theo dõi.
+* **Chấm điểm song song:** Hỗ trợ chấm đồng thời nhiều học viên qua API AI để tối ưu hóa thời gian chờ.
 
 ### 2. 👥 Quản Lý Danh Sách Lớp & Xuất Báo Cáo Excel
 * **Tự động trích xuất thông tin học viên:** Đọc thông tin học viên, mã sinh viên, trạng thái nộp bài trực tiếp từ bảng quản lý lớp học của LMS.
 * **Quản lý trạng thái chấm bài:** Hiển thị chi tiết số bài đã nộp, tỷ lệ bài đã hoàn thành trên mỗi học viên và tổng quan trạng thái chấm điểm của lớp học.
 * **Xuất báo cáo định dạng Excel (.xlsx):** Tích hợp thư viện **SheetJS (xlsx.full.min.js)** giúp xuất trực tiếp bảng điểm tiếng Việt có dấu hoàn hảo, tự động định cấu hình độ rộng cột tối ưu mà không cần thông qua file CSV trung gian lỗi font.
 
-### 3. 🚀 Chấm Điểm Đơn (Single Grader)
+### 3. 📞 Quản Lý Chăm Sóc Học Viên (Student Care)
+* **Tự động cào dữ liệu chăm sóc:** Đọc thông tin Mã SV, Tên học viên từ giao diện chăm sóc sinh viên của LMS (`/class/*/take-care`).
+* **Ghi chú trực tiếp:** Cung cấp ô nhập thông tin liên lạc trước mỗi sinh viên, dữ liệu được tự động lưu trữ và đồng bộ hóa cục bộ (`chrome.storage.local`).
+* **Xuất báo cáo Excel Chăm Sóc:** Hỗ trợ xuất dữ liệu chăm sóc học viên ra file Excel `.xlsx` chuyên nghiệp, hỗ trợ tiếng Việt hoàn chỉnh.
+
+### 4. 🚀 Chấm Điểm Đơn (Single Grader)
 * **Chấm nhanh Repository đang xem:** Tự động phát hiện liên kết GitHub của tab hiện tại, hỗ trợ chọn nhanh mẫu đề bài và chấm ngay lập tức.
 * **Xem Markdown trực quan:** Nhận xét trả về từ AI được render đẹp mắt dưới dạng HTML trực quan, hỗ trợ copy nhanh nhận xét gửi cho học sinh chỉ qua 1-click.
 
-### 4. 📚 Quản Lý Ngân Hàng Đề Bài (Exercises Library)
+### 5. 📚 Quản Lý Ngân Hàng Đề Bài (Exercises Library)
 * **Cào đề bài tự động:** Quét tên môn học, chương học, nội dung mô tả đề bài trực tiếp trên trang chi tiết bài tập LMS của giáo viên.
 * **Tách Rubric chấm điểm tự động:** Tự động phát hiện cấu trúc tiêu chí chấm bài (AI Rubric) trong đề bài để bóc tách riêng phần tiêu chí phục vụ Prompt chấm điểm.
 
-### 5. ⚙️ Cấu Hình Đa Nhà Cung Cấp & Chỉ Báo Nhạy Bén
+### 6. ⚙️ Cấu Hợp Đa Nhà Cung Cấp & Tự Động Chuyển Tab
+* **Tự động nhận dạng trang đang mở (Auto Page Detection)**: Tự động phân tích URL tab LMS đang mở để chuyển đổi dropdown hướng chức năng của Extension về đúng tab (Chấm hàng loạt, Chăm sóc học viên, Đề bài...) ngay khi mở popup. Tối ưu hoàn toàn trên cả Chrome và Edge.
 * **Hỗ trợ đa dạng AI API:** Google Gemini (Gemini 2.5 Flash/Pro), DeepSeek API (Coder/Chat), OpenRouter (Qwen, Llama...), Custom OpenAI-compatible API, và Ollama Local (DeepSeek-R1 chạy offline).
 * **System Prompt Customizer:** Biên tập và thay đổi Prompt chấm bài của AI ngay trong cấu hình hệ thống bằng các biến động: `{{assignment}}`, `{{criteria}}`, và `{{code}}`.
-* **Trạng thái AI tích hợp (Smart Version Tag):** Nhãn phiên bản ở góc phải Header (`v3.5.6`) hoạt động như một đèn chỉ báo thông minh: sáng **màu xanh lá cây** khi cấu hình khóa API hoạt động sẵn sàng, và tự động chuyển sang **màu đỏ** khi chưa cấu hình hoặc cấu hình sai.
+* **Trạng thái AI tích hợp (Smart Version Tag):** Nhãn phiên bản ở góc phải Header (`v3.6.0`) hoạt động như một đèn chỉ báo thông minh: sáng **màu xanh lá cây** khi cấu hình khóa API hoạt động sẵn sàng, và tự động chuyển sang **màu đỏ** khi chưa cấu hình hoặc cấu hình sai.
 
 ---
 
@@ -39,8 +46,8 @@ Dự án được thiết kế theo kiến trúc **Serverless 100% (Client-Side 
 ```text
 REduX/
 ├── extension/             # Mã nguồn Chrome/Edge Extension (JavaScript/CSS/HTML)
-│   ├── manifest.json      # Tệp khai báo thông tin, quyền lợi & icon của Extension (v3.5.6)
-│   ├── popup.html         # Giao diện điều khiển chính của REduX (5 Tab điều hướng)
+│   ├── manifest.json      # Tệp khai báo thông tin, quyền lợi & icon của Extension (v3.6.0)
+│   ├── popup.html         # Giao diện điều khiển chính của REduX (Thanh điều hướng Dropdown mới)
 │   ├── popup.css          # Định dạng CSS premium, hỗ trợ giao diện sáng/tối tối giản
 │   ├── popup.js           # Bộ điều phối chính kết nối các Tab và khởi chạy dịch vụ
 │   ├── aiService.js       # Dịch vụ giao tiếp với các API AI (Gemini, DeepSeek, Ollama...)
@@ -54,8 +61,8 @@ REduX/
 │       ├── singleGraderTab.js # Logic chấm đơn
 │       ├── classListTab.js    # Logic quản lý danh sách lớp & xuất Excel
 │       ├── exercisesTab.js    # Logic quản lý ngân hàng đề bài
+│       ├── careTab.js         # Logic quản lý chăm sóc học viên & ghi chú liên lạc
 │       └── settingsTab.js     # Logic quản lý cấu hình API & lưới Checkbox loại trừ
-├── security_and_sync_plan.md  # Kế hoạch chi tiết về nâng cấp Bảo mật & Cloud cho tương lai
 ├── CHANGELOG.md           # Nhật ký ghi chép tất cả lịch sử thay đổi phiên bản
 └── README.md              # Tài liệu hướng dẫn sử dụng dự án (Tài liệu này)
 ```
@@ -84,7 +91,7 @@ Vì REduX là ứng dụng Serverless chạy client-side, bạn không cần cà
    * **GitHub Token:** Cung cấp Personal Access Token (PAT) của bạn. *Lưu ý: Bạn nên sử dụng Token này vì nếu không có, GitHub API sẽ giới hạn tối đa 60 lượt tải/giờ, có thể gây lỗi nghẽn khi chấm bài hàng loạt cho lớp học đông.*
    * **Bộ lọc loại trừ file (.graderignore):** Tích chọn các checkbox của thư mục/tập tin rác bạn muốn loại bỏ khi tải code học viên (ví dụ: `build/`, `dist/`, `.idea/`...). Các thư mục cốt lõi nặng (`node_modules/`, `.venv/`, `.git/`) sẽ luôn được tự động loại bỏ ngầm để đảm bảo hiệu năng.
 4. Nhấp nút **Lưu Cấu Hình** 💾.
-5. Quan sát góc trên cùng bên phải: Nếu nút tag phiên bản **`v3.5.6`** chuyển sang **màu xanh lá cây**, hệ thống của bạn đã sẵn sàng hoạt động! Nếu là **màu đỏ**, hãy kiểm tra lại khóa API và cấu hình tương thích của bạn.
+5. Quan sát góc trên cùng bên phải: Nếu nút tag phiên bản **`v3.6.0`** chuyển sang **màu xanh lá cây**, hệ thống của bạn đã sẵn sàng hoạt động! Nếu là **màu đỏ**, hãy kiểm tra lại khóa API và cấu hình tương thích của bạn.
 
 ---
 
