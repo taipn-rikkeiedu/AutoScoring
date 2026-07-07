@@ -7,6 +7,14 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.6.1] — 2026-07-07
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Hệ thống chỉ báo trạng thái & Kiểm thử kết nối đám mây sâu:**
+  - Bổ sung nhãn hiển thị trạng thái kết nối Supabase (**Cloud**) trực quan trên Header, hỗ trợ nhấp chuột chuyển nhanh sang Tab Cài Đặt.
+  - Sửa lỗi kiểm thử kết nối giả lập của Supabase Service (phát lỗi HTTP thay vì bỏ qua âm thầm).
+  - Triển khai phương thức kiểm tra kết nối API AI (`testConnection()`) hoạt động thực tế ngay khi mở Extension để chỉ thị chính xác trạng thái sẵn sàng của AI.
+
 ## [v3.6.0] — 2026-07-07
 
 ### ✨ Tính năng mới & Tối ưu hóa
