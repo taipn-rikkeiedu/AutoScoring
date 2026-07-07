@@ -101,6 +101,36 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const detectActiveTabAndNavigate = () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || !tabs[0]) {
+        tabSelect.value = "tab-auto";
+        activateTabById("tab-auto");
+        return;
+      }
+
+      const url = tabs[0].url || "";
+      let targetTab = "tab-auto";
+
+      if (url.includes("/class/") && url.includes("/take-care")) {
+        targetTab = "tab-care";
+      } else if (url.includes("/homework-checking/")) {
+        targetTab = "tab-class-list";
+      } else if (url.includes("/type/elMajor/") && url.includes("/view/")) {
+        targetTab = "tab-exercises";
+      } else if (url.includes("/detailLinkGithub")) {
+        targetTab = "tab-auto";
+      } else {
+        tabSelect.value = "tab-auto";
+        activateTabById("tab-auto");
+        return;
+      }
+
+      tabSelect.value = targetTab;
+      activateTabById(targetTab);
+    });
+  };
+
   tabSelect.addEventListener("change", (e) => {
     activateTabById(e.target.value);
   });
@@ -194,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
       exercisesTab.populateChapters();
       singleGraderTab.enableGradeButton(ready);
       
-      autoGraderTab.triggerPageScan();
+      detectActiveTabAndNavigate();
     } catch (err) {
       console.error(err);
       settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, `${exercisesSourceText} (Lỗi: ${err.message})`);
@@ -204,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
         singleGraderTab.populateChapters();
         exercisesTab.populateChapters();
         singleGraderTab.enableGradeButton(ready);
-        autoGraderTab.triggerPageScan();
+        detectActiveTabAndNavigate();
       } catch (fallbackErr) {
         singleGraderTab.disableSelectors();
         exercisesTab.disableSelectors();
