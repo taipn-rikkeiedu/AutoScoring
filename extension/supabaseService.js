@@ -50,12 +50,14 @@ export class SupabaseService {
       if (res.ok) {
         return await res.json();
       } else {
-        console.error("Supabase pullCareNotes error:", await res.text());
+        const errorText = await res.text();
+        console.error("Supabase pullCareNotes error:", errorText);
+        throw new Error(errorText || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.error("Supabase pullCareNotes exception:", e);
+      throw e;
     }
-    return [];
   }
 
   // --- Class Students Sync ---
@@ -104,12 +106,14 @@ export class SupabaseService {
       if (res.ok) {
         return await res.json();
       } else {
-        console.error("Supabase pullClassStudents error:", await res.text());
+        const errorText = await res.text();
+        console.error("Supabase pullClassStudents error:", errorText);
+        throw new Error(errorText || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.error("Supabase pullClassStudents exception:", e);
+      throw e;
     }
-    return [];
   }
 
   // --- Exercises Sync ---
@@ -151,11 +155,13 @@ export class SupabaseService {
       if (res.ok) {
         return await res.json();
       } else {
-        console.error("Supabase pullExercises error:", await res.text());
+        const errorText = await res.text();
+        console.error("Supabase pullExercises error:", errorText);
+        throw new Error(errorText || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.error("Supabase pullExercises exception:", e);
+      throw e;
     }
-    return [];
   }
 }

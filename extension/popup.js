@@ -4,6 +4,7 @@ import { AutoGraderTab } from './controllers/autoGraderTab.js';
 import { ExercisesTab } from './controllers/exercisesTab.js';
 import { CareTab } from './controllers/careTab.js';
 import { SupabaseService } from './supabaseService.js';
+import { AIService } from './aiService.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- Shared UI Elements ---
@@ -198,27 +199,33 @@ document.addEventListener("DOMContentLoaded", () => {
     let ready = false;
     let providerNameText = "";
 
-    if (context.config.aiProvider === "gemini") {
-      ready = !!context.config.aiApiKey;
-      providerNameText = `Google Gemini (${context.config.aiModelName})`;
-    } else if (context.config.aiProvider === "deepseek") {
-      ready = !!context.config.aiApiKey;
-      providerNameText = `DeepSeek API (${context.config.aiModelName})`;
-    } else if (context.config.aiProvider === "openrouter") {
-      ready = !!context.config.aiApiKey;
-      providerNameText = `OpenRouter (${context.config.aiModelName})`;
-    } else if (context.config.aiProvider === "custom") {
-      ready = !!context.config.aiApiKey && !!context.config.aiApiUrl;
-      providerNameText = `Custom API (${context.config.aiModelName})`;
-    } else if (context.config.aiProvider === "local") {
-      ready = !!context.config.aiApiUrl;
-      providerNameText = `Ollama Local (${context.config.aiModelName})`;
+    try {
+      if (context.config.aiProvider === "gemini") {
+        providerNameText = `Google Gemini (${context.config.aiModelName})`;
+      } else if (context.config.aiProvider === "deepseek") {
+        providerNameText = `DeepSeek API (${context.config.aiModelName})`;
+      } else if (context.config.aiProvider === "openrouter") {
+        providerNameText = `OpenRouter (${context.config.aiModelName})`;
+      } else if (context.config.aiProvider === "custom") {
+        providerNameText = `Custom API (${context.config.aiModelName})`;
+      } else if (context.config.aiProvider === "local") {
+        providerNameText = `Ollama Local (${context.config.aiModelName})`;
+      }
+
+      await AIService.testConnection(context.config);
+      ready = true;
+    } catch (testErr) {
+      console.warn("AI connection test failed:", testErr);
+      providerNameText += ` (Lỗi: ${testErr.message})`;
+      ready = false;
     }
 
     if (ready) {
       appVersionTag.className = "version-tag success";
+      appVersionTag.title = "AI Provider: Kết nối thành công";
     } else {
       appVersionTag.className = "version-tag error";
+      appVersionTag.title = "AI Provider: Lỗi kết nối hoặc cấu hình sai";
     }
 
     let exercisesSourceText = "";
