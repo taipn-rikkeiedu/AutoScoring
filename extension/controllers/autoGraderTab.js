@@ -87,7 +87,7 @@ function scrapeSubmissionsPage() {
         }
         
         // Tìm kiếm dự phòng nếu các chỉ số cột không rõ ràng
-        if (!studentName || !exerciseName) {
+        if ((nameColIndex !== -1 && !studentName) || !exerciseName) {
           for (let i = 0; i < cells.length; i++) {
             const cellText = cells[i].textContent.trim();
             if (cellText && 
@@ -98,7 +98,7 @@ function scrapeSubmissionsPage() {
               const lower = cellText.toLowerCase();
               const isStatus = ['đã nộp', 'chưa nộp', 'xem github', 'chưa có nhận xét', 'sửa nhận xét'].includes(lower);
               if (!isStatus) {
-                if (!studentName && /^[A-ZÀ-Ỹ]/.test(cellText.split(' ')[0])) {
+                if (nameColIndex !== -1 && !studentName && /^[A-ZÀ-Ỹ]/.test(cellText.split(' ')[0])) {
                   studentName = cellText.split('\n')[0].trim();
                 } else if (!exerciseName) {
                   exerciseName = cellText.split('\n')[0].trim();
