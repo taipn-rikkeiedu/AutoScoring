@@ -389,41 +389,6 @@
         </div>
       </div>
 
-      <!-- Exercises Configuration Section -->
-      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">📚 Nguồn Mẫu Bài Tập</h3>
-        
-        <div class="form-group" style="margin-bottom: 10px;">
-          <label for="exercise-source">Chọn nguồn bài tập:</label>
-          <select id="exercise-source">
-            <option value="local">Cục bộ (Đọc từ file exercises.json đi kèm)</option>
-            <option value="api">Đường dẫn REST API ngoài</option>
-            <option value="upload">Tải tệp templates.json lên bộ nhớ lưu trữ</option>
-          </select>
-        </div>
-
-        <!-- External API Section -->
-        <div id="exercise-api-group" style="display: none; margin-bottom: 10px;">
-          <div class="form-group" style="margin-bottom: 10px;">
-            <label for="exercise-api-url">API URL:</label>
-            <input type="text" id="exercise-api-url" placeholder="https://api.myweb.com/exercises">
-          </div>
-          <div class="form-group">
-            <label for="exercise-api-token">Bearer Token (Nếu có):</label>
-            <input type="password" id="exercise-api-token" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="Bearer token">
-          </div>
-        </div>
-
-        <!-- Upload File Section -->
-        <div id="exercise-upload-group" style="display: none; margin-bottom: 10px;">
-          <div class="form-group">
-            <label for="exercise-upload-file">Chọn tệp templates.json:</label>
-            <input type="file" id="exercise-upload-file" accept=".json" style="font-family: var(--font-family); font-size: 0.85rem; padding: 4px 0;">
-            <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Tệp này sẽ được lưu trữ trực tiếp vào `chrome.storage.local`.</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Supabase Cloud Sync Section -->
       <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
         <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">☁️ Đồng bộ đám mây (Supabase)</h3>

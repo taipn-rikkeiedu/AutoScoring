@@ -19,13 +19,7 @@ export class SettingsTab {
     this.systemPromptInput = document.getElementById("system-prompt");
     this.resetPromptBtn = document.getElementById("reset-prompt-btn");
     
-    this.exerciseSourceSelect = document.getElementById("exercise-source");
-    this.exerciseApiGroup = document.getElementById("exercise-api-group");
-    this.exerciseApiUrlInput = document.getElementById("exercise-api-url");
-    this.exerciseApiTokenInput = document.getElementById("exercise-api-token");
-    
-    this.exerciseUploadGroup = document.getElementById("exercise-upload-group");
-    this.exerciseUploadFileInput = document.getElementById("exercise-upload-file");
+
     
     this.saveSettingsBtn = document.getElementById("save-settings-btn");
     this.providerInfo = document.getElementById("provider-info");
@@ -38,7 +32,7 @@ export class SettingsTab {
 
   bindEvents() {
     this.aiProviderSelect.addEventListener("change", () => this.updateFieldsVisibility());
-    this.exerciseSourceSelect.addEventListener("change", () => this.updateFieldsVisibility());
+
     this.supabaseSyncEnabledCheckbox.addEventListener("change", () => this.updateFieldsVisibility());
     this.saveSettingsBtn.addEventListener("click", () => this.saveConfiguration());
     this.resetPromptBtn.addEventListener("click", () => this.resetSystemPrompt());
@@ -106,17 +100,7 @@ export class SettingsTab {
       }
     }
 
-    const src = this.exerciseSourceSelect.value;
-    if (src === "local") {
-      this.exerciseApiGroup.style.display = "none";
-      this.exerciseUploadGroup.style.display = "none";
-    } else if (src === "api") {
-      this.exerciseApiGroup.style.display = "block";
-      this.exerciseUploadGroup.style.display = "none";
-    } else if (src === "upload") {
-      this.exerciseApiGroup.style.display = "none";
-      this.exerciseUploadGroup.style.display = "block";
-    }
+
 
     if (this.supabaseSyncEnabledCheckbox.checked) {
       this.supabaseConfigGroup.style.display = "block";
@@ -140,16 +124,14 @@ export class SettingsTab {
     }
 
     this.systemPromptInput.value = config.systemPrompt || DEFAULT_SYSTEM_PROMPT;
-    this.exerciseSourceSelect.value = config.exerciseSource;
-    this.exerciseApiUrlInput.value = config.exerciseApiUrl;
-    this.exerciseApiTokenInput.value = config.exerciseApiToken;
+
     this.supabaseSyncEnabledCheckbox.checked = !!config.supabaseSyncEnabled;
     this.supabaseUrlInput.value = config.supabaseUrl || "";
     this.supabaseAnonKeyInput.value = config.supabaseAnonKey || "";
     this.updateFieldsVisibility();
   }
 
-  updateStatusDisplay(providerNameText, hasGithubToken, ready, exercisesSourceText, supabaseStatusText) {
+  updateStatusDisplay(providerNameText, hasGithubToken, ready, supabaseStatusText) {
     if (ready) {
       this.providerInfo.innerHTML = `
         • Trạng thái AI Provider: <b>Sẵn sàng - ${providerNameText}</b><br>
@@ -159,10 +141,6 @@ export class SettingsTab {
       this.providerInfo.innerHTML = `
         <span style="color:#ef4444;">• AI Provider chưa sẵn sàng: Vui lòng thiết lập API Key hoặc URL tại tab Cài đặt.</span>
       `;
-    }
-
-    if (exercisesSourceText) {
-      this.providerInfo.innerHTML += `<br>• Nguồn bài tập: <b>${exercisesSourceText}</b>`;
     }
 
     if (supabaseStatusText) {
@@ -187,9 +165,9 @@ export class SettingsTab {
       });
     }
     
-    const src = this.exerciseSourceSelect.value;
-    const exerciseApiUrl = this.exerciseApiUrlInput.value.trim();
-    const exerciseApiToken = this.exerciseApiTokenInput.value.trim();
+    const src = "local";
+    const exerciseApiUrl = "";
+    const exerciseApiToken = "";  
 
     if (provider !== "local" && !apiKey) {
       window.showToast("Vui lòng nhập API Key cho nhà cung cấp AI đã chọn.", "warning");
@@ -203,10 +181,8 @@ export class SettingsTab {
       window.showToast("Vui lòng nhập tên Model.", "warning");
       return;
     }
-    if (src === "api" && !exerciseApiUrl) {
-      window.showToast("Vui lòng nhập API URL để tải danh sách bài tập.", "warning");
-      return;
-    }
+
+
 
     const supabaseSyncEnabled = this.supabaseSyncEnabledCheckbox.checked;
     const supabaseUrl = this.supabaseUrlInput.value.trim();
@@ -241,21 +217,6 @@ export class SettingsTab {
       });
     };
 
-    const file = this.exerciseUploadFileInput.files[0];
-    if (src === "upload" && file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const json = JSON.parse(e.target.result);
-          this.context.config.uploadedExercises = json;
-          saveConfig();
-        } catch (err) {
-          window.showToast("Lỗi phân tích file templates.json: " + err.message, "error");
-        }
-      };
-      reader.readAsText(file);
-    } else {
-      saveConfig();
-    }
+    saveConfig();
   }
 }

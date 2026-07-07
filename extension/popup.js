@@ -228,31 +228,10 @@ document.addEventListener("DOMContentLoaded", () => {
       appVersionTag.title = "AI Provider: Lỗi kết nối hoặc cấu hình sai";
     }
 
-    let exercisesSourceText = "";
     try {
-      if (context.config.exerciseSource === "local") {
-        exercisesSourceText = "Cục bộ (exercises.json)";
-        const res = await fetch(chrome.runtime.getURL("exercises.json"));
-        if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
-        context.exerciseTemplates = await res.json();
-      } else if (context.config.exerciseSource === "upload") {
-        exercisesSourceText = "Tải từ file templates.json của người dùng";
-        if (context.config.uploadedExercises) {
-          context.exerciseTemplates = context.config.uploadedExercises;
-        } else {
-          exercisesSourceText += " <span style='color:#ef4444;'>(Chưa có file upload, dùng fallback local)</span>";
-          const res = await fetch(chrome.runtime.getURL("exercises.json"));
-          context.exerciseTemplates = await res.json();
-        }
-      } else if (context.config.exerciseSource === "api") {
-        exercisesSourceText = `REST API (${context.config.exerciseApiUrl})`;
-        const headers = {};
-        if (context.config.exerciseApiToken) {
-          headers["Authorization"] = `Bearer ${context.config.exerciseApiToken}`;
-        }
-        const res = await fetch(context.config.exerciseApiUrl, { headers });
-        if (!res.ok) throw new Error(`API trả về HTTP ${res.status}`);
-      }
+      const res = await fetch(chrome.runtime.getURL("exercises.json"));
+      if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
+      context.exerciseTemplates = await res.json();
 
       let supabaseStatusText = "Chưa kích hoạt";
       if (SupabaseService.isEnabled(context.config)) {
@@ -285,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
         supabaseStatusTag.style.display = "none";
       }
 
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, exercisesSourceText, supabaseStatusText);
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, supabaseStatusText);
       singleGraderTab.populateChapters();
       exercisesTab.populateChapters();
       singleGraderTab.enableGradeButton(ready);
@@ -311,7 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
         supabaseStatusTag.style.display = "none";
       }
 
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, `${exercisesSourceText} (Lỗi: ${err.message})`, supabaseStatusText);
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, supabaseStatusText);
       try {
         const res = await fetch(chrome.runtime.getURL("exercises.json"));
         context.exerciseTemplates = await res.json();
