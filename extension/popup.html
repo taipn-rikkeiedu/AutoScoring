@@ -301,115 +301,150 @@
     <!-- TAB 3: SETTINGS -->
     <div class="tab-content" id="tab-settings" style="overflow-y: auto; padding-bottom: 20px;">
       
-      <!-- AI Configuration Section -->
-      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">⚙️ Cấu Hình AI</h3>
-        
-        <div class="form-group" style="margin-bottom: 10px;">
-          <label for="ai-provider">Nhà Cung Cấp AI:</label>
-          <select id="ai-provider">
-            <option value="gemini">Google Gemini</option>
-            <option value="deepseek">DeepSeek API</option>
-            <option value="openrouter">OpenRouter</option>
-            <option value="custom">Custom API (OpenAI-compatible)</option>
-            <option value="local">Ollama (Local Model)</option>
-          </select>
-        </div>
+      <!-- Accordion Container -->
+      <div class="settings-accordion" style="margin-bottom: 15px;">
 
-        <div class="form-group" id="settings-api-key-group" style="margin-bottom: 10px;">
-          <label id="lbl-api-key" for="ai-api-key">API Key:</label>
-          <input type="password" id="ai-api-key" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="Nhập API Key của bạn">
-        </div>
+        <!-- Section 1: AI Provider Config -->
+        <div class="accordion-item active">
+          <div class="accordion-header">
+            <span>🤖 Cấu Hình AI Provider</span>
+            <span class="chevron">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="ai-provider">Nhà Cung Cấp AI:</label>
+              <select id="ai-provider">
+                <option value="gemini">Google Gemini</option>
+                <option value="deepseek">DeepSeek API</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="custom">Custom API (OpenAI-compatible)</option>
+                <option value="local">Ollama (Local Model)</option>
+              </select>
+            </div>
 
-        <div class="form-group" id="settings-api-url-group" style="margin-bottom: 10px; display: none;">
-          <label id="lbl-api-url" for="ai-api-url">Base URL:</label>
-          <input type="text" id="ai-api-url" placeholder="https://api.example.com/v1">
-        </div>
+            <div class="form-group" id="settings-api-key-group" style="margin-bottom: 10px;">
+              <label id="lbl-api-key" for="ai-api-key">API Key:</label>
+              <input type="password" id="ai-api-key" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="Nhập API Key của bạn">
+            </div>
 
-        <div class="form-group" style="margin-bottom: 10px;">
-          <label for="ai-model-name">Tên Model (Model Name):</label>
-          <input type="text" id="ai-model-name" placeholder="gemini-1.5-pro">
-        </div>
-      </div>
+            <div class="form-group" id="settings-api-url-group" style="margin-bottom: 10px; display: none;">
+              <label id="lbl-api-url" for="ai-api-url">Base URL:</label>
+              <input type="text" id="ai-api-url" placeholder="https://api.example.com/v1">
+            </div>
 
-      <!-- GitHub Token Section -->
-      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">🐙 GitHub Token (Khuyên dùng)</h3>
-        <div class="form-group">
-          <label for="github-token">Personal Access Token:</label>
-          <input type="password" id="github-token" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="ghp_xxxxxxxxxxxx">
-          <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">Giúp tránh bị giới hạn lượt tải code từ GitHub API (đặc biệt khi chấm bài hàng loạt).</span>
-        </div>
-      </div>
-
-      <!-- Grader Ignore Section -->
-      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h3 style="font-size: 1rem; font-weight: 700; margin: 0; color: #1e3a8a;">📁 Bộ lọc loại trừ file (.graderignore)</h3>
-          <div style="display: flex; gap: 8px;">
-            <button id="ignore-select-all-btn" style="background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0;">Chọn tất cả</button>
-            <span style="color: #cbd5e1; font-size: 0.75rem;">|</span>
-            <button id="ignore-deselect-all-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0;">Bỏ chọn tất cả</button>
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="ai-model-name">Tên Model (Model Name):</label>
+              <input type="text" id="ai-model-name" placeholder="gemini-1.5-pro">
+            </div>
           </div>
         </div>
-        <span style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px; display: block; line-height: 1.4;">Chọn các thư mục/tập tin cụ thể muốn bỏ qua khi chấm. <i>Lưu ý: node_modules, .venv, .git luôn tự động loại trừ.</i></span>
-        <div class="ignore-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px; margin-top: 6px; font-size: 0.8rem; color: #334155;">
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="build/"> <span>build/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="dist/"> <span>dist/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="target/"> <span>target/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="out/"> <span>out/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".vscode/"> <span>.vscode/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".idea/"> <span>.idea/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="env/"> <span>env/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="venv/"> <span>venv/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="Scripts/"> <span>Scripts/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="Lib/"> <span>Lib/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="scripts/"> <span>scripts/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="lib/"> <span>lib/</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="package-lock.json"> <span>package-lock.json</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="yarn.lock"> <span>yarn.lock</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="pnpm-lock.yaml"> <span>pnpm-lock.yaml</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="composer.lock"> <span>composer.lock</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="gradlew/mvnw"> <span>gradlew / mvnw</span></label>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".gitignore"> <span>.gitignore</span></label>
-        </div>
-      </div>
 
-      <!-- System Prompt Section -->
-      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h3 style="font-size: 1rem; font-weight: 700; margin: 0; color: #1e3a8a;">🤖 Mẫu System Prompt Chấm Điểm</h3>
-          <button id="reset-prompt-btn" style="background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.8rem; font-weight: 600; padding: 0;">Khôi phục mặc định</button>
-        </div>
-        <div class="form-group">
-          <textarea id="system-prompt" class="resizable-textarea" style="height: 120px;" placeholder="Nhập mẫu system prompt chấm điểm..."></textarea>
-          <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; line-height: 1.4;">
-            Sử dụng các biến sau trong prompt: <b>{{assignment}}</b> (Nội dung đề bài), <b>{{criteria}}</b> (Tiêu chí chấm điểm), <b>{{code}}</b> (Mã nguồn học viên).
-          </span>
-        </div>
-      </div>
-
-      <!-- Supabase Cloud Sync Section -->
-      <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 14px;">
-        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 10px; color: #1e3a8a;">☁️ Đồng bộ đám mây (Supabase)</h3>
-        
-        <div class="form-group" style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="supabase-sync-enabled" style="width: 16px; height: 16px; cursor: pointer;">
-          <label for="supabase-sync-enabled" style="font-weight: 600; cursor: pointer; margin: 0;">Kích hoạt đồng bộ đám mây</label>
-        </div>
-
-        <div id="supabase-config-group" style="display: none;">
-          <div class="form-group" style="margin-bottom: 10px;">
-            <label for="supabase-url">Supabase Project URL:</label>
-            <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
+        <!-- Section 2: GitHub Token Config -->
+        <div class="accordion-item">
+          <div class="accordion-header">
+            <span>🐙 GitHub Token (Nâng cao)</span>
+            <span class="chevron">▼</span>
           </div>
-          <div class="form-group">
-            <label for="supabase-anon-key">Supabase Anon Key:</label>
-            <input type="password" id="supabase-anon-key" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="public-anon-key">
+          <div class="accordion-content">
+            <div class="form-group">
+              <label for="github-token">Personal Access Token:</label>
+              <input type="password" id="github-token" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="ghp_xxxxxxxxxxxx">
+              <span style="font-size: 0.75rem; color: #64748b; margin-top: 4px; display: block; line-height: 1.4;">
+                Giúp tránh bị giới hạn lượt tải code từ GitHub API (đặc biệt khi chấm bài hàng loạt).
+              </span>
+            </div>
           </div>
         </div>
+
+        <!-- Section 3: Grader Ignore Config -->
+        <div class="accordion-item">
+          <div class="accordion-header">
+            <span>📁 Bộ lọc loại trừ (.graderignore)</span>
+            <span class="chevron">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Chọn thư mục/tệp tin bỏ qua khi chấm:</span>
+              <div style="display: flex; gap: 8px;">
+                <button id="ignore-select-all-btn" style="background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0;">Chọn tất cả</button>
+                <span style="color: #cbd5e1; font-size: 0.75rem;">|</span>
+                <button id="ignore-deselect-all-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0;">Bỏ chọn tất cả</button>
+              </div>
+            </div>
+            <span style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 8px; display: block; line-height: 1.4;">
+              Lưu ý: node_modules, .venv, .git luôn tự động loại trừ.
+            </span>
+            <div class="ignore-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 12px; margin-top: 6px; font-size: 0.8rem; color: #334155;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="build/"> <span>build/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="dist/"> <span>dist/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="target/"> <span>target/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="out/"> <span>out/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".vscode/"> <span>.vscode/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".idea/"> <span>.idea/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="env/"> <span>env/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="venv/"> <span>venv/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="Scripts/"> <span>Scripts/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="Lib/"> <span>Lib/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="scripts/"> <span>scripts/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="lib/"> <span>lib/</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="package-lock.json"> <span>package-lock.json</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="yarn.lock"> <span>yarn.lock</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="pnpm-lock.yaml"> <span>pnpm-lock.yaml</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="composer.lock"> <span>composer.lock</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value="gradlew/mvnw"> <span>gradlew / mvnw</span></label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><input type="checkbox" class="ignore-item-cb" value=".gitignore"> <span>.gitignore</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: System Prompt Config -->
+        <div class="accordion-item">
+          <div class="accordion-header">
+            <span>📝 Mẫu System Prompt Chấm Điểm</span>
+            <span class="chevron">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Chỉnh sửa mẫu prompt hệ thống:</span>
+              <button id="reset-prompt-btn" style="background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.8rem; font-weight: 600; padding: 0;">Khôi phục mặc định</button>
+            </div>
+            <div class="form-group">
+              <textarea id="system-prompt" class="resizable-textarea" style="height: 120px;" placeholder="Nhập mẫu system prompt chấm điểm..."></textarea>
+              <span style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; display: block; line-height: 1.4;">
+                Sử dụng các biến sau trong prompt: <b>{{assignment}}</b> (Nội dung đề bài), <b>{{criteria}}</b> (Tiêu chí chấm điểm), <b>{{code}}</b> (Mã nguồn học viên).
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 5: Supabase Sync Config -->
+        <div class="accordion-item">
+          <div class="accordion-header">
+            <span>☁️ Đồng bộ đám mây (Supabase)</span>
+            <span class="chevron">▼</span>
+          </div>
+          <div class="accordion-content">
+            <div class="form-group" style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="supabase-sync-enabled" style="width: 16px; height: 16px; cursor: pointer;">
+              <label for="supabase-sync-enabled" style="font-weight: 600; cursor: pointer; margin: 0;">Kích hoạt đồng bộ đám mây</label>
+            </div>
+
+            <div id="supabase-config-group" style="display: none;">
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label for="supabase-url">Supabase Project URL:</label>
+                <input type="text" id="supabase-url" placeholder="https://your-project.supabase.co">
+              </div>
+              <div class="form-group">
+                <label for="supabase-anon-key">Supabase Anon Key:</label>
+                <input type="password" id="supabase-anon-key" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" placeholder="public-anon-key">
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
+      <!-- Action Button (Outside Accordion) -->
       <button class="btn-primary" id="save-settings-btn">
         <span>💾 Lưu Cấu Hình</span>
       </button>

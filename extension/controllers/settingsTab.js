@@ -42,6 +42,17 @@ export class SettingsTab {
     if (this.ignoreDeselectAllBtn) {
       this.ignoreDeselectAllBtn.addEventListener("click", () => this.toggleAllIgnoreCbs(false));
     }
+
+    // Accordion headers toggle logic
+    const accordionHeaders = document.querySelectorAll(".settings-accordion .accordion-header");
+    accordionHeaders.forEach(header => {
+      header.addEventListener("click", () => {
+        const item = header.closest(".accordion-item");
+        if (item) {
+          item.classList.toggle("active");
+        }
+      });
+    });
   }
 
   toggleAllIgnoreCbs(checked) {
