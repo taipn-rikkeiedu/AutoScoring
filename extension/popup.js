@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.6.0";
+  const appVersion = "3.6.1";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {

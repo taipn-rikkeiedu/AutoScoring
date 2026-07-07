@@ -7,6 +7,17 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.6.1] — 2026-07-07
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Tự động nhận dạng trang đang mở (Auto Page Detection):**
+  - Quét URL hoạt động để tự động định tuyến đến đúng tab chức năng (Chấm Hàng Loạt, Chấm Đơn, Quản Lý Lớp Học, Chăm Sóc SV, Đề Bài).
+  - Tối ưu hóa hiệu năng và độ ổn định trên cả Chrome và Edge.
+- **Sửa lỗi cào dữ liệu cột Nhận xét AI làm Tên học viên:**
+  - Hạn chế quét dự phòng Tên học viên khi bảng không chứa cột Học viên (như trên trang `/detailLinkGithub`).
+- **Hiển thị Tên học viên trong Tiến trình Chấm hàng loạt:**
+  - Cập nhật hiển thị tên của học viên đang được chấm trong thanh tiến trình để giáo viên dễ quan sát.
+
 ## [v3.6.0] — 2026-07-07
 
 ### ✨ Tính năng mới & Tối ưu hóa
