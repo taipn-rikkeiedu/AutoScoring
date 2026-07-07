@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "REduX",
-  "version": "3.6.1",
+  "version": "3.6.0",
   "description": "Chấm điểm trực tiếp repository GitHub của học viên thông qua mô hình Trí Tuệ Nhân Tạo.",
   "permissions": [
     "activeTab",

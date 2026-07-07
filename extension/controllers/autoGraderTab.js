@@ -73,7 +73,12 @@ function scrapeSubmissionsPage() {
         }
         
         if (nameColIndex !== -1 && cells[nameColIndex]) {
-          studentName = cells[nameColIndex].textContent.trim().split('\n')[0].trim();
+          const lines = cells[nameColIndex].textContent.trim().split('\n').map(l => l.trim()).filter(Boolean);
+          if (lines.length > 1 && lines[1] && lines[1] !== 'N/A') {
+            studentName = `${lines[0]} (${lines[1]})`;
+          } else {
+            studentName = lines[0];
+          }
         }
         
         if (linkColIndex !== -1 && cells[linkColIndex]) {
@@ -375,6 +380,8 @@ export class AutoGraderTab {
     this.bulkProgressContainer = document.getElementById("bulk-progress-container");
     this.bulkProgressFill = document.getElementById("bulk-progress-fill");
     this.bulkProgressText = document.getElementById("bulk-progress-text");
+    this.bulkStudentResolvedBanner = document.getElementById("bulk-student-resolved-banner");
+    this.bulkStudentResolvedInfo = document.getElementById("bulk-student-resolved-info");
 
     // Mode 2: Class Student List elements
     this.classTableEl = document.getElementById("class-table-el");
@@ -986,15 +993,48 @@ export class AutoGraderTab {
     this.bulkProgressText.style.display = 'block';
     this.bulkProgressFill.style.width = '0%';
     
+    if (this.bulkStudentResolvedBanner) {
+      this.bulkStudentResolvedBanner.style.display = 'block';
+      this.bulkStudentResolvedInfo.textContent = '-';
+    }
+    
     let gradedCount = 0;
     const totalToGrade = checkedRows.length;
+    
+    const stored = await new Promise(resolve => chrome.storage.local.get("classStudentList", resolve));
+    const studentList = stored.classStudentList || [];
     
     for (let i = 0; i < this.context.submissions.length; i++) {
       const sub = this.context.submissions[i];
       if (!sub.checked || !sub.matchedTemplate) continue;
       
-      const studentInfo = sub.studentName ? ` cho học viên: ${sub.studentName}` : "";
-      this.bulkProgressText.innerText = `Đang chấm bài${studentInfo} (${gradedCount + 1}/${totalToGrade})...`;
+      let resolvedDisplayName = sub.studentName || 'Chưa rõ học viên';
+      if (sub.studentName) {
+        let pageId = null;
+        let pageName = sub.studentName;
+        
+        const parenMatch = sub.studentName.match(/(.*?)\s*\((.*?)\)/);
+        if (parenMatch) {
+          pageName = parenMatch[1].trim();
+          pageId = parenMatch[2].trim();
+        }
+        
+        const matched = studentList.find(st => {
+          if (pageId && st.studentId && st.studentId !== 'N/A' && st.studentId.replace(/[\s_-]/g, '').toUpperCase() === pageId.replace(/[\s_-]/g, '').toUpperCase()) return true;
+          if (pageName && st.studentName && (st.studentName.toLowerCase().includes(pageName.toLowerCase()) || pageName.toLowerCase().includes(st.studentName.toLowerCase()))) return true;
+          return false;
+        });
+        
+        if (matched) {
+          resolvedDisplayName = `${matched.studentName} (${matched.studentId})`;
+        }
+      }
+      
+      if (this.bulkStudentResolvedInfo) {
+        this.bulkStudentResolvedInfo.textContent = resolvedDisplayName;
+      }
+      
+      this.bulkProgressText.innerText = `Đang chấm bài: ${sub.exerciseName} (${gradedCount + 1}/${totalToGrade})...`;
       this.bulkProgressFill.style.width = `${(gradedCount / totalToGrade) * 100}%`;
       
       await this.gradeSingleRow(i);
@@ -1003,6 +1043,10 @@ export class AutoGraderTab {
     
     this.bulkProgressFill.style.width = '100%';
     this.bulkProgressText.innerText = `Hoàn thành chấm điểm ${totalToGrade} bài!`;
+    
+    if (this.bulkStudentResolvedBanner) {
+      this.bulkStudentResolvedBanner.style.display = 'none';
+    }
     
     this.bulkGradeBtn.disabled = false;
     this.rescanPageBtn.disabled = false;
