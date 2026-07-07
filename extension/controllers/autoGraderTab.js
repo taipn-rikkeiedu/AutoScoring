@@ -993,7 +993,8 @@ export class AutoGraderTab {
       const sub = this.context.submissions[i];
       if (!sub.checked || !sub.matchedTemplate) continue;
       
-      this.bulkProgressText.innerText = `Đang chấm bài: ${sub.exerciseName} (${gradedCount + 1}/${totalToGrade})...`;
+      const studentInfo = sub.studentName ? ` cho học viên: ${sub.studentName}` : "";
+      this.bulkProgressText.innerText = `Đang chấm bài${studentInfo} (${gradedCount + 1}/${totalToGrade})...`;
       this.bulkProgressFill.style.width = `${(gradedCount / totalToGrade) * 100}%`;
       
       await this.gradeSingleRow(i);
