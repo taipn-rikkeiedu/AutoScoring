@@ -233,6 +233,20 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
       context.exerciseTemplates = await res.json();
 
+      // Overwrite with local custom edits if they exist
+      if (context.config.uploadedExercises) {
+        const localEdits = context.config.uploadedExercises;
+        for (const chap in localEdits) {
+          if (!context.exerciseTemplates[chap]) context.exerciseTemplates[chap] = {};
+          for (const sess in localEdits[chap]) {
+            if (!context.exerciseTemplates[chap][sess]) context.exerciseTemplates[chap][sess] = {};
+            for (const name in localEdits[chap][sess]) {
+              context.exerciseTemplates[chap][sess][name] = { ...localEdits[chap][sess][name] };
+            }
+          }
+        }
+      }
+
       let supabaseStatusText = "Chưa kích hoạt";
       if (SupabaseService.isEnabled(context.config)) {
         supabaseStatusTag.style.display = "inline-block";
@@ -271,34 +285,34 @@ document.addEventListener("DOMContentLoaded", () => {
       
       detectActiveTabAndNavigate();
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi trong quá trình khởi tạo cấu hình:", err);
       
       let supabaseStatusText = "Chưa kích hoạt";
-      if (SupabaseService.isEnabled(context.config)) {
-        supabaseStatusTag.style.display = "inline-block";
-        try {
-          await SupabaseService.pullExercises(context.config);
-          supabaseStatusText = "🟢 Sẵn sàng";
-          supabaseStatusTag.className = "version-tag success";
-          supabaseStatusTag.title = "Supabase Cloud: Đồng bộ sẵn sàng";
-        } catch (exErr) {
-          supabaseStatusText = "🔴 Lỗi kết nối CSDL";
-          supabaseStatusTag.className = "version-tag error";
-          supabaseStatusTag.title = "Supabase Cloud: Lỗi kết nối CSDL";
-        }
-      } else {
-        supabaseStatusTag.style.display = "none";
-      }
-
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, supabaseStatusText);
       try {
+        // Fallback: load local templates
         const res = await fetch(chrome.runtime.getURL("exercises.json"));
         context.exerciseTemplates = await res.json();
 
+        // Merge local custom edits
+        if (context.config.uploadedExercises) {
+          const localEdits = context.config.uploadedExercises;
+          for (const chap in localEdits) {
+            if (!context.exerciseTemplates[chap]) context.exerciseTemplates[chap] = {};
+            for (const sess in localEdits[chap]) {
+              if (!context.exerciseTemplates[chap][sess]) context.exerciseTemplates[chap][sess] = {};
+              for (const name in localEdits[chap][sess]) {
+                context.exerciseTemplates[chap][sess][name] = { ...localEdits[chap][sess][name] };
+              }
+            }
+          }
+        }
+
+        // Pull Supabase cloud sync templates if enabled
         if (SupabaseService.isEnabled(context.config)) {
           supabaseStatusTag.style.display = "inline-block";
           try {
             const cloudExercises = await SupabaseService.pullExercises(context.config);
+            supabaseStatusText = "🟢 Sẵn sàng";
             supabaseStatusTag.className = "version-tag success";
             supabaseStatusTag.title = "Supabase Cloud: Đồng bộ sẵn sàng";
             if (cloudExercises && cloudExercises.length > 0) {
@@ -316,6 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           } catch (exErr) {
             console.error("Lỗi đồng bộ đề bài từ Supabase:", exErr);
+            supabaseStatusText = "🔴 Lỗi kết nối CSDL";
             supabaseStatusTag.className = "version-tag error";
             supabaseStatusTag.title = "Supabase Cloud: Lỗi kết nối CSDL";
           }
@@ -328,9 +343,12 @@ document.addEventListener("DOMContentLoaded", () => {
         singleGraderTab.enableGradeButton(ready);
         detectActiveTabAndNavigate();
       } catch (fallbackErr) {
+        console.error("Lỗi fallback khởi động:", fallbackErr);
         singleGraderTab.disableSelectors();
         exercisesTab.disableSelectors();
       }
+
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, supabaseStatusText);
     }
   }
 

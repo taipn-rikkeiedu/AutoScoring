@@ -333,9 +333,14 @@ export class SingleGraderTab {
 
              chrome.storage.local.set({ classStudentList: studentList }, async () => {
                console.log("Updated student grading in list:", studentList[idx]);
-               if (SupabaseService.isEnabled(this.context.config) && classId !== "unknown") {
-                 await SupabaseService.upsertClassStudents(this.context.config, classId, [studentList[idx]]);
-               }
+                if (SupabaseService.isEnabled(this.context.config) && classId !== "unknown") {
+                  try {
+                    await SupabaseService.upsertClassStudents(this.context.config, classId, [studentList[idx]]);
+                  } catch (syncErr) {
+                    console.warn("Lỗi đồng bộ Supabase:", syncErr);
+                    window.showToast("Đồng bộ kết quả lên Cloud thất bại: " + syncErr.message, "warning");
+                  }
+                }
                if (this.context.autoGraderTab) {
                  this.context.autoGraderTab.renderClassList();
                }

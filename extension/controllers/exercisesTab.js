@@ -170,14 +170,19 @@ export class ExercisesTab {
         this.context.config.exerciseSource = "upload";
         
         if (SupabaseService.isEnabled(this.context.config)) {
-          await SupabaseService.upsertExercise(
-            this.context.config,
-            chapter,
-            session,
-            assignmentName,
-            this.exPromptText.value,
-            this.exCriteriaText.value
-          );
+          try {
+            await SupabaseService.upsertExercise(
+              this.context.config,
+              chapter,
+              session,
+              assignmentName,
+              this.exPromptText.value,
+              this.exCriteriaText.value
+            );
+          } catch (syncErr) {
+            console.warn("Lỗi đồng bộ Supabase:", syncErr);
+            window.showToast("Đồng bộ đề bài lên Cloud thất bại: " + syncErr.message, "warning");
+          }
         }
 
         if (this.context.onLibraryChanged) {
@@ -354,14 +359,19 @@ export class ExercisesTab {
       this.scrapeModal.style.display = "none";
 
       if (SupabaseService.isEnabled(this.context.config)) {
-        await SupabaseService.upsertExercise(
-          this.context.config,
-          chapter,
-          session,
-          name,
-          assignment,
-          criteria
-        );
+        try {
+          await SupabaseService.upsertExercise(
+            this.context.config,
+            chapter,
+            session,
+            name,
+            assignment,
+            criteria
+          );
+        } catch (syncErr) {
+          console.warn("Lỗi đồng bộ Supabase:", syncErr);
+          window.showToast("Đồng bộ đề bài lên Cloud thất bại: " + syncErr.message, "warning");
+        }
       }
 
       if (this.context.onLibraryChanged) {

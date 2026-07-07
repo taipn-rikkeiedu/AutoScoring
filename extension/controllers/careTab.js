@@ -212,13 +212,18 @@ export class CareTab {
       chrome.storage.local.set({ careStudents: allCareStudents }, async () => {
         window.showToast("Đã lưu ghi chú thành công!", "success");
         if (SupabaseService.isEnabled(this.context.config) && studentName) {
-          await SupabaseService.upsertCareNote(
-            this.context.config,
-            this.currentClassId,
-            studentId,
-            studentName,
-            noteValue
-          );
+          try {
+            await SupabaseService.upsertCareNote(
+              this.context.config,
+              this.currentClassId,
+              studentId,
+              studentName,
+              noteValue
+            );
+          } catch (syncErr) {
+            console.warn("Lỗi đồng bộ Supabase:", syncErr);
+            window.showToast("Đồng bộ ghi chú lên Cloud thất bại: " + syncErr.message, "warning");
+          }
         }
       });
     });
@@ -255,22 +260,27 @@ export class CareTab {
         this.statusBanner.style.color = "#1e40af";
         this.statusBanner.style.borderLeftColor = "#3b82f6";
         
-        const cloudNotes = await SupabaseService.pullCareNotes(this.context.config, classId);
-        if (cloudNotes && cloudNotes.length > 0) {
-          cloudNotes.forEach(cloud => {
-            const local = localStudents.find(st => st.studentId === cloud.student_id);
-            if (local) {
-              local.note = cloud.note || "";
-            } else {
-              localStudents.push({
-                studentId: cloud.student_id,
-                studentName: cloud.student_name,
-                note: cloud.note || ""
-              });
-            }
-          });
-          allCareStudents[classId] = localStudents;
-          await new Promise(resolve => chrome.storage.local.set({ careStudents: allCareStudents }, resolve));
+        try {
+          const cloudNotes = await SupabaseService.pullCareNotes(this.context.config, classId);
+          if (cloudNotes && cloudNotes.length > 0) {
+            cloudNotes.forEach(cloud => {
+              const local = localStudents.find(st => st.studentId === cloud.student_id);
+              if (local) {
+                local.note = cloud.note || "";
+              } else {
+                localStudents.push({
+                  studentId: cloud.student_id,
+                  studentName: cloud.student_name,
+                  note: cloud.note || ""
+                });
+              }
+            });
+            allCareStudents[classId] = localStudents;
+            await new Promise(resolve => chrome.storage.local.set({ careStudents: allCareStudents }, resolve));
+          }
+        } catch (err) {
+          console.warn("Supabase pullCareNotes failed:", err);
+          window.showToast("Đồng bộ ghi chú từ Cloud thất bại: " + err.message, "warning");
         }
       }
       

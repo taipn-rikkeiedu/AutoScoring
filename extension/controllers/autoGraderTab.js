@@ -996,7 +996,12 @@ export class AutoGraderTab {
           const classIdMatch = (matched.submissionUrl || "").match(/\/homework-checking\/(\d+)/);
           const classId = classIdMatch ? classIdMatch[1] : "unknown";
           if (SupabaseService.isEnabled(this.context.config) && classId !== "unknown") {
-            await SupabaseService.upsertClassStudents(this.context.config, classId, [matched]);
+            try {
+              await SupabaseService.upsertClassStudents(this.context.config, classId, [matched]);
+            } catch (syncErr) {
+              console.warn("Lỗi đồng bộ Supabase:", syncErr);
+              window.showToast("Đồng bộ dữ liệu học sinh lên Cloud thất bại: " + syncErr.message, "warning");
+            }
           }
         }
       }
@@ -1179,7 +1184,12 @@ export class AutoGraderTab {
                 this.renderClassList();
                 
                 if (SupabaseService.isEnabled(this.context.config) && classId !== "unknown") {
-                  await SupabaseService.upsertClassStudents(this.context.config, classId, updatedList);
+                  try {
+                    await SupabaseService.upsertClassStudents(this.context.config, classId, updatedList);
+                  } catch (syncErr) {
+                    console.warn("Lỗi đồng bộ Supabase:", syncErr);
+                    window.showToast("Đồng bộ danh sách học viên lên Cloud thất bại: " + syncErr.message, "warning");
+                  }
                 }
 
                 if (this.context.singleGraderTab) {
@@ -1210,42 +1220,50 @@ export class AutoGraderTab {
       this.classStatusBanner.style.color = "#1e40af";
       this.classStatusBanner.style.borderLeftColor = "#3b82f6";
       
-      const cloudStudents = await SupabaseService.pullClassStudents(this.context.config, classId);
-      if (cloudStudents && cloudStudents.length > 0) {
-        const res = await new Promise(resolve => chrome.storage.local.get("classStudentList", resolve));
-        let localList = res.classStudentList || [];
+      try {
+        const cloudStudents = await SupabaseService.pullClassStudents(this.context.config, classId);
+        if (cloudStudents && cloudStudents.length > 0) {
+          const res = await new Promise(resolve => chrome.storage.local.get("classStudentList", resolve));
+          let localList = res.classStudentList || [];
+          
+          cloudStudents.forEach(cloud => {
+            const local = localList.find(st => st.studentId === cloud.student_id);
+            if (local) {
+              local.score = cloud.score !== null ? parseFloat(cloud.score) : null;
+              local.comments = cloud.comments || "";
+              local.githubUrl = cloud.github_url || "";
+              local.assignmentName = cloud.assignment_name || "";
+              local.lmsStatus = cloud.lms_status || "";
+              local.dbId = cloud.db_id || "";
+            } else {
+              localList.push({
+                studentId: cloud.student_id,
+                studentName: cloud.student_name,
+                submissionUrl: cloud.submission_url || "",
+                githubUrl: cloud.github_url || "",
+                score: cloud.score !== null ? parseFloat(cloud.score) : null,
+                comments: cloud.comments || "",
+                assignmentName: cloud.assignment_name || "",
+                lmsStatus: cloud.lms_status || "",
+                dbId: cloud.db_id || ""
+              });
+            }
+          });
+          
+          await new Promise(resolve => chrome.storage.local.set({ classStudentList: localList }, resolve));
+        }
         
-        cloudStudents.forEach(cloud => {
-          const local = localList.find(st => st.studentId === cloud.student_id);
-          if (local) {
-            local.score = cloud.score !== null ? parseFloat(cloud.score) : null;
-            local.comments = cloud.comments || "";
-            local.githubUrl = cloud.github_url || "";
-            local.assignmentName = cloud.assignment_name || "";
-            local.lmsStatus = cloud.lms_status || "";
-            local.dbId = cloud.db_id || "";
-          } else {
-            localList.push({
-              studentId: cloud.student_id,
-              studentName: cloud.student_name,
-              submissionUrl: cloud.submission_url || "",
-              githubUrl: cloud.github_url || "",
-              score: cloud.score !== null ? parseFloat(cloud.score) : null,
-              comments: cloud.comments || "",
-              assignmentName: cloud.assignment_name || "",
-              lmsStatus: cloud.lms_status || "",
-              dbId: cloud.db_id || ""
-            });
-          }
-        });
-        
-        await new Promise(resolve => chrome.storage.local.set({ classStudentList: localList }, resolve));
+        this.classStatusBanner.innerHTML = `📋 Đã tải danh sách lớp ${classId} và đồng bộ với Cloud.`;
+        this.classStatusBanner.style.backgroundColor = "#f0fdf4";
+        this.classStatusBanner.style.color = "#166534";
+        this.classStatusBanner.style.borderLeftColor = "#22c55e";
+      } catch (err) {
+        console.warn("Supabase pullClassStudents failed:", err);
+        this.classStatusBanner.innerHTML = `⚠️ Lỗi đồng bộ đám mây: ${err.message}. Đang dùng dữ liệu cục bộ.`;
+        this.classStatusBanner.style.backgroundColor = "#fee2e2";
+        this.classStatusBanner.style.color = "#991b1b";
+        this.classStatusBanner.style.borderLeftColor = "#ef4444";
       }
-      
-      this.classStatusBanner.innerHTML = `📋 Đã tải danh sách lớp ${classId} và đồng bộ với Cloud.`;
-      this.classStatusBanner.style.backgroundColor = "#f0fdf4";
-      this.classStatusBanner.style.color = "#166534";
-      this.classStatusBanner.style.borderLeftColor = "#22c55e";
     }
     
     this.renderClassList();
