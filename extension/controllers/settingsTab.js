@@ -149,7 +149,7 @@ export class SettingsTab {
     this.updateFieldsVisibility();
   }
 
-  updateStatusDisplay(providerNameText, hasGithubToken, ready, exercisesSourceText) {
+  updateStatusDisplay(providerNameText, hasGithubToken, ready, exercisesSourceText, supabaseStatusText) {
     if (ready) {
       this.providerInfo.innerHTML = `
         • Trạng thái AI Provider: <b>Sẵn sàng - ${providerNameText}</b><br>
@@ -163,6 +163,10 @@ export class SettingsTab {
 
     if (exercisesSourceText) {
       this.providerInfo.innerHTML += `<br>• Nguồn bài tập: <b>${exercisesSourceText}</b>`;
+    }
+
+    if (supabaseStatusText) {
+      this.providerInfo.innerHTML += `<br>• Trạng thái Supabase Cloud: <b>${supabaseStatusText}</b>`;
     }
   }
 

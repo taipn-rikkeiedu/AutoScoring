@@ -239,9 +239,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!res.ok) throw new Error(`API trả về HTTP ${res.status}`);
       }
 
+      let supabaseStatusText = "Chưa kích hoạt";
       if (SupabaseService.isEnabled(context.config)) {
         try {
           const cloudExercises = await SupabaseService.pullExercises(context.config);
+          supabaseStatusText = "🟢 Sẵn sàng";
           if (cloudExercises && cloudExercises.length > 0) {
             cloudExercises.forEach(ex => {
               const chap = ex.chapter;
@@ -257,10 +259,11 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         } catch (exErr) {
           console.error("Lỗi đồng bộ đề bài từ Supabase:", exErr);
+          supabaseStatusText = "🔴 Lỗi kết nối CSDL";
         }
       }
 
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, exercisesSourceText);
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, exercisesSourceText, supabaseStatusText);
       singleGraderTab.populateChapters();
       exercisesTab.populateChapters();
       singleGraderTab.enableGradeButton(ready);
@@ -268,7 +271,18 @@ document.addEventListener("DOMContentLoaded", () => {
       detectActiveTabAndNavigate();
     } catch (err) {
       console.error(err);
-      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, `${exercisesSourceText} (Lỗi: ${err.message})`);
+      
+      let supabaseStatusText = "Chưa kích hoạt";
+      if (SupabaseService.isEnabled(context.config)) {
+        try {
+          await SupabaseService.pullExercises(context.config);
+          supabaseStatusText = "🟢 Sẵn sàng";
+        } catch (exErr) {
+          supabaseStatusText = "🔴 Lỗi kết nối CSDL";
+        }
+      }
+
+      settingsTab.updateStatusDisplay(providerNameText, !!context.config.githubToken, ready, `${exercisesSourceText} (Lỗi: ${err.message})`, supabaseStatusText);
       try {
         const res = await fetch(chrome.runtime.getURL("exercises.json"));
         context.exerciseTemplates = await res.json();
