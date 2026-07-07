@@ -34,7 +34,7 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "3.6.1"
+    APP_VERSION = "3.6.2"
     LOCAL_DATA_ROOT = "C:/AutoScoring" if os.name == "nt" else "./data_root"
     LOCAL_CONFIG_PATH = f"{LOCAL_DATA_ROOT}/config/config.json"
     LOCAL_TEMPLATES_PATH = f"{LOCAL_DATA_ROOT}/data/templates.json"

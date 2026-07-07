@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.6.1";
+  const appVersion = "3.6.2";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
       aiProvider: "gemini",
       aiApiKey: "",
       aiApiUrl: "",
-      aiModelName: "gemini-1.5-pro",
+      aiModelName: "gemini-3.5-flash",
       githubToken: "",
       systemPrompt: "",
       graderIgnoreItems: [

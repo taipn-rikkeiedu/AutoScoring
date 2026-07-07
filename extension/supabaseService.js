@@ -15,7 +15,7 @@ export class SupabaseService {
   // --- Care Notes Sync ---
   static async upsertCareNote(config, classId, studentId, studentName, note) {
     if (!this.isEnabled(config)) return;
-    const url = `${config.supabaseUrl}/rest/v1/care_notes`;
+    const url = `${config.supabaseUrl}/rest/v1/care_notes?on_conflict=class_id,student_id`;
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -29,10 +29,13 @@ export class SupabaseService {
         })
       });
       if (!res.ok) {
-        console.error("Supabase upsertCareNote error:", await res.text());
+        const errorText = await res.text();
+        console.error("Supabase upsertCareNote error:", errorText);
+        throw new Error(errorText || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.error("Supabase upsertCareNote exception:", e);
+      throw e;
     }
   }
 
@@ -63,7 +66,7 @@ export class SupabaseService {
   // --- Class Students Sync ---
   static async upsertClassStudents(config, classId, studentsList) {
     if (!this.isEnabled(config) || !studentsList || studentsList.length === 0) return;
-    const url = `${config.supabaseUrl}/rest/v1/class_students`;
+    const url = `${config.supabaseUrl}/rest/v1/class_students?on_conflict=class_id,student_id`;
     const payload = studentsList.map(st => ({
       class_id: classId,
       student_id: st.studentId,
@@ -85,10 +88,13 @@ export class SupabaseService {
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
-        console.error("Supabase upsertClassStudents error:", await res.text());
+        const errorText = await res.text();
+        console.error("Supabase upsertClassStudents error:", errorText);
+        throw new Error(errorText || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.error("Supabase upsertClassStudents exception:", e);
+      throw e;
     }
   }
 
@@ -119,7 +125,7 @@ export class SupabaseService {
   // --- Exercises Sync ---
   static async upsertExercise(config, chapter, session, assignmentName, assignmentText, criteria) {
     if (!this.isEnabled(config)) return;
-    const url = `${config.supabaseUrl}/rest/v1/exercises`;
+    const url = `${config.supabaseUrl}/rest/v1/exercises?on_conflict=chapter,session,assignment_name`;
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -134,10 +140,13 @@ export class SupabaseService {
         })
       });
       if (!res.ok) {
-        console.error("Supabase upsertExercise error:", await res.text());
+        const errorText = await res.text();
+        console.error("Supabase upsertExercise error:", errorText);
+        throw new Error(errorText || `HTTP ${res.status}`);
       }
     } catch (e) {
       console.error("Supabase upsertExercise exception:", e);
+      throw e;
     }
   }
 
