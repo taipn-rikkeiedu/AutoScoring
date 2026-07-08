@@ -306,4 +306,36 @@ export class AutoGraderRenderer {
     
     this.updateBulkButtonText();
   }
+
+  renderFileList(index, fileList) {
+    const domHeaderText = document.getElementById(`file-list-header-text-${index}`);
+    const domFileListUl = document.getElementById(`file-list-items-${index}`);
+    if (domHeaderText && domFileListUl && fileList) {
+      domHeaderText.textContent = `📁 Danh sách tệp tin (${fileList.length} file)`;
+      domFileListUl.innerHTML = '';
+      fileList.forEach(filePath => {
+        const li = document.createElement('li');
+        li.style.padding = '2px 0';
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.style.gap = '4px';
+        li.innerHTML = `📄 <span style="font-family: monospace;">${filePath}</span>`;
+        domFileListUl.appendChild(li);
+      });
+    }
+  }
+
+  hideDetailPreview(index) {
+    const aiResultsDiv = document.getElementById(`ai-results-drawer-${index}`);
+    if (aiResultsDiv) aiResultsDiv.style.display = 'none';
+  }
+
+  showDetailComment(index, comment) {
+    const aiResultsDiv = document.getElementById(`ai-results-drawer-${index}`);
+    const aiComment = document.getElementById(`ai-comment-${index}`);
+    if (aiResultsDiv && aiComment) {
+      aiComment.textContent = comment;
+      aiResultsDiv.style.display = 'block';
+    }
+  }
 }

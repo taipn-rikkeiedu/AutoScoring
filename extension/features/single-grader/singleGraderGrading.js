@@ -46,7 +46,14 @@ export class SingleGraderGrading {
 
       this.tab.statusMessage.innerText = "AI đang thực hiện chấm điểm...";
       const ai = new AIService(this.tab.context.config);
-      const report = await ai.generateGradingReport(template.assignment, activeCriteria, repoData.content);
+      const report = await ai.generateGradingReport(
+        template.assignment, 
+        activeCriteria, 
+        repoData.content,
+        (msg) => {
+          this.tab.statusMessage.innerText = msg;
+        }
+      );
 
       this.tab.statusBox.style.display = "none";
 

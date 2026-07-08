@@ -2,7 +2,7 @@
 import { GitHubService } from '../../services/githubService.js';
 import { AIService } from '../../services/aiService.js';
 import { SupabaseService } from '../../services/supabaseService.js';
-import { parseScore, extractComment, DEFAULT_CRITERIA } from '../../core/utils.js';
+import { parseScore, extractComment, DEFAULT_CRITERIA, matchStudent } from '../../core/utils.js';
 
 export class AutoGraderGrading {
   constructor(tab) {
@@ -32,9 +32,7 @@ export class AutoGraderGrading {
     if (btnGrade) btnGrade.disabled = true;
     this.tab.updateContentScriptCache();
     
-    const aiResultsDiv = document.getElementById(`ai-results-drawer-${index}`);
-    const aiComment = document.getElementById(`ai-comment-${index}`);
-    if (aiResultsDiv) aiResultsDiv.style.display = 'none';
+    this.tab.renderer.hideDetailPreview(index);
     
     try {
       const { chapter, session, assignmentName } = sub.matchedTemplate;
@@ -54,29 +52,24 @@ export class AutoGraderGrading {
       });
 
       sub.fileList = repoData.fileList;
-      
-      const domHeaderText = document.getElementById(`file-list-header-text-${index}`);
-      const domFileListUl = document.getElementById(`file-list-items-${index}`);
-      if (domHeaderText && domFileListUl && sub.fileList) {
-        domHeaderText.textContent = `📁 Danh sách tệp tin (${sub.fileList.length} file)`;
-        domFileListUl.innerHTML = '';
-        sub.fileList.forEach(filePath => {
-          const li = document.createElement('li');
-          li.style.padding = '2px 0';
-          li.style.display = 'flex';
-          li.style.alignItems = 'center';
-          li.style.gap = '4px';
-          li.innerHTML = `📄 <span style="font-family: monospace;">${filePath}</span>`;
-          domFileListUl.appendChild(li);
-        });
-      }
+      this.tab.renderer.renderFileList(index, repoData.fileList);
 
       sub.status = 'grading';
       if (badgeEl) this.tab.renderer.updateStatusBadge(badgeEl, sub);
       this.tab.updateContentScriptCache();
       
       const ai = new AIService(this.tab.context.config);
-      const report = await ai.generateGradingReport(template.assignment, activeCriteria, repoData.content);
+      const report = await ai.generateGradingReport(
+        template.assignment, 
+        activeCriteria, 
+        repoData.content,
+        (msg) => {
+          if (badgeEl) {
+            badgeEl.className = 'badge-status warning';
+            badgeEl.textContent = msg;
+          }
+        }
+      );
 
       const score = parseScore(report);
       sub.status = 'success';
@@ -94,11 +87,7 @@ export class AutoGraderGrading {
 
         const res = await new Promise(resolve => chrome.storage.local.get("classStudentList", resolve));
         const studentList = res.classStudentList || [];
-        const matched = studentList.find(st => {
-          if (pageId && st.studentId && st.studentId !== 'N/A' && st.studentId.replace(/[\s_-]/g, '').toUpperCase() === pageId.replace(/[\s_-]/g, '').toUpperCase()) return true;
-          if (pageName && st.studentName && (st.studentName.toLowerCase().includes(pageName.toLowerCase()) || pageName.toLowerCase().includes(st.studentName.toLowerCase()))) return true;
-          return false;
-        });
+        const matched = matchStudent(studentList, null, pageId, pageName, null);
 
         if (matched) {
           if (!matched.submissions) matched.submissions = {};
@@ -142,10 +131,7 @@ export class AutoGraderGrading {
       if (badgeEl) this.tab.renderer.updateStatusBadge(badgeEl, sub);
       if (btnGrade) btnGrade.textContent = 'Chấm lại';
       this.tab.updateContentScriptCache();
-      if (aiResultsDiv && aiComment) {
-        aiComment.textContent = extractComment(report);
-        aiResultsDiv.style.display = 'block';
-      }
+      this.tab.renderer.showDetailComment(index, extractComment(report));
     } catch (e) {
       console.error(e);
       sub.status = 'error';
@@ -185,24 +171,11 @@ export class AutoGraderGrading {
       
       let resolvedDisplayName = sub.studentName || 'Chưa rõ học viên';
       if (sub.studentName) {
-        let pageId = null;
-        let pageName = sub.studentName;
-        
         const parenMatch = sub.studentName.match(/(.*?)\s*\((.*?)\)/);
-        if (parenMatch) {
-          pageName = parenMatch[1].trim();
-          pageId = parenMatch[2].trim();
-        }
-        
-        const matched = studentList.find(st => {
-          if (pageId && st.studentId && st.studentId !== 'N/A' && st.studentId.replace(/[\s_-]/g, '').toUpperCase() === pageId.replace(/[\s_-]/g, '').toUpperCase()) return true;
-          if (pageName && st.studentName && (st.studentName.toLowerCase().includes(pageName.toLowerCase()) || pageName.toLowerCase().includes(st.studentName.toLowerCase()))) return true;
-          return false;
-        });
-        
-        if (matched) {
-          resolvedDisplayName = `${matched.studentName} (${matched.studentId})`;
-        }
+        const name = parenMatch ? parenMatch[1].trim() : sub.studentName;
+        const id = parenMatch ? parenMatch[2].trim() : null;
+        const matched = matchStudent(studentList, null, id, name, null);
+        if (matched) resolvedDisplayName = `${matched.studentName} (${matched.studentId})`;
       }
       
       if (this.tab.bulkStudentResolvedInfo) {
@@ -212,6 +185,9 @@ export class AutoGraderGrading {
       this.tab.bulkProgressText.innerText = `Đang chấm bài: ${sub.exerciseName} (${gradedCount + 1}/${totalToGrade})...`;
       this.tab.bulkProgressFill.style.width = `${(gradedCount / totalToGrade) * 100}%`;
       
+      if (gradedCount > 0) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
       await this.gradeSingleRow(i);
       gradedCount++;
     }

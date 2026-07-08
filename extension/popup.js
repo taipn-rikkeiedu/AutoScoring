@@ -6,7 +6,7 @@ import { ClassListTab } from './features/class-list/classListTab.js';
 import { ExercisesTab } from './features/exercises/exercisesTab.js';
 import { CareTab } from './features/care/careTab.js';
 import { SupabaseService } from './services/supabaseService.js';
-import { AIService } from './services/aiService.js';
+import { testConnection } from './services/connectionTester.js';
 import { Navigation } from './core/navigation.js';
 import { ReportModal } from './core/modal.js';
 import { loadExercises } from './core/exerciseLoader.js';
@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
         providerNameText = `Ollama Local (${context.config.aiModelName})`;
       }
 
-      await AIService.testConnection(context.config);
+      await testConnection(context.config);
       ready = true;
     } catch (testErr) {
       console.warn("AI connection test failed:", testErr);
