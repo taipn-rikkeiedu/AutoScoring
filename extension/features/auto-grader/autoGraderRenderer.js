@@ -221,6 +221,7 @@ export class AutoGraderRenderer {
       const tdStatus = document.createElement('td');
       tdStatus.style.textAlign = 'center';
       const badgeSpan = document.createElement('span');
+      badgeSpan.id = `status-badge-${index}`;
       this.updateStatusBadge(badgeSpan, sub);
       tdStatus.appendChild(badgeSpan);
       tr.appendChild(tdStatus);
@@ -228,6 +229,7 @@ export class AutoGraderRenderer {
       const tdAction = document.createElement('td');
       tdAction.style.textAlign = 'center';
       const actionBtn = document.createElement('button');
+      actionBtn.id = `btn-grade-${index}`;
       actionBtn.className = 'btn-primary table-action-btn';
       actionBtn.style.padding = '4px 8px';
       actionBtn.style.fontSize = '0.75rem';

@@ -10,6 +10,7 @@ import { AIService } from './services/aiService.js';
 import { Navigation } from './core/navigation.js';
 import { ReportModal } from './core/modal.js';
 import { loadExercises } from './core/exerciseLoader.js';
+import './core/toast.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   const tabSelect = document.getElementById("tab-navigator-select");
