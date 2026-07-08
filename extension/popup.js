@@ -1,10 +1,10 @@
-import { SettingsTab } from './controllers/settingsTab.js';
-import { SingleGraderTab } from './controllers/singleGraderTab.js';
-import { AutoGraderTab } from './controllers/autoGraderTab.js';
-import { ExercisesTab } from './controllers/exercisesTab.js';
-import { CareTab } from './controllers/careTab.js';
-import { SupabaseService } from './supabaseService.js';
-import { AIService } from './aiService.js';
+import { SettingsTab } from './features/settings/settingsTab.js';
+import { SingleGraderTab } from './features/single-grader/singleGraderTab.js';
+import { AutoGraderTab } from './features/auto-grader/autoGraderTab.js';
+import { ExercisesTab } from './features/exercises/exercisesTab.js';
+import { CareTab } from './features/care/careTab.js';
+import { SupabaseService } from './services/supabaseService.js';
+import { AIService } from './services/aiService.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- Shared UI Elements ---

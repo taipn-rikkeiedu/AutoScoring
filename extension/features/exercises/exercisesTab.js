@@ -1,11 +1,11 @@
-import { DEFAULT_CRITERIA, extractCriteriaFromAssignment } from '../utils.js';
-import { SupabaseService } from '../supabaseService.js';
+import { TabController } from '../../core/tabController.js';
+import { DEFAULT_CRITERIA, extractCriteriaFromAssignment } from '../../core/utils.js';
+import { SupabaseService } from '../../services/supabaseService.js';
 
-export class ExercisesTab {
+export class ExercisesTab extends TabController {
   constructor(context) {
-    this.context = context;
-    this.initElements();
-    this.bindEvents();
+    super(context);
+    this.initialize();
   }
 
   initElements() {
@@ -257,7 +257,7 @@ export class ExercisesTab {
 
       chrome.scripting.executeScript({
         target: { tabId: activeTab.id, allFrames: true },
-        files: ['lmsScraper.js']
+        files: ['core/lmsScraper.js']
       }, (results) => {
         this.resetScrapeButton();
 

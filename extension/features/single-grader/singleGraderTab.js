@@ -1,7 +1,8 @@
-import { GitHubService } from '../githubService.js';
-import { AIService } from '../aiService.js';
-import { parseScore, DEFAULT_CRITERIA } from '../utils.js';
-import { SupabaseService } from '../supabaseService.js';
+import { TabController } from '../../core/tabController.js';
+import { GitHubService } from '../../services/githubService.js';
+import { AIService } from '../../services/aiService.js';
+import { parseScore, DEFAULT_CRITERIA } from '../../core/utils.js';
+import { SupabaseService } from '../../services/supabaseService.js';
 
 function scrapeStudentDetailInfo() {
   let studentName = '';
@@ -27,11 +28,10 @@ function scrapeStudentDetailInfo() {
   return { studentId, studentName };
 }
 
-export class SingleGraderTab {
+export class SingleGraderTab extends TabController {
   constructor(context) {
-    this.context = context;
-    this.initElements();
-    this.bindEvents();
+    super(context);
+    this.initialize();
     this.resolveStudentFromTabUrl();
   }
 

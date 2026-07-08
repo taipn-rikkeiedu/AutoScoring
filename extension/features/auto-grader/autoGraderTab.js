@@ -1,7 +1,8 @@
-import { GitHubService } from '../githubService.js';
-import { AIService } from '../aiService.js';
-import { parseScore, findMatchingTemplate, extractComment, DEFAULT_CRITERIA } from '../utils.js';
-import { SupabaseService } from '../supabaseService.js';
+import { TabController } from '../../core/tabController.js';
+import { GitHubService } from '../../services/githubService.js';
+import { AIService } from '../../services/aiService.js';
+import { parseScore, findMatchingTemplate, extractComment, DEFAULT_CRITERIA, exportToExcel } from '../../core/utils.js';
+import { SupabaseService } from '../../services/supabaseService.js';
 
 function scrapeSubmissionsPage() {
   const submissions = [];
@@ -357,11 +358,10 @@ function scrapeClassPage() {
   return uniqueStudents;
 }
 
-export class AutoGraderTab {
+export class AutoGraderTab extends TabController {
   constructor(context) {
-    this.context = context;
-    this.initElements();
-    this.bindEvents();
+    super(context);
+    this.initialize();
     this.renderClassList();
   }
 
@@ -1623,11 +1623,6 @@ export class AutoGraderTab {
         };
       });
 
-      // Tạo workbook và worksheet
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sách lớp");
-
       // Định cấu hình độ rộng cột cho đẹp mắt
       const max_widths = [
         { wch: 15 }, // Mã SV
@@ -1636,20 +1631,9 @@ export class AutoGraderTab {
         { wch: 15 }, // Số bài đã nộp
         { wch: 18 }  // Số bài hoàn thành
       ];
-      worksheet["!cols"] = max_widths;
 
-      // Xuất và tải file XLSX xuống
-      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Bao_cao_diem_lop_hoc_${new Date().toISOString().slice(0,10)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const fileName = `Bao_cao_diem_lop_hoc_${new Date().toISOString().slice(0,10)}.xlsx`;
+      exportToExcel(data, "Danh sách lớp", fileName, max_widths);
     });
   }
 }

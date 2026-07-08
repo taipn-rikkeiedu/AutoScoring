@@ -1,10 +1,10 @@
-import { DEFAULT_SYSTEM_PROMPT } from '../utils.js';
+import { TabController } from '../../core/tabController.js';
+import { DEFAULT_SYSTEM_PROMPT } from '../../core/utils.js';
 
-export class SettingsTab {
+export class SettingsTab extends TabController {
   constructor(context) {
-    this.context = context;
-    this.initElements();
-    this.bindEvents();
+    super(context);
+    this.initialize();
   }
 
   initElements() {

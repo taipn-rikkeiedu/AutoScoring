@@ -1,4 +1,4 @@
-import { DEFAULT_SYSTEM_PROMPT } from './utils.js';
+import { DEFAULT_SYSTEM_PROMPT } from '../core/utils.js';
 
 export class AIService {
   constructor(config) {

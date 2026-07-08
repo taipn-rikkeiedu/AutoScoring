@@ -1,13 +1,14 @@
-import { SupabaseService } from '../supabaseService.js';
+import { TabController } from '../../core/tabController.js';
+import { SupabaseService } from '../../services/supabaseService.js';
+import { exportToExcel } from '../../core/utils.js';
 
-export class CareTab {
+export class CareTab extends TabController {
   constructor(context) {
-    this.context = context;
+    super(context);
     this.currentClassId = null;
     this.students = [];
     
-    this.initElements();
-    this.bindEvents();
+    this.initialize();
   }
 
   initElements() {
@@ -330,29 +331,15 @@ export class CareTab {
       };
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Cham_soc_sinh_vien");
-
     const max_widths = [
       { wch: 8 },
       { wch: 15 },
       { wch: 25 },
       { wch: 40 }
     ];
-    worksheet["!cols"] = max_widths;
 
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Danh_sach_cham_soc_lop_${this.currentClassId || "unknown"}_${new Date().toISOString().slice(0,10)}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const fileName = `Danh_sach_cham_soc_lop_${this.currentClassId || "unknown"}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    exportToExcel(data, "Cham_soc_sinh_vien", fileName, max_widths);
   }
 }
 
