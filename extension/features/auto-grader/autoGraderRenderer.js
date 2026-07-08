@@ -338,4 +338,24 @@ export class AutoGraderRenderer {
       aiResultsDiv.style.display = 'block';
     }
   }
+
+  updateBulkProgress(gradedCount, totalToGrade, currentSubName, resolvedDisplayName) {
+    this.tab.bulkProgressText.innerText = `Đang chấm bài: ${currentSubName} (${gradedCount + 1}/${totalToGrade})...`;
+    this.tab.bulkProgressFill.style.width = `${(gradedCount / totalToGrade) * 100}%`;
+    if (this.tab.bulkStudentResolvedInfo) {
+      this.tab.bulkStudentResolvedInfo.textContent = resolvedDisplayName;
+    }
+  }
+
+  completeBulkProgress(totalToGrade) {
+    this.tab.bulkProgressFill.style.width = '100%';
+    this.tab.bulkProgressText.innerText = `Hoàn thành chấm điểm ${totalToGrade} bài!`;
+    if (this.tab.bulkStudentResolvedBanner) {
+      this.tab.bulkStudentResolvedBanner.style.display = 'none';
+    }
+    setTimeout(() => {
+      this.tab.bulkProgressContainer.style.display = 'none';
+      this.tab.bulkProgressText.style.display = 'none';
+    }, 4000);
+  }
 }

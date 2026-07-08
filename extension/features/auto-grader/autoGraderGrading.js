@@ -178,13 +178,8 @@ export class AutoGraderGrading {
         if (matched) resolvedDisplayName = `${matched.studentName} (${matched.studentId})`;
       }
       
-      if (this.tab.bulkStudentResolvedInfo) {
-        this.tab.bulkStudentResolvedInfo.textContent = resolvedDisplayName;
-      }
-      
-      this.tab.bulkProgressText.innerText = `Đang chấm bài: ${sub.exerciseName} (${gradedCount + 1}/${totalToGrade})...`;
-      this.tab.bulkProgressFill.style.width = `${(gradedCount / totalToGrade) * 100}%`;
-      
+      this.tab.renderer.updateBulkProgress(gradedCount, totalToGrade, sub.exerciseName, resolvedDisplayName);
+
       if (gradedCount > 0) {
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
@@ -192,20 +187,9 @@ export class AutoGraderGrading {
       gradedCount++;
     }
     
-    this.tab.bulkProgressFill.style.width = '100%';
-    this.tab.bulkProgressText.innerText = `Hoàn thành chấm điểm ${totalToGrade} bài!`;
-    
-    if (this.tab.bulkStudentResolvedBanner) {
-      this.tab.bulkStudentResolvedBanner.style.display = 'none';
-    }
-    
+    this.tab.renderer.completeBulkProgress(totalToGrade);
     this.tab.bulkGradeBtn.disabled = false;
     this.tab.rescanPageBtn.disabled = false;
     this.tab.renderer.updateBulkButtonText();
-    
-    setTimeout(() => {
-      this.tab.bulkProgressContainer.style.display = 'none';
-      this.tab.bulkProgressText.style.display = 'none';
-    }, 4000);
   }
 }
