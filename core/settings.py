@@ -34,7 +34,12 @@ def _get_bool_env(name: str, default: bool = False) -> bool:
 
 
 class Settings:
-    APP_VERSION = "3.6.3"
+    try:
+        _manifest_path = os.path.join(os.path.dirname(__file__), "..", "extension", "manifest.json")
+        with open(_manifest_path, "r", encoding="utf-8") as _f:
+            APP_VERSION = json.load(_f).get("version", "3.6.3")
+    except Exception:
+        APP_VERSION = "3.6.3"
     LOCAL_DATA_ROOT = "C:/AutoScoring" if os.name == "nt" else "./data_root"
     LOCAL_CONFIG_PATH = f"{LOCAL_DATA_ROOT}/config/config.json"
     LOCAL_TEMPLATES_PATH = f"{LOCAL_DATA_ROOT}/data/templates.json"
