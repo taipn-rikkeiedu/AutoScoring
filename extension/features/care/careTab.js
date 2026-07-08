@@ -1,13 +1,15 @@
+// features/care/careTab.js - Controller for Student Care tab
 import { TabController } from '../../core/tabController.js';
 import { SupabaseService } from '../../services/supabaseService.js';
-import { exportToExcel } from '../../core/utils.js';
+import { exportToExcel } from '../../core/excelExporter.js';
+import { CareRenderer } from './careRenderer.js';
 
 export class CareTab extends TabController {
   constructor(context) {
     super(context);
     this.currentClassId = null;
     this.students = [];
-    
+    this.renderer = new CareRenderer(this);
     this.initialize();
   }
 
@@ -59,7 +61,7 @@ export class CareTab extends TabController {
 
       chrome.scripting.executeScript({
         target: { tabId: activeTab.id },
-        func: scrapeCareStudentsPage
+        files: ['core/careScraper.js']
       }, (results) => {
         if (chrome.runtime.lastError) {
           console.error(chrome.runtime.lastError);
@@ -90,7 +92,6 @@ export class CareTab extends TabController {
       const allCareStudents = res.careStudents || {};
       const classStudents = allCareStudents[this.currentClassId] || [];
 
-      // Trộn để bảo toàn ghi chú cũ
       this.students = scraped.map(newSt => {
         const existing = classStudents.find(st => st.studentId === newSt.studentId);
         return {
@@ -100,7 +101,6 @@ export class CareTab extends TabController {
         };
       });
 
-      // Lưu trữ cấu trúc
       allCareStudents[this.currentClassId] = this.students;
       chrome.storage.local.set({ careStudents: allCareStudents }, () => {
         this.statusBanner.innerHTML = `✅ Đã quét thành công ${this.students.length} học viên từ trang.`;
@@ -113,71 +113,7 @@ export class CareTab extends TabController {
   }
 
   renderList() {
-    if (!this.listBody) return;
-    this.listBody.innerHTML = "";
-
-    if (this.students.length === 0) {
-      this.tableEl.style.display = "none";
-      this.emptyState.style.display = "block";
-      this.exportBtn.disabled = true;
-      return;
-    }
-
-    this.tableEl.style.display = "table";
-    this.emptyState.style.display = "none";
-    this.exportBtn.disabled = false;
-
-    const fragment = document.createDocumentFragment();
-
-    this.students.forEach((st, index) => {
-      const tr = document.createElement("tr");
-
-      // Cột 1: STT
-      const tdIndex = document.createElement("td");
-      tdIndex.style.textAlign = "center";
-      tdIndex.textContent = index + 1;
-      tr.appendChild(tdIndex);
-
-      // Cột 2: Ô nhập ghi chú
-      const tdNote = document.createElement("td");
-      const input = document.createElement("input");
-      input.type = "text";
-      input.className = "care-note-input";
-      input.value = st.note || "";
-      input.placeholder = "Nhập thông tin sau khi liên hệ...";
-      
-      // Auto-save khi rời khỏi hoặc nhấn Enter
-      input.addEventListener("change", (e) => {
-        this.saveStudentNote(st.studentId, e.target.value.trim());
-      });
-
-      input.addEventListener("keyup", (e) => {
-        if (e.key === "Enter") {
-          e.target.blur();
-        }
-      });
-
-      tdNote.appendChild(input);
-      tr.appendChild(tdNote);
-
-      // Cột 3: Mã SV
-      const tdId = document.createElement("td");
-      tdId.style.fontWeight = "600";
-      tdId.style.color = "#475569";
-      tdId.textContent = st.studentId;
-      tr.appendChild(tdId);
-
-      // Cột 4: Họ và Tên
-      const tdName = document.createElement("td");
-      tdName.style.fontWeight = "600";
-      tdName.style.color = "#1e293b";
-      tdName.textContent = st.studentName;
-      tr.appendChild(tdName);
-
-      fragment.appendChild(tr);
-    });
-
-    this.listBody.appendChild(fragment);
+    this.renderer.renderList();
   }
 
   saveStudentNote(studentId, noteValue) {
@@ -202,7 +138,6 @@ export class CareTab extends TabController {
         }
       }
 
-      // Cập nhật mảng cục bộ
       const localSt = this.students.find(st => st.studentId === studentId);
       if (localSt) {
         localSt.note = noteValue;
@@ -215,11 +150,7 @@ export class CareTab extends TabController {
         if (SupabaseService.isEnabled(this.context.config) && studentName) {
           try {
             await SupabaseService.upsertCareNote(
-              this.context.config,
-              this.currentClassId,
-              studentId,
-              studentName,
-              noteValue
+              this.context.config, this.currentClassId, studentId, studentName, noteValue
             );
           } catch (syncErr) {
             console.warn("Lỗi đồng bộ Supabase:", syncErr);
@@ -332,77 +263,10 @@ export class CareTab extends TabController {
     });
 
     const max_widths = [
-      { wch: 8 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 40 }
+      { wch: 8 }, { wch: 15 }, { wch: 25 }, { wch: 40 }
     ];
 
     const fileName = `Danh_sach_cham_soc_lop_${this.currentClassId || "unknown"}_${new Date().toISOString().slice(0,10)}.xlsx`;
     exportToExcel(data, "Cham_soc_sinh_vien", fileName, max_widths);
   }
-}
-
-// Hàm chạy trong tab active để quét học viên
-function scrapeCareStudentsPage() {
-  const students = [];
-  const rows = Array.from(document.querySelectorAll('tr'));
-  
-  let studentColIndex = -1;
-  const headers = Array.from(document.querySelectorAll('th, thead td'));
-  headers.forEach((header, index) => {
-    const text = header.textContent.trim().toLowerCase();
-    if (text.includes('sinh viên') || text.includes('học viên') || text.includes('name') || text.includes('student')) {
-      studentColIndex = index;
-    }
-  });
-
-  if (studentColIndex === -1) {
-    studentColIndex = 1;
-  }
-
-  rows.forEach(row => {
-    const cells = Array.from(row.querySelectorAll('td'));
-    if (cells.length > studentColIndex && cells.length >= 2) {
-      const cell = cells[studentColIndex];
-      const divs = Array.from(cell.querySelectorAll('div, span, p'));
-      let studentName = '';
-      let studentId = '';
-      
-      if (divs.length >= 2) {
-        studentName = divs[0].textContent.trim();
-        for (let k = 1; k < divs.length; k++) {
-          const text = divs[k].textContent.trim();
-          if (text && text.length > 0 && !text.includes(studentName)) {
-            studentId = text;
-            break;
-          }
-        }
-      }
-      
-      if (!studentName || !studentId) {
-        const lines = cell.innerText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        studentName = lines[0] || '';
-        studentId = lines[1] || '';
-      }
-      
-      if (studentName && studentId && studentName !== 'Sinh viên' && studentName !== 'Student') {
-        students.push({
-          studentId: studentId.split('\n')[0].trim(),
-          studentName: studentName.split('\n')[0].trim()
-        });
-      }
-    }
-  });
-
-  const uniqueList = [];
-  const ids = new Set();
-  students.forEach(st => {
-    if (!ids.has(st.studentId)) {
-      ids.add(st.studentId);
-      uniqueList.push(st);
-    }
-  });
-
-  return uniqueList;
 }

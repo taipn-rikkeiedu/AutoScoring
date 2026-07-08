@@ -1,10 +1,13 @@
+// features/exercises/exercisesTab.js - Controller for Exercises tab
 import { TabController } from '../../core/tabController.js';
-import { DEFAULT_CRITERIA, extractCriteriaFromAssignment } from '../../core/utils.js';
+import { DEFAULT_CRITERIA, extractCriteriaFromAssignment, mergeScrapedFrameResults } from '../../core/utils.js';
 import { SupabaseService } from '../../services/supabaseService.js';
+import { ExercisesRenderer } from './exercisesRenderer.js';
 
 export class ExercisesTab extends TabController {
   constructor(context) {
     super(context);
+    this.renderer = new ExercisesRenderer(this);
     this.initialize();
   }
 
@@ -21,7 +24,6 @@ export class ExercisesTab extends TabController {
     this.exCriteriaText = document.getElementById("ex-criteria-text");
     this.exSaveBtn = document.getElementById("ex-save-btn");
 
-    // Re-use Scrape Modal Elements from DOM
     this.scrapeModal = document.getElementById("scrape-modal");
     this.closeScrapeModalBtn = document.getElementById("close-scrape-modal-btn");
     this.scrapeChapterInput = document.getElementById("scrape-chapter");
@@ -33,9 +35,9 @@ export class ExercisesTab extends TabController {
   }
 
   bindEvents() {
-    this.exChapterSelect.addEventListener("change", () => this.onChapterChanged());
-    this.exSessionSelect.addEventListener("change", () => this.onSessionChanged());
-    this.exAssignmentSelect.addEventListener("change", () => this.updateDetailContainer());
+    this.exChapterSelect.addEventListener("change", () => this.renderer.onChapterChanged());
+    this.exSessionSelect.addEventListener("change", () => this.renderer.onSessionChanged());
+    this.exAssignmentSelect.addEventListener("change", () => this.renderer.updateDetailContainer());
 
     this.exSaveBtn.addEventListener("click", () => this.saveEdits());
     this.exercisesDeleteBtn.addEventListener("click", () => this.deleteAssignment());
@@ -46,106 +48,11 @@ export class ExercisesTab extends TabController {
   }
 
   disableSelectors() {
-    this.exChapterSelect.innerHTML = '<option value="">-- Lỗi cấu hình bài tập --</option>';
-    this.exSessionSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    this.exSessionSelect.disabled = true;
-    this.exAssignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    this.exAssignmentSelect.disabled = true;
+    this.renderer.disableSelectors();
   }
 
   populateChapters() {
-    this.exChapterSelect.innerHTML = '<option value="">-- Chọn Chương --</option>';
-    const templates = this.context.exerciseTemplates || {};
-    const chapters = Object.keys(templates);
-
-    if (chapters.length === 0) {
-      this.exChapterSelect.innerHTML = '<option value="">-- Thư viện trống --</option>';
-      return;
-    }
-
-    chapters.forEach(ch => {
-      const option = document.createElement("option");
-      option.value = ch;
-      option.textContent = ch;
-      this.exChapterSelect.appendChild(option);
-    });
-
-    this.exSessionSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    this.exSessionSelect.disabled = true;
-    this.exAssignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    this.exAssignmentSelect.disabled = true;
-    this.updateDetailContainer();
-  }
-
-  onChapterChanged() {
-    const templates = this.context.exerciseTemplates || {};
-    const selectedChapter = this.exChapterSelect.value;
-    this.exSessionSelect.innerHTML = '<option value="">-- Chọn Session --</option>';
-
-    if (!selectedChapter || !templates[selectedChapter]) {
-      this.exSessionSelect.disabled = true;
-      this.exAssignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-      this.exAssignmentSelect.disabled = true;
-      this.updateDetailContainer();
-      return;
-    }
-
-    const sessions = Object.keys(templates[selectedChapter]);
-    sessions.forEach(sess => {
-      const option = document.createElement("option");
-      option.value = sess;
-      option.textContent = sess;
-      this.exSessionSelect.appendChild(option);
-    });
-
-    this.exSessionSelect.disabled = false;
-    this.exAssignmentSelect.innerHTML = '<option value="">-- Chọn --</option>';
-    this.exAssignmentSelect.disabled = true;
-    this.updateDetailContainer();
-  }
-
-  onSessionChanged() {
-    const templates = this.context.exerciseTemplates || {};
-    const selectedChapter = this.exChapterSelect.value;
-    const selectedSession = this.exSessionSelect.value;
-    this.exAssignmentSelect.innerHTML = '<option value="">-- Chọn Bài tập --</option>';
-
-    if (!selectedSession || !templates[selectedChapter] || !templates[selectedChapter][selectedSession]) {
-      this.exAssignmentSelect.disabled = true;
-      this.updateDetailContainer();
-      return;
-    }
-
-    const assignments = Object.keys(templates[selectedChapter][selectedSession]);
-    assignments.forEach(ass => {
-      const option = document.createElement("option");
-      option.value = ass;
-      option.textContent = ass;
-      this.exAssignmentSelect.appendChild(option);
-    });
-
-    this.exAssignmentSelect.disabled = false;
-    this.updateDetailContainer();
-  }
-
-  updateDetailContainer() {
-    const chapter = this.exChapterSelect.value;
-    const session = this.exSessionSelect.value;
-    const assignmentName = this.exAssignmentSelect.value;
-
-    if (chapter && session && assignmentName) {
-      const template = this.context.exerciseTemplates?.[chapter]?.[session]?.[assignmentName];
-      if (template) {
-        this.exPromptText.value = template.assignment || "";
-        this.exCriteriaText.value = template.criteria || "";
-        this.exDetailContainer.style.display = "flex";
-        this.exercisesDeleteBtn.disabled = false;
-        return;
-      }
-    }
-
-    this.exDetailContainer.style.display = "none";
-    this.exercisesDeleteBtn.disabled = true;
+    this.renderer.populateChapters();
   }
 
   saveEdits() {
@@ -207,13 +114,8 @@ export class ExercisesTab extends TabController {
     if (templates[chapter]?.[session]?.[assignmentName]) {
       delete templates[chapter][session][assignmentName];
 
-      // Clean empty sessions or chapters
-      if (Object.keys(templates[chapter][session]).length === 0) {
-        delete templates[chapter][session];
-      }
-      if (Object.keys(templates[chapter]).length === 0) {
-        delete templates[chapter];
-      }
+      if (Object.keys(templates[chapter][session]).length === 0) delete templates[chapter][session];
+      if (Object.keys(templates[chapter]).length === 0) delete templates[chapter];
 
       this.context.exerciseTemplates = templates;
 
@@ -224,12 +126,10 @@ export class ExercisesTab extends TabController {
         window.showToast("Đã xóa bài tập thành công!", "success");
         this.context.config.exerciseSource = "upload";
         
-        // Notify other tabs
         if (this.context.onLibraryChanged) {
           this.context.onLibraryChanged();
         }
         
-        // Reload this tab dropdowns
         this.populateChapters();
       });
     }
@@ -266,44 +166,7 @@ export class ExercisesTab extends TabController {
           return;
         }
 
-        let bestRes = null;
-        if (results && results.length > 0) {
-          for (const frameResult of results) {
-            const res = frameResult.result;
-            if (res && res.success) {
-              if (!bestRes) {
-                bestRes = res;
-              } else {
-                const currentLen = (bestRes.assignment || "").trim().length;
-                const newLen = (res.assignment || "").trim().length;
-                
-                const isDefaultMsg = (text) => !text || text.includes("Không tìm thấy nội dung đề bài tự động");
-                
-                if (isDefaultMsg(bestRes.assignment) && !isDefaultMsg(res.assignment)) {
-                  bestRes = res;
-                } else if (!isDefaultMsg(res.assignment) && newLen > currentLen) {
-                  bestRes = res;
-                }
-                
-                if (!bestRes.chapter || bestRes.chapter === "Khóa học mặc định") {
-                  if (res.chapter && res.chapter !== "Khóa học mặc định") {
-                    bestRes.chapter = res.chapter;
-                  }
-                }
-                if (!bestRes.session || bestRes.session === "Session 01: Nhập môn") {
-                  if (res.session && res.session !== "Session 01: Nhập môn") {
-                    bestRes.session = res.session;
-                  }
-                }
-                if (!bestRes.assignmentName || bestRes.assignmentName === "Bài tập mới") {
-                  if (res.assignmentName && res.assignmentName !== "Bài tập mới") {
-                    bestRes.assignmentName = res.assignmentName;
-                  }
-                }
-              }
-            }
-          }
-        }
+        const bestRes = mergeScrapedFrameResults(results);
 
         if (bestRes && bestRes.success) {
           const parsed = extractCriteriaFromAssignment(bestRes.assignment);
@@ -343,11 +206,7 @@ export class ExercisesTab extends TabController {
     if (!templates[chapter]) templates[chapter] = {};
     if (!templates[chapter][session]) templates[chapter][session] = {};
 
-    templates[chapter][session][name] = {
-      assignment,
-      criteria
-    };
-
+    templates[chapter][session][name] = { assignment, criteria };
     this.context.exerciseTemplates = templates;
 
     chrome.storage.local.set({
@@ -361,12 +220,7 @@ export class ExercisesTab extends TabController {
       if (SupabaseService.isEnabled(this.context.config)) {
         try {
           await SupabaseService.upsertExercise(
-            this.context.config,
-            chapter,
-            session,
-            name,
-            assignment,
-            criteria
+            this.context.config, chapter, session, name, assignment, criteria
           );
         } catch (syncErr) {
           console.warn("Lỗi đồng bộ Supabase:", syncErr);
@@ -378,7 +232,6 @@ export class ExercisesTab extends TabController {
         this.context.onLibraryChanged();
       }
 
-      // Reload this tab and select the newly added assignment
       this.populateChapters();
 
       this.exChapterSelect.value = chapter;

@@ -1,7 +1,8 @@
+// core/utils.js - Shared parsing and student matching helpers
+
 export function parseScore(reportText) {
   if (!reportText) return null;
   
-  // Ưu tiên trích xuất từ thẻ XML <score>
   let match = reportText.match(/<score>\s*(\d+(?:[.,]\d+)?)\s*<\/score>/i);
   if (match) return match[1].replace(',', '.');
 
@@ -19,9 +20,9 @@ export function normalizeText(str) {
   return str
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // remove Vietnamese accents
-    .replace(/[\[\](){}\-_.:,]/g, ' ') // replace punctuation with space
-    .replace(/\s+/g, ' ') // collapse spacing
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\[\](){}\-_.:,]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -30,7 +31,6 @@ export function findMatchingTemplate(scrapedName, exerciseTemplates) {
   
   const normScraped = normalizeText(scrapedName);
   
-  // Bỏ qua các tên bài tập chung chung/fallback để tránh tự động chọn sai đề bài mẫu
   const genericNames = [
     'bai tap', 'bai thuc hanh', 'thuc hanh', 'homework', 'project', 'quiz', 'lab',
     'bai tap github', 'bai tap khong ro ten'
@@ -118,13 +118,11 @@ MÃ NGUỒN:
 export function extractCriteriaFromAssignment(assignmentText) {
   if (!assignmentText) return { assignment: '', criteria: null };
   
-  // Matches variant patterns like "Tiêu chí chấm bài (AI)::", "Tiêu chí chấm (AI):", "Tiêu chí đánh giá (AI)::"
   const regex = /(?:Tiêu\s*chí\s*chấm\s*(?:bài|điểm)?|Tiêu\s*chí\s*đánh\s*giá|Grading\s*Criteria|AI\s*Criteria|Tiêu\s*chí\s*AI)\s*\(AI\)\s*:{1,2}([\s\S]+)$/i;
   
   const match = assignmentText.match(regex);
   if (match) {
     const criteriaText = match[1].trim();
-    // Strip the criteria block from the original prompt description
     const cleanAssignment = assignmentText.replace(regex, '').trim();
     return {
       assignment: cleanAssignment,
@@ -138,28 +136,51 @@ export function extractCriteriaFromAssignment(assignmentText) {
   };
 }
 
-export function exportToExcel(data, sheetName, fileName, columnWidths = null) {
-  if (typeof XLSX === 'undefined') {
-    console.error("Thư viện XLSX chưa được tải.");
-    return;
+export function mergeScrapedFrameResults(results) {
+  let bestRes = null;
+  if (!results || results.length === 0) return null;
+  for (const frameResult of results) {
+    const res = frameResult.result;
+    if (res && res.success) {
+      if (!bestRes) {
+        bestRes = res;
+      } else {
+        const currentLen = (bestRes.assignment || "").trim().length;
+        const newLen = (res.assignment || "").trim().length;
+        const isDefaultMsg = (text) => !text || text.includes("Không tìm thấy nội dung đề bài tự động");
+        
+        if (isDefaultMsg(bestRes.assignment) && !isDefaultMsg(res.assignment)) {
+          bestRes = res;
+        } else if (!isDefaultMsg(res.assignment) && newLen > currentLen) {
+          bestRes = res;
+        }
+        
+        if (!bestRes.chapter || bestRes.chapter === "Khóa học mặc định") {
+          if (res.chapter && res.chapter !== "Khóa học mặc định") bestRes.chapter = res.chapter;
+        }
+        if (!bestRes.session || bestRes.session === "Session 01: Nhập môn") {
+          if (res.session && res.session !== "Session 01: Nhập môn") bestRes.session = res.session;
+        }
+        if (!bestRes.assignmentName || bestRes.assignmentName === "Bài tập mới") {
+          if (res.assignmentName && res.assignmentName !== "Bài tập mới") bestRes.assignmentName = res.assignmentName;
+        }
+      }
+    }
   }
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  return bestRes;
+}
 
-  if (columnWidths) {
-    worksheet["!cols"] = columnWidths;
-  }
-
-  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+export function matchStudent(studentList, normalizedTabUrl, pageId, pageName, transition) {
+  return studentList.find(st => {
+    if (st.submissionUrl === normalizedTabUrl) return true;
+    if (st.dbId && normalizedTabUrl.includes(st.dbId)) return true;
+    if (st.studentId && st.studentId !== 'N/A' && normalizedTabUrl.includes(st.studentId)) return true;
+    if (pageId && st.studentId && st.studentId !== 'N/A' && st.studentId.replace(/[\s_-]/g, '').toUpperCase() === pageId.replace(/[\s_-]/g, '').toUpperCase()) return true;
+    if (pageName && st.studentName && (st.studentName.toLowerCase().includes(pageName.toLowerCase()) || pageName.toLowerCase().includes(st.studentName.toLowerCase()))) return true;
+    if (transition && Date.now() - transition.timestamp < 300000) {
+      if (st.studentId && st.studentId !== 'N/A' && transition.studentId && st.studentId.toLowerCase() === transition.studentId.toLowerCase()) return true;
+      if (st.studentName && transition.studentName && st.studentName.toLowerCase() === transition.studentName.toLowerCase()) return true;
+    }
+    return false;
+  });
 }
