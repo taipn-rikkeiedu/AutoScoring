@@ -1,6 +1,0 @@
-streamlit
-python-dotenv
-requests
-google-generativeai
-fastapi
-uvicorn
