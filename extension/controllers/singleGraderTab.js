@@ -57,9 +57,24 @@ export class SingleGraderTab {
   }
 
   bindEvents() {
-    this.chapterSelect.addEventListener("change", () => this.onChapterChanged());
-    this.sessionSelect.addEventListener("change", () => this.onSessionChanged());
-    this.detectedSubmissionSelect.addEventListener("change", (e) => this.onDetectedSubmissionChanged(e.target.value));
+    this.chapterSelect.addEventListener("change", () => {
+      this.onChapterChanged();
+      this.updateContentScriptCache(null, null, null);
+    });
+    this.sessionSelect.addEventListener("change", () => {
+      this.onSessionChanged();
+      this.updateContentScriptCache(null, null, null);
+    });
+    this.assignmentSelect.addEventListener("change", () => {
+      this.updateContentScriptCache(null, null, null);
+    });
+    this.repoUrlInput.addEventListener("input", () => {
+      this.updateContentScriptCache(null, null, null);
+    });
+    this.detectedSubmissionSelect.addEventListener("change", (e) => {
+      this.onDetectedSubmissionChanged(e.target.value);
+      this.updateContentScriptCache(null, null, null);
+    });
     this.gradeBtn.addEventListener("click", () => this.gradeSingleSubmission());
   }
 
@@ -348,6 +363,7 @@ export class SingleGraderTab {
           }
         });
       }
+      this.updateContentScriptCache(score, report, repoData.fileList);
     } catch (err) {
       console.error(err);
       window.showToast(`Lỗi: ${err.message}`, "error");
@@ -355,6 +371,37 @@ export class SingleGraderTab {
     } finally {
       this.gradeBtn.disabled = false;
     }
+  }
+
+  updateContentScriptCache(score = null, report = null, fileList = null) {
+    const repoUrl = this.repoUrlInput.value.trim();
+    const chapter = this.chapterSelect.value;
+    const session = this.sessionSelect.value;
+    const assignmentName = this.assignmentSelect.value;
+
+    const cacheData = {
+      repoUrl,
+      chapter,
+      session,
+      assignmentName,
+      score,
+      report,
+      fileList
+    };
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0] && tabs[0].id) {
+        chrome.tabs.sendMessage(
+          tabs[0].id, 
+          { action: 'updateGradingCache', singleGrader: cacheData },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.warn("REduX: updateContentScriptCache (single) failed:", chrome.runtime.lastError.message);
+            }
+          }
+        );
+      }
+    });
   }
 
   resolveStudentFromTabUrl() {
@@ -410,6 +457,108 @@ export class SingleGraderTab {
               this.studentResolvedBanner.style.display = "none";
             }
           }
+
+          // Check Single Grader cache from content script
+          chrome.tabs.sendMessage(activeTab.id, { action: 'getGradingCache' }, (response) => {
+            const err = chrome.runtime.lastError;
+            if (!err && response && response.singleGrader) {
+              const cache = response.singleGrader;
+              
+              if (cache.repoUrl) this.repoUrlInput.value = cache.repoUrl;
+              
+              if (cache.chapter) {
+                this.chapterSelect.value = cache.chapter;
+                this.onChapterChanged();
+                if (cache.session) {
+                  this.sessionSelect.value = cache.session;
+                  this.onSessionChanged();
+                  if (cache.assignmentName) {
+                    this.assignmentSelect.value = cache.assignmentName;
+                  }
+                }
+              }
+              
+              if (cache.score && cache.report) {
+                this.scoreVal.innerText = `${cache.score} / 100`;
+                const val = parseFloat(cache.score);
+                if (val >= 80) this.scoreVal.style.background = "linear-gradient(135deg, #16a34a, #15803d)";
+                else if (val >= 50) this.scoreVal.style.background = "linear-gradient(135deg, #d97706, #b45309)";
+                else this.scoreVal.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)";
+                
+                if (typeof marked !== 'undefined') {
+                  this.reportHtml.innerHTML = marked.parse(cache.report);
+                } else {
+                  this.reportHtml.innerText = cache.report;
+                }
+                
+                this.context.activeSingleReportMarkdown = cache.report;
+                
+                const existingFileList = this.resultsBox.querySelector(".single-file-list-container");
+                if (existingFileList) existingFileList.remove();
+                
+                if (cache.fileList && cache.fileList.length > 0) {
+                  const fileListDiv = document.createElement("div");
+                  fileListDiv.className = "single-file-list-container";
+                  fileListDiv.style.marginTop = "10px";
+                  fileListDiv.style.padding = "8px";
+                  fileListDiv.style.backgroundColor = "#f8fafc";
+                  fileListDiv.style.borderRadius = "6px";
+                  fileListDiv.style.border = "1px solid #e2e8f0";
+                  
+                  const header = document.createElement("div");
+                  header.style.fontWeight = "600";
+                  header.style.color = "#475569";
+                  header.style.fontSize = "0.85rem";
+                  header.style.cursor = "pointer";
+                  header.style.display = "flex";
+                  header.style.alignItems = "center";
+                  header.style.gap = "4px";
+                  
+                  const toggleIcon = document.createElement('span');
+                  toggleIcon.textContent = '▶';
+                  toggleIcon.style.fontSize = '0.75rem';
+                  toggleIcon.style.transition = 'transform 0.2s';
+                  
+                  const headerText = document.createElement("span");
+                  headerText.textContent = `📁 Xem danh sách tệp tin đã chấm (${cache.fileList.length} file)`;
+                  
+                  header.appendChild(toggleIcon);
+                  header.appendChild(headerText);
+                  
+                  const fileListUl = document.createElement("ul");
+                  fileListUl.style.display = "none";
+                  fileListUl.style.margin = "6px 0 0 16px";
+                  fileListUl.style.padding = "0";
+                  fileListUl.style.listStyleType = "none";
+                  fileListUl.style.maxHeight = "150px";
+                  fileListUl.style.overflowY = "auto";
+                  fileListUl.style.fontSize = "0.8rem";
+                  fileListUl.style.color = "#64748b";
+                  
+                  cache.fileList.forEach(filePath => {
+                    const li = document.createElement("li");
+                    li.style.padding = "2px 0";
+                    li.innerHTML = `📄 <span style="font-family: monospace;">${filePath}</span>`;
+                    fileListUl.appendChild(li);
+                  });
+                  
+                  header.addEventListener("click", () => {
+                    const isCollapsed = fileListUl.style.display === "none";
+                    fileListUl.style.display = isCollapsed ? "block" : "none";
+                    toggleIcon.style.transform = isCollapsed ? "rotate(90deg)" : "rotate(0deg)";
+                  });
+                  
+                  fileListDiv.appendChild(header);
+                  fileListDiv.appendChild(fileListUl);
+                  this.resultsBox.insertBefore(fileListDiv, this.reportHtml);
+                }
+                
+                this.resultsBox.style.display = "flex";
+              } else {
+                this.resultsBox.style.display = "none";
+              }
+            }
+          });
         });
       };
 

@@ -399,7 +399,7 @@ export class AutoGraderTab {
     // Mode switcher triggers - removed because class list is now a separate tab
 
     // Mode 1: Bulk Grader events
-    this.rescanPageBtn.addEventListener("click", () => this.triggerPageScan());
+    this.rescanPageBtn.addEventListener("click", () => this.triggerPageScan(true));
     this.bulkGradeBtn.addEventListener("click", () => this.runBulkGrading());
     this.selectAllSubs.addEventListener("change", (e) => this.toggleSelectAll(e.target.checked));
 
@@ -548,6 +548,7 @@ export class AutoGraderTab {
       checkbox.addEventListener('change', (e) => {
         this.context.submissions[index].checked = e.target.checked;
         this.updateBulkButtonText();
+        this.updateContentScriptCache();
       });
       tdCheck.appendChild(checkbox);
       trMain.appendChild(tdCheck);
@@ -603,6 +604,7 @@ export class AutoGraderTab {
         this.updateDetailPreview(index);
         this.updateBulkButtonText();
         this.context.updateDetectedSubmissionSelect();
+        this.updateContentScriptCache();
       });
       trMain.appendChild(tdMap);
       
@@ -627,7 +629,7 @@ export class AutoGraderTab {
       
       const btnGrade = document.createElement('button');
       btnGrade.className = 'btn-row-action btn-row-grade';
-      btnGrade.textContent = 'Chấm';
+      btnGrade.textContent = sub.status === 'success' ? 'Chấm lại' : 'Chấm';
       btnGrade.id = `btn-grade-${index}`;
       btnGrade.addEventListener('click', () => this.gradeSingleRow(index));
       tdActions.appendChild(btnGrade);
@@ -662,6 +664,7 @@ export class AutoGraderTab {
         linkA.href = newUrl;
         linkA.textContent = newUrl;
         this.context.updateDetectedSubmissionSelect();
+        this.updateContentScriptCache();
       });
       fieldGit.appendChild(inputGit);
       containerDiv.appendChild(fieldGit);
@@ -808,19 +811,141 @@ export class AutoGraderTab {
 
 
 
-  triggerPageScan() {
+  updateContentScriptCache() {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0] && tabs[0].id) {
+        chrome.tabs.sendMessage(
+          tabs[0].id, 
+          { action: 'updateGradingCache', submissions: this.context.submissions },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.warn("REduX: updateContentScriptCache failed:", chrome.runtime.lastError.message);
+            }
+          }
+        );
+      }
+    });
+  }
+
+  executePageScrape(activeTab, shouldMerge = false) {
     const statusBanner = document.getElementById("detected-status-banner");
-    statusBanner.innerHTML = "🔍 Đang tìm kiếm các bài tập trên trang... ";
-    statusBanner.style.backgroundColor = "#f1f5f9";
-    statusBanner.style.color = "#334155";
-    statusBanner.style.borderLeftColor = "#3b82f6";
+    chrome.scripting.executeScript({
+      target: { tabId: activeTab.id },
+      func: scrapeSubmissionsPage
+    }, (results) => {
+      this.isScanning = false;
+      if (chrome.runtime.lastError) {
+        console.error(chrome.runtime.lastError);
+        if (statusBanner) {
+          statusBanner.innerHTML = "❌ Không thể quét trang: " + chrome.runtime.lastError.message;
+          statusBanner.style.backgroundColor = "#fef2f2";
+          statusBanner.style.color = "#991b1b";
+          statusBanner.style.borderLeftColor = "#ef4444";
+        }
+        this.context.submissions = [];
+        this.renderSubmissions();
+        return;
+      }
+      
+      if (results && results[0] && results[0].result) {
+        const scrapedItems = results[0].result;
+        
+        const mapAndResolve = (cachedList = []) => {
+          this.context.submissions = scrapedItems.map(item => {
+            const cachedItem = cachedList ? cachedList.find(c => c.githubUrl === item.githubUrl) : null;
+            const match = findMatchingTemplate(item.exerciseName, this.context.exerciseTemplates);
+            if (cachedItem) {
+              return {
+                exerciseName: item.exerciseName,
+                studentName: item.studentName || cachedItem.studentName || '',
+                githubUrl: item.githubUrl,
+                checked: cachedItem.checked !== undefined ? cachedItem.checked : true,
+                matchedTemplate: cachedItem.matchedTemplate || match,
+                status: cachedItem.status || 'pending',
+                score: cachedItem.score !== undefined ? cachedItem.score : null,
+                report: cachedItem.report || null,
+                error: cachedItem.error || null,
+                fileList: cachedItem.fileList || null
+              };
+            } else {
+              return {
+                exerciseName: item.exerciseName,
+                studentName: item.studentName || '',
+                githubUrl: item.githubUrl,
+                checked: true,
+                matchedTemplate: match,
+                status: 'pending',
+                score: null,
+                report: null,
+                error: null,
+                fileList: null
+              };
+            }
+          });
+          
+          this.updateContentScriptCache();
+          
+          const foundCount = this.context.submissions.length;
+          if (statusBanner) {
+            if (foundCount > 0) {
+              statusBanner.innerHTML = `✅ Đã tìm thấy ${foundCount} bài tập chứa liên kết GitHub trên trang.`;
+              statusBanner.style.backgroundColor = "#f0fdf4";
+              statusBanner.style.color = "#166534";
+              statusBanner.style.borderLeftColor = "#22c55e";
+            } else {
+              statusBanner.innerHTML = "❓ Không tìm thấy bài tập nộp trên trang này.";
+              statusBanner.style.backgroundColor = "#fffbeb";
+              statusBanner.style.color = "#b45309";
+              statusBanner.style.borderLeftColor = "#f59e0b";
+            }
+          }
+          this.renderSubmissions();
+        };
+
+        if (shouldMerge) {
+          chrome.tabs.sendMessage(activeTab.id, { action: 'getGradingCache' }, (response) => {
+            const err = chrome.runtime.lastError;
+            const cachedList = (!err && response) ? response.submissions : null;
+            mapAndResolve(cachedList);
+          });
+        } else {
+          mapAndResolve(null);
+        }
+      } else {
+        if (statusBanner) {
+          statusBanner.innerHTML = "❓ Không tìm thấy bài tập nào.";
+          statusBanner.style.backgroundColor = "#f1f5f9";
+          statusBanner.style.color = "#475569";
+          statusBanner.style.borderLeftColor = "#64748b";
+        }
+        this.context.submissions = [];
+        this.updateContentScriptCache();
+        this.renderSubmissions();
+      }
+    });
+  }
+
+  triggerPageScan(forceScan = false) {
+    if (this.isScanning) return;
+    this.isScanning = true;
+
+    const statusBanner = document.getElementById("detected-status-banner");
+    if (statusBanner) {
+      statusBanner.innerHTML = "🔍 Đang tìm kiếm các bài tập trên trang... ";
+      statusBanner.style.backgroundColor = "#f1f5f9";
+      statusBanner.style.color = "#334155";
+      statusBanner.style.borderLeftColor = "#3b82f6";
+    }
     
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (!tabs || !tabs[0]) {
-        statusBanner.innerHTML = "❌ Lỗi: Không thể truy cập tab hiện tại.";
-        statusBanner.style.backgroundColor = "#fef2f2";
-        statusBanner.style.color = "#991b1b";
-        statusBanner.style.borderLeftColor = "#ef4444";
+        this.isScanning = false;
+        if (statusBanner) {
+          statusBanner.innerHTML = "❌ Lỗi: Không thể truy cập tab hiện tại.";
+          statusBanner.style.backgroundColor = "#fef2f2";
+          statusBanner.style.color = "#991b1b";
+          statusBanner.style.borderLeftColor = "#ef4444";
+        }
         return;
       }
       
@@ -828,71 +953,38 @@ export class AutoGraderTab {
       const isWebPage = activeTab.url && (activeTab.url.startsWith("http://") || activeTab.url.startsWith("https://"));
       
       if (!isWebPage) {
-        statusBanner.innerHTML = "💡 Hãy mở trang web có bài tập của học viên để quét.";
-        statusBanner.style.backgroundColor = "#fffbeb";
-        statusBanner.style.color = "#b45309";
-        statusBanner.style.borderLeftColor = "#f59e0b";
+        this.isScanning = false;
+        if (statusBanner) {
+          statusBanner.innerHTML = "💡 Hãy mở trang web có bài tập của học viên để quét.";
+          statusBanner.style.backgroundColor = "#fffbeb";
+          statusBanner.style.color = "#b45309";
+          statusBanner.style.borderLeftColor = "#f59e0b";
+        }
         this.context.submissions = [];
         this.renderSubmissions();
         return;
       }
       
-      chrome.scripting.executeScript({
-        target: { tabId: activeTab.id },
-        func: scrapeSubmissionsPage
-      }, (results) => {
-        if (chrome.runtime.lastError) {
-          console.error(chrome.runtime.lastError);
-          statusBanner.innerHTML = "❌ Không thể quét trang: " + chrome.runtime.lastError.message;
-          statusBanner.style.backgroundColor = "#fef2f2";
-          statusBanner.style.color = "#991b1b";
-          statusBanner.style.borderLeftColor = "#ef4444";
-          this.context.submissions = [];
-          this.renderSubmissions();
-          return;
-        }
-        
-        if (results && results[0] && results[0].result) {
-          const scrapedItems = results[0].result;
-          
-          this.context.submissions = scrapedItems.map(item => {
-            const match = findMatchingTemplate(item.exerciseName, this.context.exerciseTemplates);
-            return {
-              exerciseName: item.exerciseName,
-              studentName: item.studentName || '',
-              githubUrl: item.githubUrl,
-              checked: true,
-              matchedTemplate: match,
-              status: 'pending',
-              score: null,
-              report: null,
-              error: null
-            };
-          });
-          
-          const foundCount = this.context.submissions.length;
-          if (foundCount > 0) {
-            statusBanner.innerHTML = `✅ Đã tìm thấy ${foundCount} bài tập chứa liên kết GitHub trên trang.`;
-            statusBanner.style.backgroundColor = "#f0fdf4";
-            statusBanner.style.color = "#166534";
-            statusBanner.style.borderLeftColor = "#22c55e";
+      if (!forceScan) {
+        chrome.tabs.sendMessage(activeTab.id, { action: 'getGradingCache' }, (response) => {
+          const err = chrome.runtime.lastError;
+          if (err || !response || !Array.isArray(response.submissions)) {
+            this.executePageScrape(activeTab, false);
           } else {
-            statusBanner.innerHTML = "❓ Không tìm thấy bài tập nộp trên trang này.";
-            statusBanner.style.backgroundColor = "#fffbeb";
-            statusBanner.style.color = "#b45309";
-            statusBanner.style.borderLeftColor = "#f59e0b";
+            this.context.submissions = response.submissions;
+            if (statusBanner) {
+              statusBanner.innerHTML = `✅ Đã khôi phục trạng thái chấm (${this.context.submissions.length} bài) từ bộ nhớ tab hiện tại.`;
+              statusBanner.style.backgroundColor = "#f0fdf4";
+              statusBanner.style.color = "#166534";
+              statusBanner.style.borderLeftColor = "#22c55e";
+            }
+            this.renderSubmissions();
+            this.isScanning = false;
           }
-          
-          this.renderSubmissions();
-        } else {
-          statusBanner.innerHTML = "❓ Không tìm thấy bài tập nào.";
-          statusBanner.style.backgroundColor = "#f1f5f9";
-          statusBanner.style.color = "#475569";
-          statusBanner.style.borderLeftColor = "#64748b";
-          this.context.submissions = [];
-          this.renderSubmissions();
-        }
-      });
+        });
+      } else {
+        this.executePageScrape(activeTab, true);
+      }
     });
   }
 
@@ -916,6 +1008,7 @@ export class AutoGraderTab {
     const btnGrade = document.getElementById(`btn-grade-${index}`);
     this.updateStatusBadge(badgeEl, sub);
     btnGrade.disabled = true;
+    this.updateContentScriptCache();
     
     const aiResultsDiv = document.getElementById(`ai-results-drawer-${index}`);
     const aiComment = document.getElementById(`ai-comment-${index}`);
@@ -959,6 +1052,7 @@ export class AutoGraderTab {
 
       sub.status = 'grading';
       this.updateStatusBadge(badgeEl, sub);
+      this.updateContentScriptCache();
       
       const ai = new AIService(this.context.config);
       const report = await ai.generateGradingReport(template.assignment, activeCriteria, repoData.content);
@@ -1007,6 +1101,10 @@ export class AutoGraderTab {
       }
       
       this.updateStatusBadge(badgeEl, sub);
+      if (btnGrade) {
+        btnGrade.textContent = 'Chấm lại';
+      }
+      this.updateContentScriptCache();
       if (aiResultsDiv && aiComment) {
         aiComment.textContent = extractComment(report);
         aiResultsDiv.style.display = 'block';
@@ -1016,6 +1114,7 @@ export class AutoGraderTab {
       sub.status = 'error';
       sub.error = e.message;
       this.updateStatusBadge(badgeEl, sub);
+      this.updateContentScriptCache();
     } finally {
       btnGrade.disabled = false;
     }

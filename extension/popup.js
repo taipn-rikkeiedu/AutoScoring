@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const copyReportBtn = document.getElementById("copy-report-btn");
   const copySingleReportBtn = document.getElementById("copy-single-report-btn");
 
-  const appVersion = "3.6.2";
+  const appVersion = "3.6.3";
 
   // --- Shared Context (State & Cross-Tab Callbacks) ---
   const context = {
@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Run tab-specific actions
     if (targetId === "tab-auto") {
-      autoGraderTab.triggerPageScan();
+      autoGraderTab.triggerPageScan(false);
     } else if (targetId === "tab-class-list") {
       detectAndLoadClassListSync();
     } else if (targetId === "tab-care") {

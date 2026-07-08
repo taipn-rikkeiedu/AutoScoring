@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "REduX",
-  "version": "3.6.2",
+  "version": "3.6.3",
   "description": "",
   "permissions": [
     "activeTab",
