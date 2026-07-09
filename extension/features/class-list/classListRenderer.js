@@ -8,95 +8,274 @@ export class ClassListRenderer {
 
   renderClassList() {
     if (!this.tab.listBody) return;
-    this.tab.listBody.innerHTML = "";
+    
+    const studentListRaw = this.tab.students || [];
 
-    if (this.tab.students.length === 0) {
-      this.tab.tableEl.style.display = "none";
-      this.tab.emptyState.style.display = "block";
+    if (studentListRaw.length === 0) {
+      this.tab.tableEl.style.display = 'none';
+      this.tab.emptyState.style.display = 'block';
       this.tab.exportBtn.disabled = true;
       return;
     }
 
-    this.tab.tableEl.style.display = "table";
-    this.tab.emptyState.style.display = "none";
+    // Sắp xếp: Đang chờ kiểm tra (Priority 1) -> Chưa hoàn thành (Priority 2) -> Hoàn thành (Priority 3)
+    const studentList = [...studentListRaw].sort((a, b) => {
+      const statusA = a.lmsStatus ? a.lmsStatus.trim().toUpperCase() : '';
+      const isCompletedA = statusA.includes('HOÀN THÀNH') && !statusA.includes('CHƯA');
+      const isPendingA = statusA.includes('CHỜ KIỂM TRA') || statusA.includes('ĐANG CHỜ') || statusA.includes('KIỂM TRA');
+      const isNotCompletedA = statusA.includes('CHƯA HOÀN THÀNH') || (!isCompletedA && !isPendingA && statusA.length > 0);
+
+      const statusB = b.lmsStatus ? b.lmsStatus.trim().toUpperCase() : '';
+      const isCompletedB = statusB.includes('HOÀN THÀNH') && !statusB.includes('CHƯA');
+      const isPendingB = statusB.includes('CHỜ KIỂM TRA') || statusB.includes('ĐANG CHỜ') || statusB.includes('KIỂM TRA');
+      const isNotCompletedB = statusB.includes('CHƯA HOÀN THÀNH') || (!isCompletedB && !isPendingB && statusB.length > 0);
+
+      let pA = 3;
+      if (isPendingA) pA = 1;
+      else if (isNotCompletedA) pA = 2;
+
+      let pB = 3;
+      if (isPendingB) pB = 1;
+      else if (isNotCompletedB) pB = 2;
+
+      return pA - pB;
+    });
+
+    this.tab.tableEl.style.display = 'table';
+    this.tab.emptyState.style.display = 'none';
     this.tab.exportBtn.disabled = false;
+    this.tab.listBody.innerHTML = '';
 
     const fragment = document.createDocumentFragment();
 
-    this.tab.students.forEach((st) => {
-      const tr = document.createElement("tr");
+    const total = studentList.length;
+    let completedCount = 0;
+    let notCompletedCount = 0;
+    let pendingCount = 0;
+    let gradedCount = 0;
+
+    studentList.forEach(st => {
+      const statusText = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : '';
+      const isCompleted = statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA');
+      const isPending = statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA');
+      const isNotCompleted = statusText.includes('CHƯA HOÀN THÀNH') || (!isCompleted && !isPending && statusText.length > 0);
+
+      if (isCompleted) {
+        completedCount++;
+      } else if (isPending) {
+        pendingCount++;
+      } else {
+        notCompletedCount++;
+      }
+
+      // Check if st has any graded submissions
+      let score = st.score;
+      if (st.submissions) {
+        let latestGraded = null;
+        for (const key in st.submissions) {
+          const sub = st.submissions[key];
+          if (sub && sub.score !== undefined && sub.score !== null) {
+            if (!latestGraded || new Date(sub.gradedAt || 0) > new Date(latestGraded.gradedAt || 0)) {
+              latestGraded = sub;
+            }
+          }
+        }
+        if (latestGraded) {
+          score = latestGraded.score;
+        }
+      }
+
+      if (isCompleted || isNotCompleted || (score !== null && score !== undefined)) {
+        gradedCount++;
+      }
+    });
+
+    this.tab.statusBanner.innerHTML = `
+      <div style="font-weight: 600; margin-bottom: 5px;">📊 Thống kê lớp học: Sĩ số <b>${total}</b> | Đã chấm <b>${gradedCount}</b></div>
+      <div class="stats-grid">
+        <span class="stats-grid-item">Hoàn thành: <span class="badge-status success" style="font-weight:bold;">${completedCount}</span></span>
+        <span class="stats-grid-item">Chưa hoàn thành: <span class="badge-status pending" style="font-weight:bold;">${notCompletedCount}</span></span>
+        <span class="stats-grid-item">Chờ kiểm tra: <span class="badge-status warning" style="font-weight:bold;">${pendingCount}</span></span>
+      </div>
+    `;
+    this.tab.statusBanner.style.backgroundColor = "#f8fafc";
+    this.tab.statusBanner.style.color = "#1e293b";
+    this.tab.statusBanner.style.borderLeftColor = "#3b82f6";
+
+    studentList.forEach((st) => {
+      const tr = document.createElement('tr');
+
+      const statusTextForHighlight = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : '';
+      const isCompletedForHighlight = statusTextForHighlight.includes('HOÀN THÀNH') && !statusTextForHighlight.includes('CHƯA');
+      const isPendingForHighlight = statusTextForHighlight.includes('CHỜ KIỂM TRA') || statusTextForHighlight.includes('ĐANG CHỜ') || statusTextForHighlight.includes('KIỂM TRA');
+      const isNotCompletedForHighlight = statusTextForHighlight.includes('CHƯA HOÀN THÀNH') || (!isCompletedForHighlight && !isPendingForHighlight && statusTextForHighlight.length > 0);
+
+      if (isPendingForHighlight) {
+        tr.classList.add('row-pending');
+      } else if (isNotCompletedForHighlight) {
+        tr.classList.add('row-not-completed');
+      }
+
+      const handleStudentClick = (e) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs && tabs[0]) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: 'scrollToStudent',
+              studentId: st.studentId,
+              studentName: st.studentName
+            }, (response) => {
+              if (chrome.runtime.lastError) {
+                console.log("Error sending scrollToStudent message:", chrome.runtime.lastError.message);
+              }
+            });
+          }
+        });
+      };
 
       // Mã SV
-      const tdId = document.createElement("td");
-      tdId.style.fontWeight = "600";
-      tdId.style.color = "#475569";
+      const tdId = document.createElement('td');
+      tdId.style.fontWeight = '600';
+      tdId.style.color = '#475569';
+      tdId.style.cursor = 'pointer';
       tdId.textContent = st.studentId;
+      tdId.addEventListener('click', handleStudentClick);
       tr.appendChild(tdId);
 
       // Họ và Tên
-      const tdName = document.createElement("td");
-      tdName.style.fontWeight = "600";
-      tdName.style.color = "#1e293b";
-      tdName.textContent = st.studentName;
+      const tdName = document.createElement('td');
+      const nameLink = document.createElement('a');
+      nameLink.href = st.submissionUrl;
+      nameLink.target = '_blank';
+      nameLink.style.fontWeight = '600';
+      nameLink.style.color = '#1e293b';
+      nameLink.style.textDecoration = 'none';
+      nameLink.style.cursor = 'pointer';
+      nameLink.textContent = st.studentName;
+      nameLink.addEventListener('click', (e) => {
+        if (e.ctrlKey || e.metaKey) return;
+        e.preventDefault();
+        handleStudentClick(e);
+      });
+      tdName.appendChild(nameLink);
+
+      if (st.githubUrl) {
+        const githubLink = document.createElement('a');
+        githubLink.className = 'sub-repo-link';
+        githubLink.href = st.githubUrl;
+        githubLink.target = '_blank';
+        githubLink.textContent = st.githubUrl.replace(/^https?:\/\/(www\.)?github\.com\//, "");
+        tdName.appendChild(githubLink);
+      }
       tr.appendChild(tdName);
 
       // Trạng thái LMS
-      const tdStatus = document.createElement("td");
-      tdStatus.style.textAlign = "center";
-      const statusBadge = document.createElement("span");
-      statusBadge.className = `badge-status lms-status`;
-      if (st.lmsStatus) {
-        const lower = st.lmsStatus.toLowerCase();
-        if (lower.includes("online") || lower.includes("trực tuyến") || lower.includes("hoạt động")) {
-          statusBadge.classList.add("success");
-        } else if (lower.includes("offline") || lower.includes("chưa kích hoạt")) {
-          statusBadge.classList.add("error");
-        }
+      const tdLmsStatus = document.createElement('td');
+      tdLmsStatus.style.textAlign = 'center';
+      const lmsBadge = document.createElement('span');
+      lmsBadge.className = 'badge-status';
+
+      const statusText = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : 'CHƯA NỘP';
+      lmsBadge.textContent = statusText;
+
+      if (statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA')) {
+        lmsBadge.className += ' success';
+      } else if (statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA')) {
+        lmsBadge.className += ' warning';
+      } else {
+        lmsBadge.className += ' pending';
       }
-      statusBadge.textContent = st.lmsStatus || "Không rõ";
-      tdStatus.appendChild(statusBadge);
-      tr.appendChild(tdStatus);
+      tdLmsStatus.appendChild(lmsBadge);
+      tr.appendChild(tdLmsStatus);
 
       // Bài hoàn thành / Đã nộp
-      const tdStats = document.createElement("td");
-      tdStats.style.textAlign = "center";
-      
-      const finished = st.completedCount || 0;
-      const submitted = st.submittedCount || 0;
-      
-      const statsBadge = document.createElement("span");
-      statsBadge.style.fontWeight = "700";
-      statsBadge.style.fontSize = "0.85rem";
-      statsBadge.style.padding = "4px 8px";
-      statsBadge.style.borderRadius = "4px";
-      statsBadge.style.backgroundColor = "#f1f5f9";
-      statsBadge.style.color = "#475569";
-      
-      statsBadge.textContent = `${finished} / ${submitted}`;
-      tdStats.appendChild(statsBadge);
-      tr.appendChild(tdStats);
+      const tdScore = document.createElement('td');
+      tdScore.style.textAlign = 'center';
+
+      const ratioBadge = document.createElement('span');
+      ratioBadge.className = 'badge-status';
+
+      const subCount = st.submittedCount || 0;
+      const compCount = st.completedCount || 0;
+      ratioBadge.textContent = `${compCount} / ${subCount}`;
+
+      if (compCount === subCount && subCount > 0) {
+        ratioBadge.className += ' success';
+      } else if (compCount < subCount) {
+        ratioBadge.className += ' warning';
+      } else {
+        ratioBadge.className += ' pending';
+      }
+
+      // Check if st has any graded submissions
+      let score = st.score;
+      let report = st.comments;
+      if (st.submissions) {
+        let latestGraded = null;
+        for (const key in st.submissions) {
+          const sub = st.submissions[key];
+          if (sub && sub.score !== undefined && sub.score !== null) {
+            if (!latestGraded || new Date(sub.gradedAt || 0) > new Date(latestGraded.gradedAt || 0)) {
+              latestGraded = sub;
+            }
+          }
+        }
+        if (latestGraded) {
+          score = latestGraded.score;
+          report = latestGraded.report;
+        }
+      }
+
+      if (score !== null && score !== undefined) {
+        ratioBadge.title = `Điểm AI: ${score}/100. Click để xem nhận xét chi tiết.`;
+        ratioBadge.style.cursor = 'pointer';
+        ratioBadge.style.borderBottom = '2px dashed #15803d';
+
+        ratioBadge.addEventListener('click', () => {
+          this.tab.context.showReportModal({
+            exerciseName: `Báo cáo chấm điểm: ${st.studentName} - ${st.studentId}`,
+            score: score,
+            report: report
+          });
+        });
+
+        const aiScoreText = document.createElement('div');
+        aiScoreText.style.fontSize = '0.7rem';
+        aiScoreText.style.color = '#15803d';
+        aiScoreText.style.fontWeight = '600';
+        aiScoreText.style.marginTop = '2px';
+        aiScoreText.textContent = `AI: ${score}/100`;
+
+        tdScore.appendChild(ratioBadge);
+        tdScore.appendChild(aiScoreText);
+      } else {
+        tdScore.appendChild(ratioBadge);
+      }
+
+      tr.appendChild(tdScore);
 
       // Hành động
-      const tdAction = document.createElement("td");
-      tdAction.style.textAlign = "center";
-      
-      const actionBtn = document.createElement("button");
-      actionBtn.className = "btn-primary table-action-btn";
-      actionBtn.style.padding = "4px 8px";
-      actionBtn.style.fontSize = "0.75rem";
-      
-      if (st.submissionUrl) {
-        actionBtn.innerHTML = "🔗 Chấm Bài";
-        actionBtn.addEventListener("click", () => {
-          this.tab.grading.switchToSingleGraderForStudent(st);
-        });
-      } else {
-        actionBtn.innerHTML = "❌ Không có link";
-        actionBtn.disabled = true;
-      }
-      
-      tdAction.appendChild(actionBtn);
-      tr.appendChild(tdAction);
+      const tdActions = document.createElement('td');
+      tdActions.style.textAlign = 'center';
+
+      const btnDelete = document.createElement('button');
+      btnDelete.className = 'btn-row-action';
+      btnDelete.style.borderColor = '#fca5a5';
+      btnDelete.style.color = '#ef4444';
+      btnDelete.textContent = 'Xóa';
+      btnDelete.addEventListener('click', () => {
+        if (confirm(`Xóa học viên ${st.studentName} khỏi danh sách?`)) {
+          const updated = studentListRaw.filter(item => item.studentId !== st.studentId);
+          chrome.storage.local.set({ classStudentList: updated }, () => {
+            this.tab.students = updated;
+            this.renderClassList();
+            if (this.tab.context.singleGraderTab) {
+              this.tab.context.singleGraderTab.resolveStudentFromTabUrl();
+            }
+          });
+        }
+      });
+      tdActions.appendChild(btnDelete);
+      tr.appendChild(tdActions);
 
       fragment.appendChild(tr);
     });
@@ -105,46 +284,33 @@ export class ClassListRenderer {
   }
 
   exportClassListExcel() {
-    if (this.tab.students.length === 0) {
-      window.showToast("Không có dữ liệu để xuất.", "warning");
+    const studentList = this.tab.students || [];
+    if (studentList.length === 0) {
+      window.showToast("Không có dữ liệu học viên để xuất Excel.", "warning");
       return;
     }
 
-    const templates = this.tab.context.exerciseTemplates || {};
-    const exercisesList = [];
-    for (const chap in templates) {
-      for (const sess in templates[chap]) {
-        for (const name in templates[chap][sess]) {
-          exercisesList.push({ key: `${chap}_${sess}_${name}`, name: `${sess} - ${name}` });
-        }
-      }
-    }
-
-    const data = this.tab.students.map((st) => {
-      const row = {
+    // Chuẩn bị dữ liệu cho SheetJS
+    const data = studentList.map(st => {
+      return {
         "Mã SV": st.studentId || "",
         "Họ và Tên": st.studentName || "",
-        "LMS Status": st.lmsStatus || "",
-        "Bài hoàn thành": st.completedCount || 0,
-        "Bài đã nộp": st.submittedCount || 0
+        "Trạng thái LMS": st.lmsStatus || "",
+        "Số bài đã nộp": st.submittedCount || 0,
+        "Số bài hoàn thành": st.completedCount || 0
       };
-
-      exercisesList.forEach(ex => {
-        const sub = st.submissions?.[ex.key];
-        row[ex.name] = sub ? sub.score : "Chưa chấm";
-      });
-
-      return row;
     });
 
+    // Định cấu hình độ rộng cột cho đẹp mắt
     const max_widths = [
-      { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+      { wch: 15 }, // Mã SV
+      { wch: 25 }, // Họ Tên
+      { wch: 18 }, // Trạng thái LMS
+      { wch: 15 }, // Số bài đã nộp
+      { wch: 18 }  // Số bài hoàn thành
     ];
-    exercisesList.forEach(() => {
-      max_widths.push({ wch: 20 });
-    });
 
-    const fileName = `Bang_diem_lop_${this.tab.currentClassId || "unknown"}_${new Date().toISOString().slice(0,10)}.xlsx`;
-    exportToExcel(data, "Bang_diem", fileName, max_widths);
+    const fileName = `Bao_cao_diem_lop_hoc_${new Date().toISOString().slice(0,10)}.xlsx`;
+    exportToExcel(data, "Danh sách lớp", fileName, max_widths);
   }
 }

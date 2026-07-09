@@ -69,7 +69,8 @@ export class ReportModal {
     else this.modalScoreVal.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)";
 
     if (typeof marked !== 'undefined') {
-      this.modalReportHtml.innerHTML = marked.parse(sub.report);
+      const rawHtml = marked.parse(sub.report);
+      this.modalReportHtml.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
     } else {
       this.modalReportHtml.innerText = sub.report;
     }

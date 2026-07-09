@@ -1,12 +1,28 @@
 export class GitHubService {
   constructor(token = "", customIgnoreItems = null) {
+    // Chuẩn hóa token: cắt khoảng trắng, loại bỏ nháy và các tiền tố dư thừa
+    let cleanToken = typeof token === "string" ? token.trim() : "";
+    if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
+      cleanToken = cleanToken.slice(1, -1).trim();
+    }
+    if (cleanToken.toLowerCase().startsWith("bearer ")) {
+      cleanToken = cleanToken.substring(7).trim();
+    } else if (cleanToken.toLowerCase().startsWith("token ")) {
+      cleanToken = cleanToken.substring(6).trim();
+    }
+
+    const version = typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest 
+      ? chrome.runtime.getManifest().version 
+      : "3.6.3";
+
     this.headers = {
       "Accept": "application/vnd.github.v3+json",
-      "User-Agent": "REduX/3.5.6"
+      "User-Agent": `REduX/${version}`
     };
-    if (token) {
-      this.headers["Authorization"] = `token ${token}`;
+    if (cleanToken) {
+      this.headers["Authorization"] = `token ${cleanToken}`;
     }
+
     this.allowedExtensions = [
       ".py", ".java", ".js", ".ts", ".cpp", ".c", ".cs", ".html", ".css", ".go", 
       ".kt", ".php", ".gradle", ".xml", ".properties", ".yml", ".yaml", ".json", ".md", ".docx"
@@ -59,10 +75,42 @@ export class GitHubService {
     return { owner: match[1], repo: match[2].replace(/\.git$/, "") };
   }
 
+  async safeFetch(url, options = {}) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: "FETCH", url, options }, (response) => {
+        if (chrome.runtime.lastError) {
+          return reject(new Error(chrome.runtime.lastError.message));
+        }
+        if (!response || !response.success) {
+          return reject(new Error(response ? response.error : "Không nhận được phản hồi từ Background Service Worker"));
+        }
+        
+        resolve({
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          json: async () => JSON.parse(response.text),
+          text: async () => response.text,
+          blob: async () => {
+            if (response.base64) {
+              const binary = atob(response.base64);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+              }
+              return new Blob([bytes], { type: "application/zip" });
+            }
+            throw new Error("Không có dữ liệu nhị phân để tạo Blob");
+          }
+        });
+      });
+    });
+  }
+
   async getDefaultBranch(owner, repo) {
     const apiUr = `https://api.github.com/repos/${owner}/${repo}`;
     try {
-      const response = await fetch(apiUr, { headers: this.headers });
+      const response = await this.safeFetch(apiUr, { headers: this.headers });
       if (response.ok) {
         const data = await response.json();
         return data.default_branch || "main";
@@ -124,13 +172,30 @@ export class GitHubService {
     const branch = await this.getDefaultBranch(owner, repo);
 
     if (onProgress) onProgress("Đang tải toàn bộ mã nguồn (.ZIP)...");
-    const archiveUrl = `https://codeload.github.com/${owner}/${repo}/zip/refs/heads/${branch}`;
+    
+    let archiveUrl;
+    let fetchHeaders = {};
+
+    if (this.headers["Authorization"]) {
+      // Nếu có Token, dùng API chính thức của GitHub để hỗ trợ repo private và tránh CORS preflight cho Authorization header
+      archiveUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${branch}`;
+      fetchHeaders = { ...this.headers };
+    } else {
+      // Nếu không có Token, tải trực tiếp từ codeload cho nhanh và tiết kiệm rate limit
+      archiveUrl = `https://codeload.github.com/${owner}/${repo}/zip/refs/heads/${branch}`;
+      // Không gửi bất kỳ header tùy chỉnh nào để tránh lỗi CORS Preflight
+      fetchHeaders = {
+        "Accept": "*/*"
+      };
+    }
     
     let zipBlob = null;
     try {
-      const res = await fetch(archiveUrl, { headers: this.headers });
+      const res = await this.safeFetch(archiveUrl, { headers: fetchHeaders });
       if (res.ok) {
         zipBlob = await res.blob();
+      } else {
+        console.warn(`Tải zip phản hồi mã lỗi HTTP ${res.status}: ${res.statusText}`);
       }
     } catch (zipErr) {
       console.warn("Tải zip lỗi, thử dùng API fallback", zipErr);
@@ -206,8 +271,25 @@ export class GitHubService {
 
     if (onProgress) onProgress("Tải ZIP thất bại. Đang thử dùng Git Trees API...");
     const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
-    const treeRes = await fetch(treeUrl, { headers: this.headers });
-    if (!treeRes.ok) throw new Error(`Không thể kết nối đến GitHub API (HTTP ${treeRes.status})`);
+    
+    let treeRes;
+    try {
+      treeRes = await this.safeFetch(treeUrl, { headers: this.headers });
+    } catch (netErr) {
+      throw new Error(`Không thể kết nối đến GitHub API do lỗi mạng hoặc cấu hình Token không hợp lệ. Chi tiết: ${netErr.message}`);
+    }
+
+    if (!treeRes.ok) {
+      let errMsg = `Không thể kết nối đến GitHub API (HTTP ${treeRes.status})`;
+      if (treeRes.status === 401) {
+        errMsg = "GitHub Token không hợp lệ hoặc đã hết hạn (HTTP 401). Vui lòng kiểm tra lại cấu hình.";
+      } else if (treeRes.status === 403) {
+        errMsg = "Giới hạn truy cập GitHub API đã hết hoặc bị cấm (HTTP 403). Vui lòng cấu hình Token để tiếp tục.";
+      } else if (treeRes.status === 404) {
+        errMsg = `Không tìm thấy repository hoặc nhánh mặc định '${branch}' (HTTP 404).`;
+      }
+      throw new Error(errMsg);
+    }
     
     const treeData = await treeRes.json();
     const files = treeData.tree || [];
@@ -232,23 +314,49 @@ export class GitHubService {
       if (isAllowed && !isExcluded) {
         if (onProgress) onProgress(`Đang tải file: ${name.split("/").pop()} (${processedFiles + 1})...`);
         
-        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${name}`;
-        const fileRes = await fetch(rawUrl, { headers: this.headers });
+        // Sử dụng GitHub Contents API thay vì raw.githubusercontent.com để tránh các vấn đề CORS preflight khi kèm theo Authorization
+        const contentUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${name}?ref=${branch}`;
+        const fileRes = await this.safeFetch(contentUrl, { headers: this.headers });
         if (!fileRes.ok) continue;
 
+        const fileData = await fileRes.json();
         let content = "";
-        if (name.endsWith(".docx")) {
-          const docxBlob = await fileRes.blob();
-          const docxZip = new JSZip();
-          try {
-            const subZip = await docxZip.loadAsync(docxBlob);
-            const wordXml = subZip.file("word/document.xml");
-            if (wordXml) content = await this.parseDocx(wordXml);
-          } catch (e) {
-            content = `[Lỗi đọc Word docx: ${e.message}]`;
+        
+        if (fileData.encoding === "base64" && fileData.content) {
+          // Chuẩn hóa chuỗi base64 bằng cách loại bỏ các ký tự xuống dòng và khoảng trắng
+          const cleanBase64 = fileData.content.replace(/\r?\n|\r|\s/g, "");
+          
+          if (name.endsWith(".docx")) {
+            const binary = atob(cleanBase64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            const docxBlob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+            const docxZip = new JSZip();
+            try {
+              const subZip = await docxZip.loadAsync(docxBlob);
+              const wordXml = subZip.file("word/document.xml");
+              if (wordXml) content = await this.parseDocx(wordXml);
+            } catch (e) {
+              content = `[Lỗi đọc Word docx: ${e.message}]`;
+            }
+          } else {
+            // Giải mã UTF-8 từ base64 an toàn cho tiếng Việt có dấu
+            try {
+              const binary = atob(cleanBase64);
+              content = decodeURIComponent(
+                binary
+                  .split("")
+                  .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+                  .join("")
+              );
+            } catch (decodeErr) {
+              content = atob(cleanBase64);
+            }
           }
         } else {
-          content = await fileRes.text();
+          content = fileData.content || "";
         }
 
         fileList.push(name);

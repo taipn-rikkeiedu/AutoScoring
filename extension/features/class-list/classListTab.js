@@ -93,9 +93,19 @@ export class ClassListTab extends TabController {
       const existingList = res.classStudentList || [];
       
       this.students = scraped.map(newSt => {
-        const existing = existingList.find(st => st.studentId === newSt.studentId);
+        const existing = existingList.find(st => st.submissionUrl === newSt.submissionUrl || (st.studentId && st.studentId !== 'N/A' && st.studentId === newSt.studentId));
         return {
-          ...newSt,
+          studentId: newSt.studentId,
+          studentName: newSt.studentName,
+          submissionUrl: newSt.submissionUrl,
+          dbId: newSt.dbId || (existing ? (existing.dbId || '') : ''),
+          lmsStatus: newSt.lmsStatus || (existing ? (existing.lmsStatus || '') : ''),
+          submittedCount: newSt.submittedCount !== undefined ? newSt.submittedCount : (existing ? (existing.submittedCount || 0) : 0),
+          completedCount: newSt.completedCount !== undefined ? newSt.completedCount : (existing ? (existing.completedCount || 0) : 0),
+          githubUrl: existing ? (existing.githubUrl || '') : '',
+          score: existing ? existing.score : null,
+          comments: existing ? existing.comments : null,
+          assignmentName: existing ? (existing.assignmentName || '') : '',
           submissions: existing ? (existing.submissions || {}) : {}
         };
       });

@@ -133,7 +133,8 @@ export class SingleGraderRenderer {
     else this.tab.scoreVal.style.background = "linear-gradient(135deg, #dc2626, #b91c1c)";
 
     if (typeof marked !== 'undefined') {
-      this.tab.reportHtml.innerHTML = marked.parse(report);
+      const rawHtml = marked.parse(report);
+      this.tab.reportHtml.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
     } else {
       this.tab.reportHtml.innerText = report;
     }
