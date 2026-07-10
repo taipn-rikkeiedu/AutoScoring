@@ -13,12 +13,14 @@ export class CareRenderer {
       this.tab.tableEl.style.display = "none";
       this.tab.emptyState.style.display = "block";
       this.tab.exportBtn.disabled = true;
+      if (this.tab.copyBtn) this.tab.copyBtn.disabled = true;
       return;
     }
 
     this.tab.tableEl.style.display = "table";
     this.tab.emptyState.style.display = "none";
     this.tab.exportBtn.disabled = false;
+    if (this.tab.copyBtn) this.tab.copyBtn.disabled = false;
 
     const fragment = document.createDocumentFragment();
 

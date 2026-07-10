@@ -21,12 +21,14 @@ export class CareTab extends TabController {
     
     this.clearBtn = document.getElementById("clear-care-btn");
     this.scanBtn = document.getElementById("scan-care-btn");
+    this.copyBtn = document.getElementById("copy-care-text-btn");
     this.exportBtn = document.getElementById("export-care-csv-btn");
   }
 
   bindEvents() {
     this.scanBtn.addEventListener("click", () => this.triggerPageScan());
     this.clearBtn.addEventListener("click", () => this.clearList());
+    this.copyBtn.addEventListener("click", () => this.copyQuickReport());
     this.exportBtn.addEventListener("click", () => this.exportExcel());
   }
 
@@ -311,5 +313,34 @@ export class CareTab extends TabController {
 
     const fileName = `Danh_sach_cham_soc_lop_${this.currentClassId || "unknown"}_${new Date().toISOString().slice(0,10)}.xlsx`;
     exportToExcel(data, "Cham_soc_sinh_vien", fileName, max_widths);
+  }
+
+  copyQuickReport() {
+    // Lọc ra các sinh viên có ghi chú chăm sóc
+    const activeNotes = this.students.filter(st => st.note && st.note.trim().length > 0);
+    if (activeNotes.length === 0) {
+      window.showToast("Không có ghi chú chăm sóc nào được tìm thấy.", "warning");
+      return;
+    }
+
+    const reportLines = activeNotes.map((st, index) => {
+      let line = `${index + 1}. ${st.studentName}: ${st.note}`;
+      const details = [];
+      if (st.subjectName) details.push(`Môn: ${st.subjectName}`);
+      if (st.studyDate) details.push(`Ngày: ${st.studyDate}`);
+      if (details.length > 0) {
+        line += ` (${details.join(" - ")})`;
+      }
+      return line;
+    });
+
+    const reportText = reportLines.join("\n");
+
+    navigator.clipboard.writeText(reportText).then(() => {
+      window.showToast("Đã copy báo cáo dạng text vào clipboard!", "success");
+    }).catch(err => {
+      console.error("Không thể copy báo cáo:", err);
+      window.showToast("Lỗi sao chép vào clipboard: " + err.message, "error");
+    });
   }
 }
