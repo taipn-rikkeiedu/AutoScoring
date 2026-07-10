@@ -146,20 +146,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [activeClassId]);
 
-  // Load/Reload exercises whenever config loads or changes
-  const reloadExercises = async () => {
-    if (!config) return;
+  const testAiConnection = async (cfg: AppConfig) => {
     setAiStatus("testing");
     try {
-      await testConnection(config);
+      await testConnection(cfg);
       setAiStatus("success");
     } catch (e) {
       console.warn("AI connection test failed:", e);
       setAiStatus("error");
     }
+  };
 
+  const loadTemplates = async (cfg: AppConfig) => {
     try {
-      const { templates, statusText } = await loadExercises(config);
+      const { templates, statusText } = await loadExercises(cfg);
       setExerciseTemplates(templates);
       setSupabaseStatus(statusText);
     } catch (e) {
@@ -168,11 +168,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Load/Reload exercises
+  const reloadExercises = async () => {
+    if (!config) return;
+    await Promise.all([
+      testAiConnection(config),
+      loadTemplates(config)
+    ]);
+  };
+
   useEffect(() => {
     if (!isLoading) {
       reloadExercises();
     }
-  }, [config, isLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   // Update configuration helper
   const updateConfig = async (newConfig: Partial<AppConfig>) => {
@@ -183,6 +193,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resolve();
       });
     });
+
+    // Check what changed and reload selectively to optimize network traffic & token usage
+    const aiKeys = ["aiProvider", "aiApiKey", "aiApiUrl", "aiModelName", "systemPrompt"];
+    const hasAiChanges = aiKeys.some(key => key in newConfig);
+
+    const exKeys = ["exerciseSource", "uploadedExercises", "exerciseApiUrl", "exerciseApiToken", "supabaseUrl", "supabaseAnonKey", "supabaseSyncEnabled"];
+    const hasExChanges = exKeys.some(key => key in newConfig);
+
+    if (hasAiChanges) {
+      await testAiConnection(updated);
+    }
+    if (hasExChanges) {
+      await loadTemplates(updated);
+    }
   };
 
   return (
