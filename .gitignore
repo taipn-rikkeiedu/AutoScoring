@@ -28,3 +28,8 @@ env/
 tmp_check_github.py
 scratch_test.py
 scratch/
+
+# WXT and Node outputs
+.output/
+.wxt/
+node_modules/

@@ -7,6 +7,19 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.0.0] — 2026-07-10
+
+### ✨ Tính năng mới & Tái cấu trúc
+- **Tái cấu trúc sang Next-gen Extension Framework (WXT):**
+  - Chuyển đổi toàn bộ dự án từ HTML/JS thuần sang WXT Framework.
+  - Sử dụng React 19 làm thư viện xây dựng giao diện người dùng và Tailwind CSS v4 cho kiểu dáng hiện đại.
+  - Tích hợp TypeScript để tối ưu hóa quản lý kiểu dữ liệu tĩnh trên toàn codebase.
+- **Tối ưu hóa UI/UX:**
+  - Đồng bộ thiết kế giao diện rộng rãi `780px` chuẩn xác, kết hợp kiểu chữ tiếng Việt `'Be Vietnam Pro'` cao cấp.
+  - Cải tiến hiệu năng bôi màu (Highlighting) danh sách học viên trên trang LMS, giảm giật CPU reflow nhờ tiêm class CSS tĩnh.
+  - Cảnh báo viền đỏ trực quan trên danh sách chấm bài tập chưa liên kết đề bài.
+  - Đồng bộ hóa chỉ báo trạng thái hoạt động của API AI trực tiếp trên tag phiên bản ở Header.
+
 ## [v3.6.4] — 2026-07-10
 
 ### ✨ Tính năng mới & Tối ưu hóa
