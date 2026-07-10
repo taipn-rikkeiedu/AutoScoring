@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
 import { SupabaseService } from '~/src/services/supabaseService';
-import { mergeScrapedFrameResults, DEFAULT_CRITERIA } from '~/src/core/utils';
+import { mergeScrapedFrameResults, DEFAULT_CRITERIA, extractCriteriaFromAssignment } from '~/src/core/utils';
 
 export const ExercisesTab: React.FC = () => {
   const { config, updateConfig, exerciseTemplates, reloadExercises } = useApp();
@@ -103,11 +103,12 @@ export const ExercisesTab: React.FC = () => {
 
         const merged = mergeScrapedFrameResults(results);
         if (merged && merged.success) {
+          const { assignment, criteria } = extractCriteriaFromAssignment(merged.assignment || "");
           setScrapeChapter(merged.chapter || "Khóa học mặc định");
           setScrapeSession(merged.session || "Session 01: Nhập môn");
           setScrapeAssignmentName(merged.assignmentName || "Bài tập mới");
-          setScrapeAssignmentText(merged.assignment || "");
-          setScrapeCriteriaText(DEFAULT_CRITERIA);
+          setScrapeAssignmentText(assignment);
+          setScrapeCriteriaText(criteria || DEFAULT_CRITERIA);
           setIsScrapeModalOpen(true);
           showToast("Cào dữ liệu đề bài thành công!", "success");
         } else {

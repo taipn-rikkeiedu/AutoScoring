@@ -121,7 +121,7 @@ MÃ NGUỒN:
 export function extractCriteriaFromAssignment(assignmentText: string | null): { assignment: string; criteria: string | null } {
   if (!assignmentText) return { assignment: '', criteria: null };
   
-  const regex = /(?:Tiêu\s*chí\s*chấm\s*(?:bài|điểm)?|Tiêu\s*chí\s*đánh\s*giá|Grading\s*Criteria|AI\s*Criteria|Tiêu\s*chí\s*AI)\s*\(AI\)\s*:{1,2}([\s\S]+)$/i;
+  const regex = /(?:Tiêu\s*chí\s*chấm\s*(?:bài|điểm|thi)?|Tiêu\s*chí\s*đánh\s*giá|Tiêu\s*chí\s*AI|Grading\s*Criteria|AI\s*Criteria|Rubric|Criteria)(?:\s*[\(（]AI[\)）])?\s*:?\s*([\s\S]+)$/i;
   
   const match = assignmentText.match(regex);
   if (match) {
