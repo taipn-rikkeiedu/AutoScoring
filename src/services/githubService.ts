@@ -21,7 +21,7 @@ export class GitHubService {
 
     const version = typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest 
       ? chrome.runtime.getManifest().version 
-      : "3.6.4";
+      : "4.0.0";
 
     this.headers = {
       "Accept": "application/vnd.github.v3+json",
