@@ -323,16 +323,7 @@ export class CareTab extends TabController {
       return;
     }
 
-    const reportLines = activeNotes.map((st, index) => {
-      let line = `${index + 1}. ${st.studentName}: ${st.note}`;
-      const details = [];
-      if (st.subjectName) details.push(`Môn: ${st.subjectName}`);
-      if (st.studyDate) details.push(`Ngày: ${st.studyDate}`);
-      if (details.length > 0) {
-        line += ` (${details.join(" - ")})`;
-      }
-      return line;
-    });
+    const reportLines = activeNotes.map(st => `${st.studentName}: ${st.note}`);
 
     const reportText = reportLines.join("\n");
 
