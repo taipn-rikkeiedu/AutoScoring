@@ -138,8 +138,13 @@
     <div class="tab-content" id="tab-care" style="overflow-y: auto;">
       <!-- Student Care Manager -->
       <div id="care-view" style="display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 10px; height: 100%;">
-        <div id="care-status-banner" style="font-size: 0.85rem; padding: 8px; background-color: #f1f5f9; border-radius: 6px; border-left: 4px solid #3b82f6;">
-          🔍 Sẵn sàng quét danh sách chăm sóc sinh viên từ trang...
+        <div id="care-header-bar" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div id="care-status-banner" style="flex: 1; font-size: 0.85rem; padding: 8px; background-color: #f1f5f9; border-radius: 6px; border-left: 4px solid #3b82f6;">
+            🔍 Sẵn sàng quét danh sách chăm sóc sinh viên từ trang...
+          </div>
+          <button class="btn-primary" id="copy-care-text-btn" title="Copy báo cáo nhanh" style="width: 36px; height: 36px; min-width: 36px; padding: 0; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 1.1rem; border: none; cursor: pointer;" disabled>
+            📋
+          </button>
         </div>
         
         <div style="flex: 1; min-height: 250px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 6px; background-color: #ffffff;">
@@ -173,9 +178,6 @@
           <div style="display: flex; gap: 8px;">
             <button class="btn-primary" id="scan-care-btn" style="width: auto; padding: 8px 16px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white;">
               <span>📥 Quét Dữ Liệu Chăm Sóc</span>
-            </button>
-            <button class="btn-primary" id="copy-care-text-btn" style="width: auto; padding: 8px 16px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white;" disabled>
-              <span>📋 Copy Báo Cáo</span>
             </button>
             <button class="btn-primary" id="export-care-csv-btn" style="width: auto; padding: 8px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
               <span>📊 Xuất Excel</span>
