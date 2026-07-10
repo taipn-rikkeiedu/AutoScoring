@@ -4,16 +4,28 @@
   const rows = Array.from(document.querySelectorAll('tr'));
   
   let studentColIndex = -1;
+  let subjectColIndex = -1;
+  let dateColIndex = -1;
   const headers = Array.from(document.querySelectorAll('th, thead td'));
   headers.forEach((header, index) => {
     const text = header.textContent.trim().toLowerCase();
     if (text.includes('sinh viên') || text.includes('học viên') || text.includes('name') || text.includes('student')) {
       studentColIndex = index;
+    } else if (text.includes('môn học') || text.includes('subject')) {
+      subjectColIndex = index;
+    } else if (text.includes('ngày học') || text.includes('ngày') || text.includes('date')) {
+      dateColIndex = index;
     }
   });
 
   if (studentColIndex === -1) {
     studentColIndex = 1;
+  }
+  if (subjectColIndex === -1) {
+    subjectColIndex = 2;
+  }
+  if (dateColIndex === -1) {
+    dateColIndex = 3;
   }
 
   rows.forEach(row => {
@@ -40,21 +52,34 @@
         studentName = lines[0] || '';
         studentId = lines[1] || '';
       }
+
+      let subjectName = '';
+      if (subjectColIndex !== -1 && cells.length > subjectColIndex) {
+        subjectName = cells[subjectColIndex].textContent.trim();
+      }
+      
+      let studyDate = '';
+      if (dateColIndex !== -1 && cells.length > dateColIndex) {
+        studyDate = cells[dateColIndex].textContent.trim();
+      }
       
       if (studentName && studentId && studentName !== 'Sinh viên' && studentName !== 'Student') {
         students.push({
           studentId: studentId.split('\n')[0].trim(),
-          studentName: studentName.split('\n')[0].trim()
+          studentName: studentName.split('\n')[0].trim(),
+          subjectName: subjectName,
+          studyDate: studyDate
         });
       }
     }
   });
 
   const uniqueList = [];
-  const ids = new Set();
+  const keys = new Set();
   students.forEach(st => {
-    if (!ids.has(st.studentId)) {
-      ids.add(st.studentId);
+    const key = `${st.studentId}_${st.subjectName}_${st.studyDate}`;
+    if (!keys.has(key)) {
+      keys.add(key);
       uniqueList.push(st);
     }
   });

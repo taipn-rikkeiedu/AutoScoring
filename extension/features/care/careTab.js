@@ -93,15 +93,36 @@ export class CareTab extends TabController {
       const classStudents = allCareStudents[this.currentClassId] || [];
 
       this.students = scraped.map(newSt => {
-        const existing = classStudents.find(st => st.studentId === newSt.studentId);
+        const existing = classStudents.find(st => 
+          st.studentId === newSt.studentId &&
+          (st.subjectName || "") === (newSt.subjectName || "") &&
+          (st.studyDate || "") === (newSt.studyDate || "")
+        );
         return {
           studentId: newSt.studentId,
           studentName: newSt.studentName,
+          subjectName: newSt.subjectName || "",
+          studyDate: newSt.studyDate || "",
           note: existing ? (existing.note || "") : ""
         };
       });
 
-      allCareStudents[this.currentClassId] = this.students;
+      // Merge new/scraped entries into classStudents instead of completely overwriting it,
+      // so we don't lose care logs for other dates/subjects.
+      this.students.forEach(newSt => {
+        const idx = classStudents.findIndex(st => 
+          st.studentId === newSt.studentId &&
+          (st.subjectName || "") === (newSt.subjectName || "") &&
+          (st.studyDate || "") === (newSt.studyDate || "")
+        );
+        if (idx !== -1) {
+          classStudents[idx].studentName = newSt.studentName;
+        } else {
+          classStudents.push(newSt);
+        }
+      });
+
+      allCareStudents[this.currentClassId] = classStudents;
       chrome.storage.local.set({ careStudents: allCareStudents }, () => {
         this.statusBanner.innerHTML = `✅ Đã quét thành công ${this.students.length} học viên từ trang.`;
         this.statusBanner.style.backgroundColor = "#f0fdf4";
@@ -116,29 +137,43 @@ export class CareTab extends TabController {
     this.renderer.renderList();
   }
 
-  saveStudentNote(studentId, noteValue) {
+  saveStudentNote(studentId, subjectName, studyDate, noteValue) {
     chrome.storage.local.get("careStudents", (res) => {
       const allCareStudents = res.careStudents || {};
       const classStudents = allCareStudents[this.currentClassId] || [];
 
-      const student = classStudents.find(st => st.studentId === studentId);
+      const student = classStudents.find(st => 
+        st.studentId === studentId &&
+        (st.subjectName || "") === (subjectName || "") &&
+        (st.studyDate || "") === (studyDate || "")
+      );
       let studentName = "";
       if (student) {
         student.note = noteValue;
         studentName = student.studentName;
       } else {
-        const currentSt = this.students.find(st => st.studentId === studentId);
+        const currentSt = this.students.find(st => 
+          st.studentId === studentId &&
+          (st.subjectName || "") === (subjectName || "") &&
+          (st.studyDate || "") === (studyDate || "")
+        );
         if (currentSt) {
           classStudents.push({
             studentId: studentId,
             studentName: currentSt.studentName,
+            subjectName: subjectName || "",
+            studyDate: studyDate || "",
             note: noteValue
           });
           studentName = currentSt.studentName;
         }
       }
 
-      const localSt = this.students.find(st => st.studentId === studentId);
+      const localSt = this.students.find(st => 
+        st.studentId === studentId &&
+        (st.subjectName || "") === (subjectName || "") &&
+        (st.studyDate || "") === (studyDate || "")
+      );
       if (localSt) {
         localSt.note = noteValue;
         if (!studentName) studentName = localSt.studentName;
@@ -150,7 +185,7 @@ export class CareTab extends TabController {
         if (SupabaseService.isEnabled(this.context.config) && studentName) {
           try {
             await SupabaseService.upsertCareNote(
-              this.context.config, this.currentClassId, studentId, studentName, noteValue
+              this.context.config, this.currentClassId, studentId, studentName, subjectName || "", studyDate || "", noteValue
             );
           } catch (syncErr) {
             console.warn("Lỗi đồng bộ Supabase:", syncErr);
@@ -196,13 +231,19 @@ export class CareTab extends TabController {
           const cloudNotes = await SupabaseService.pullCareNotes(this.context.config, classId);
           if (cloudNotes && cloudNotes.length > 0) {
             cloudNotes.forEach(cloud => {
-              const local = localStudents.find(st => st.studentId === cloud.student_id);
+              const local = localStudents.find(st => 
+                st.studentId === cloud.student_id &&
+                (st.subjectName || "") === (cloud.subject_name || "") &&
+                (st.studyDate || "") === (cloud.study_date || "")
+              );
               if (local) {
                 local.note = cloud.note || "";
               } else {
                 localStudents.push({
                   studentId: cloud.student_id,
                   studentName: cloud.student_name,
+                  subjectName: cloud.subject_name || "",
+                  studyDate: cloud.study_date || "",
                   note: cloud.note || ""
                 });
               }
@@ -258,12 +299,14 @@ export class CareTab extends TabController {
         "STT": index + 1,
         "Mã SV": st.studentId || "",
         "Họ và Tên": st.studentName || "",
+        "Môn học": st.subjectName || "",
+        "Ngày học": st.studyDate || "",
         "Ghi chú chăm sóc": st.note || ""
       };
     });
 
     const max_widths = [
-      { wch: 8 }, { wch: 15 }, { wch: 25 }, { wch: 40 }
+      { wch: 8 }, { wch: 15 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 40 }
     ];
 
     const fileName = `Danh_sach_cham_soc_lop_${this.currentClassId || "unknown"}_${new Date().toISOString().slice(0,10)}.xlsx`;

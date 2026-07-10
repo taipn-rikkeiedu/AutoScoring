@@ -13,9 +13,9 @@ export class SupabaseService {
   }
 
   // --- Care Notes Sync ---
-  static async upsertCareNote(config, classId, studentId, studentName, note) {
+  static async upsertCareNote(config, classId, studentId, studentName, subjectName, studyDate, note) {
     if (!this.isEnabled(config)) return;
-    const url = `${config.supabaseUrl}/rest/v1/care_notes?on_conflict=class_id,student_id`;
+    const url = `${config.supabaseUrl}/rest/v1/care_notes?on_conflict=class_id,student_id,subject_name,study_date`;
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -24,6 +24,8 @@ export class SupabaseService {
           class_id: classId,
           student_id: studentId,
           student_name: studentName,
+          subject_name: subjectName,
+          study_date: studyDate,
           note: note,
           updated_at: new Date().toISOString()
         })

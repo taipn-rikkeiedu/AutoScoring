@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v3.6.4] — 2026-07-10
+
+### ✨ Tính năng mới & Tối ưu hóa
+- **Nâng cấp tính năng Chăm Sóc Sinh Viên:**
+  - Tách biệt ghi chú chăm sóc theo Môn học và Ngày học cho từng sinh viên, tránh việc ghi đè dữ liệu lẫn nhau.
+  - Cập nhật bộ cào dữ liệu LMS (Scraper) để trích xuất thông tin Môn học và Ngày học.
+  - Hiển thị cột Môn học và Ngày học trên giao diện danh sách chăm sóc của Extension.
+  - Nâng cấp tính năng xuất Excel danh sách chăm sóc bao gồm cả Môn học và Ngày học.
+  - Hỗ trợ đồng bộ lên Supabase Cloud với cấu trúc dữ liệu mới.
+
 ## [v3.6.1] — 2026-07-07
 
 ### ✨ Tính năng mới & Tối ưu hóa

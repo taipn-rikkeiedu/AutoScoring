@@ -40,7 +40,7 @@ export class CareRenderer {
       input.placeholder = "Nhập thông tin sau khi liên hệ...";
       
       input.addEventListener("change", (e) => {
-        this.tab.saveStudentNote(st.studentId, e.target.value.trim());
+        this.tab.saveStudentNote(st.studentId, st.subjectName || "", st.studyDate || "", e.target.value.trim());
       });
 
       input.addEventListener("keyup", (e) => {
@@ -65,6 +65,20 @@ export class CareRenderer {
       tdName.style.color = "#1e293b";
       tdName.textContent = st.studentName;
       tr.appendChild(tdName);
+
+      // Cột 5: Môn học
+      const tdSubject = document.createElement("td");
+      tdSubject.style.color = "#475569";
+      tdSubject.style.fontSize = "0.85rem";
+      tdSubject.textContent = st.subjectName || "-";
+      tr.appendChild(tdSubject);
+
+      // Cột 6: Ngày học
+      const tdDate = document.createElement("td");
+      tdDate.style.color = "#475569";
+      tdDate.style.fontSize = "0.85rem";
+      tdDate.textContent = st.studyDate || "-";
+      tr.appendChild(tdDate);
 
       fragment.appendChild(tr);
     });
