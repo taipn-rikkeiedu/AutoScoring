@@ -73,6 +73,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       "supabaseSyncEnabled", "supabaseUrl", "supabaseAnonKey",
       "activeStudentTransition", "careStudents"
     ], async (stored: any) => {
+      let systemPrompt = stored.systemPrompt || defaultConfig.systemPrompt;
+      if (systemPrompt && systemPrompt.includes("Sai ở đâu & Dòng nào")) {
+        systemPrompt = "";
+        chrome.storage.local.set({ systemPrompt: "" });
+      }
+
       // Build config object combining stored values and defaults
       const mergedConfig: AppConfig = {
         aiProvider: stored.aiProvider || defaultConfig.aiProvider,
@@ -80,7 +86,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         aiApiUrl: stored.aiApiUrl || defaultConfig.aiApiUrl,
         aiModelName: stored.aiModelName || defaultConfig.aiModelName,
         githubToken: stored.githubToken || defaultConfig.githubToken,
-        systemPrompt: stored.systemPrompt || defaultConfig.systemPrompt,
+        systemPrompt: systemPrompt,
         graderIgnoreItems: Array.isArray(stored.graderIgnoreItems) ? stored.graderIgnoreItems : defaultConfig.graderIgnoreItems,
         exerciseSource: stored.exerciseSource || defaultConfig.exerciseSource,
         exerciseApiUrl: stored.exerciseApiUrl || defaultConfig.exerciseApiUrl,
