@@ -43,13 +43,21 @@ export const CareTab: React.FC = () => {
                     if (local) {
                       local.note = cloud.note || "";
                     } else {
-                      localStudents.push({
-                        studentId: cloud.student_id,
-                        studentName: cloud.student_name,
-                        subjectName: cloud.subject_name || "",
-                        studyDate: cloud.study_date || "",
-                        note: cloud.note || ""
-                      });
+                      // Fallback: If student has a row in local list, merge note into it (migration of old empty subject/date notes)
+                      const stIdMatch = localStudents.find(st => st.studentId === cloud.student_id);
+                      if (stIdMatch) {
+                        if (!stIdMatch.note) {
+                          stIdMatch.note = cloud.note || "";
+                        }
+                      } else {
+                        localStudents.push({
+                          studentId: cloud.student_id,
+                          studentName: cloud.student_name,
+                          subjectName: cloud.subject_name || "",
+                          studyDate: cloud.study_date || "",
+                          note: cloud.note || ""
+                        });
+                      }
                     }
                   });
 
@@ -126,11 +134,21 @@ export const CareTab: React.FC = () => {
               const classStudents: CareStudent[] = allCareStudents[classId] || [];
 
               const merged = scraped.map(newSt => {
-                const existing = classStudents.find(st => 
+                let existing = classStudents.find(st => 
                   st.studentId === newSt.studentId &&
                   (st.subjectName || "") === (newSt.subjectName || "") &&
                   (st.studyDate || "") === (newSt.studyDate || "")
                 );
+                
+                // Fallback: search for student matching by ID but with blank subject/date details
+                if (!existing) {
+                  existing = classStudents.find(st => 
+                    st.studentId === newSt.studentId &&
+                    !(st.subjectName) &&
+                    !(st.studyDate)
+                  );
+                }
+
                 return {
                   studentId: newSt.studentId,
                   studentName: newSt.studentName,
@@ -142,6 +160,16 @@ export const CareTab: React.FC = () => {
 
               // Merge
               merged.forEach(newSt => {
+                // Delete the old blank details record to prevent duplication
+                const oldIdx = classStudents.findIndex(st => 
+                  st.studentId === newSt.studentId && 
+                  !(st.subjectName) && 
+                  !(st.studyDate)
+                );
+                if (oldIdx !== -1) {
+                  classStudents.splice(oldIdx, 1);
+                }
+
                 const idx = classStudents.findIndex(st => 
                   st.studentId === newSt.studentId &&
                   (st.subjectName || "") === (newSt.subjectName || "") &&
@@ -149,6 +177,7 @@ export const CareTab: React.FC = () => {
                 );
                 if (idx !== -1) {
                   classStudents[idx].studentName = newSt.studentName;
+                  if (newSt.note) classStudents[idx].note = newSt.note;
                 } else {
                   classStudents.push(newSt);
                 }
