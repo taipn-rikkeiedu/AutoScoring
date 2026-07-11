@@ -9,6 +9,7 @@ import { CareTab } from '~/src/components/CareTab';
 import { ExercisesTab } from '~/src/components/ExercisesTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
 import { ShortcutsTab } from '~/src/components/ShortcutsTab';
+import { QuickAccessBar } from '~/src/components/QuickAccessBar';
 import { ReportModal } from '~/src/components/ReportModal';
 
 const AppContent: React.FC = () => {
@@ -73,6 +74,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="flex flex-col h-full w-full bg-slate-50 select-none overflow-hidden">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+      <QuickAccessBar />
       
       <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
         {activeTab === "tab-auto" && <AutoGraderTab />}
