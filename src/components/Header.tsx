@@ -33,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           <option value="tab-class-list">👥 Quản Lý Lớp Học</option>
           <option value="tab-care">📞 Chăm Sóc SV</option>
           <option value="tab-exercises">📚 Đề Bài</option>
+          <option value="tab-shortcuts">📌 Lối Tắt Nhanh</option>
           <option value="tab-settings">⚙️ Cài Đặt</option>
         </select>
       </div>

@@ -8,6 +8,7 @@ import { ClassListTab } from '~/src/components/ClassListTab';
 import { CareTab } from '~/src/components/CareTab';
 import { ExercisesTab } from '~/src/components/ExercisesTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
+import { ShortcutsTab } from '~/src/components/ShortcutsTab';
 import { ReportModal } from '~/src/components/ReportModal';
 
 const AppContent: React.FC = () => {
@@ -79,6 +80,7 @@ const AppContent: React.FC = () => {
         {activeTab === "tab-class-list" && <ClassListTab setActiveTab={setActiveTab} />}
         {activeTab === "tab-care" && <CareTab />}
         {activeTab === "tab-exercises" && <ExercisesTab />}
+        {activeTab === "tab-shortcuts" && <ShortcutsTab />}
         {activeTab === "tab-settings" && <SettingsTab />}
       </div>
 
