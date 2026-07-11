@@ -23,7 +23,10 @@ export async function testConnection(config: AppConfig): Promise<boolean> {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
-  if (provider === "deepseek") {
+  if (provider === "openai") {
+    if (!apiKey) throw new Error("Chưa cấu hình API Key");
+    testUrl = "https://api.openai.com/v1/models";
+  } else if (provider === "deepseek") {
     if (!apiKey) throw new Error("Chưa cấu hình API Key");
     testUrl = "https://api.deepseek.com/models";
   } else if (provider === "openrouter") {

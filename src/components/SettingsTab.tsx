@@ -71,6 +71,8 @@ export const SettingsTab: React.FC = () => {
     // Automatically switch model names to sensible defaults if empty or mismatched
     if (provider === "gemini") {
       setAiModelName("gemini-3.5-flash");
+    } else if (provider === "openai") {
+      setAiModelName("gpt-4o-mini");
     } else if (provider === "deepseek") {
       setAiModelName("deepseek-chat");
     } else if (provider === "openrouter") {
@@ -180,6 +182,7 @@ export const SettingsTab: React.FC = () => {
   const getProviderNameText = () => {
     switch (aiProvider) {
       case "gemini": return "Google Gemini";
+      case "openai": return "OpenAI";
       case "deepseek": return "DeepSeek";
       case "openrouter": return "OpenRouter";
       case "local": return "Ollama (Local)";
@@ -211,6 +214,7 @@ export const SettingsTab: React.FC = () => {
                   className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
                 >
                   <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI API</option>
                   <option value="deepseek">DeepSeek API</option>
                   <option value="openrouter">OpenRouter</option>
                   <option value="custom">Custom API (OpenAI-compatible)</option>
@@ -221,7 +225,7 @@ export const SettingsTab: React.FC = () => {
               {aiProvider !== "local" && (
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-bold text-slate-500">
-                    {aiProvider === "gemini" ? "Gemini API Key:" : aiProvider === "deepseek" ? "DeepSeek API Key:" : aiProvider === "openrouter" ? "OpenRouter API Key:" : "API Key:"}
+                    {aiProvider === "gemini" ? "Gemini API Key:" : aiProvider === "openai" ? "OpenAI API Key:" : aiProvider === "deepseek" ? "DeepSeek API Key:" : aiProvider === "openrouter" ? "OpenRouter API Key:" : "API Key:"}
                   </label>
                   <input
                     type="password"
@@ -255,7 +259,13 @@ export const SettingsTab: React.FC = () => {
                   value={aiModelName}
                   onChange={(e) => setAiModelName(e.target.value)}
                   className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
-                  placeholder="gemini-3.5-flash"
+                  placeholder={
+                    aiProvider === "gemini" ? "gemini-3.5-flash" :
+                    aiProvider === "openai" ? "gpt-4o-mini" :
+                    aiProvider === "deepseek" ? "deepseek-chat" :
+                    aiProvider === "openrouter" ? "qwen/qwen3-coder:free" :
+                    aiProvider === "local" ? "deepseek-r1:7b" : "gpt-4o-mini"
+                  }
                 />
               </div>
             </div>

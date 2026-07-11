@@ -5,7 +5,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: "REduX",
-    version: "4.0.0",
+    version: "4.0.1",
     permissions: [
       "activeTab",
       "storage",

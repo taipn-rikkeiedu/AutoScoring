@@ -91,9 +91,11 @@ export class AIService {
           return text;
         }
         
-        if (this.provider === "deepseek" || this.provider === "openrouter" || this.provider === "custom") {
+        if (this.provider === "openai" || this.provider === "deepseek" || this.provider === "openrouter" || this.provider === "custom") {
           let baseUrl = this.apiUrl;
-          if (this.provider === "deepseek") {
+          if (this.provider === "openai") {
+            baseUrl = "https://api.openai.com/v1";
+          } else if (this.provider === "deepseek") {
             baseUrl = "https://api.deepseek.com";
           } else if (this.provider === "openrouter") {
             baseUrl = "https://openrouter.ai/api/v1";
