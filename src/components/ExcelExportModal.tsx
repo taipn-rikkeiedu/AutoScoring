@@ -4,7 +4,7 @@ import { exportToExcel } from '~/src/core/excelExporter';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StatusFilter = 'all' | 'completed' | 'notCompleted' | 'pending';
+type StatusFilter = 'all' | 'completed' | 'notCompleted' | 'pending' | 'notSubmitted';
 
 interface FieldConfig {
   key: string;
@@ -30,6 +30,7 @@ const STATUS_FILTERS: { value: StatusFilter; label: string; icon: string; active
   { value: 'completed',    label: 'Hoàn thành',        icon: '✅', activeCls: 'bg-green-50 border-green-500 text-green-800'  },
   { value: 'notCompleted', label: 'Chưa hoàn thành',   icon: '❌', activeCls: 'bg-red-50 border-red-500 text-red-800'        },
   { value: 'pending',      label: 'Chờ kiểm tra',      icon: '⏳', activeCls: 'bg-amber-50 border-amber-500 text-amber-800'  },
+  { value: 'notSubmitted', label: 'Không nộp bài (0)', icon: '⚠️', activeCls: 'bg-rose-50 border-rose-500 text-rose-800'    },
 ];
 
 const COLUMN_LABELS: Record<string, string> = {
@@ -85,6 +86,9 @@ function getLatestScore(st: Student): string {
 function filterStudents(students: Student[], filter: StatusFilter): Student[] {
   if (filter === 'all') return students;
   return students.filter(st => {
+    if (filter === 'notSubmitted') {
+      return (st.submittedCount ?? 0) === 0;
+    }
     const { isCompleted, isPending, isNotCompleted } = getStudentStatus(st);
     if (filter === 'completed')    return isCompleted;
     if (filter === 'pending')      return isPending;
@@ -120,6 +124,48 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
 
   const countFor = (filter: StatusFilter) =>
     filter === 'all' ? students.length : filterStudents(students, filter).length;
+
+  const handleCopyToClipboard = async () => {
+    if (activeFieldCount === 0) {
+      onExport('Vui lòng chọn ít nhất một trường để sao chép.', 'warning');
+      return;
+    }
+    if (filteredStudents.length === 0) {
+      onExport('Không có học viên nào để sao chép.', 'warning');
+      return;
+    }
+
+    const activeFields = FIELDS.filter(f => selectedFields[f.key]);
+    
+    // Create headers line
+    const headers = activeFields.map(f => COLUMN_LABELS[f.key]).join('\t');
+    
+    // Create rows
+    const rows = filteredStudents.map(st => {
+      return activeFields.map(f => {
+        switch (f.key) {
+          case 'studentId':      return st.studentId || '';
+          case 'studentName':    return st.studentName || '';
+          case 'lmsStatus':      return st.lmsStatus || '';
+          case 'submittedCount': return String(st.submittedCount ?? 0);
+          case 'completedCount': return String(st.completedCount ?? 0);
+          case 'aiScore':        return getLatestScore(st);
+          case 'githubUrl':      return (st as any).githubUrl || '';
+          case 'submissionUrl':  return st.submissionUrl || '';
+          default:               return '';
+        }
+      }).join('\t');
+    });
+
+    const clipboardText = [headers, ...rows].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(clipboardText);
+      onExport(`📋 Đã sao chép danh sách (${filteredStudents.length} học viên) vào Clipboard.`, 'success');
+    } catch (err: any) {
+      onExport('Không thể sao chép vào Clipboard: ' + err.message, 'error');
+    }
+  };
 
   const handleExport = async () => {
     if (activeFieldCount === 0) {
@@ -157,7 +203,8 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
     const filterSuffix =
       statusFilter === 'completed'    ? '_HoanThanh'     :
       statusFilter === 'notCompleted' ? '_ChuaHoanThanh' :
-      statusFilter === 'pending'      ? '_ChoKiemTra'    : '';
+      statusFilter === 'pending'      ? '_ChoKiemTra'    :
+      statusFilter === 'notSubmitted' ? '_ChuaNopBai'    : '';
 
     const fileName = `BaoCao_LopHoc${filterSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
@@ -293,17 +340,24 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
             {' · '}
             <span className="font-bold text-slate-700">{activeFieldCount}</span> trường
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={onClose}
-              className="px-3.5 py-1.5 border border-slate-300 bg-white hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-bold transition-colors"
+              className="px-2.5 py-1.5 border border-slate-300 bg-white hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-bold transition-colors"
             >
               Hủy
             </button>
             <button
+              onClick={handleCopyToClipboard}
+              disabled={activeFieldCount === 0 || filteredStudents.length === 0}
+              className="px-2.5 py-1.5 border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-all disabled:opacity-50 active:scale-95 duration-100 flex items-center gap-1"
+            >
+              📋 Sao chép
+            </button>
+            <button
               onClick={handleExport}
               disabled={isExporting || activeFieldCount === 0 || filteredStudents.length === 0}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all disabled:opacity-50 active:scale-95 duration-100 flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all disabled:opacity-50 active:scale-95 duration-100 flex items-center gap-1.5"
             >
               {isExporting ? (
                 <>

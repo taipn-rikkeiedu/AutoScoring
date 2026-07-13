@@ -7,6 +7,15 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.0.5] — 2026-07-13
+
+### ✨ Tính năng mới
+- **Lọc và Sao chép danh sách Không nộp bài:**
+  - Thêm tùy chọn lọc **"Không nộp bài (0)"** trong modal Xuất Excel (lọc những sinh viên có số bài đã nộp bằng 0).
+  - Thêm nút **"📋 Sao chép"** (Copy to Clipboard) tại footer của modal, cho phép copy dữ liệu dưới định dạng Tab-Separated Values (TSV) để paste trực tiếp vào Excel hoặc Google Sheets vô cùng nhanh chóng mà không cần tải file về.
+
+---
+
 ## [v4.0.4] — 2026-07-13
 
 ### ✨ Tính năng mới
