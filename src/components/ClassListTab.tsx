@@ -324,8 +324,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
   const sortedStudents = getSortedStudents();
 
   return (
-    <>
-      <div className="flex flex-col flex-1 p-4 gap-3.5 overflow-hidden">
+    <div className="flex flex-col flex-1 p-4 gap-3.5 overflow-hidden">
       {/* Status banner with stats */}
       <div 
         className={`text-xs p-3 rounded-md border-l-4 font-medium transition-all ${
@@ -516,16 +515,15 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
           </button>
         </div>
       </div>
-    </div>
 
-    {/* Excel Export Modal */}
-    {showExportModal && (
-      <ExcelExportModal
-        students={classStudents}
-        onClose={() => setShowExportModal(false)}
-        onExport={(msg, type) => showToast(msg, type)}
-      />
-    )}
-  </>
+      {/* Excel Export Modal */}
+      {showExportModal && (
+        <ExcelExportModal
+          students={classStudents}
+          onClose={() => setShowExportModal(false)}
+          onExport={(msg, type) => showToast(msg, type)}
+        />
+      )}
+    </div>
   );
 };
