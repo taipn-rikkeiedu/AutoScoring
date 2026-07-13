@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
 import { SupabaseService } from '~/src/services/supabaseService';
-import { exportToExcel } from '~/src/core/excelExporter';
+import { clearClassStudents, getClassStudents, saveClassStudents } from '~/src/core/classStudentStorage';
+import { STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
 import { Student } from '~/src/types';
+import { ExcelExportModal } from '~/src/components/ExcelExportModal';
 
 interface ClassListTabProps {
   setActiveTab: (tab: string) => void;
@@ -14,6 +16,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
   const { showToast } = useToast();
 
   const [isScanning, setIsScanning] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [statusText, setStatusText] = useState("🔍 Sẵn sàng quét danh sách học viên từ trang...");
   const [statusType, setStatusType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
 
@@ -37,8 +40,8 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
           setStatusText(`☁️ Đang đồng bộ kết quả chấm từ Supabase cho lớp ${classId}...`);
           setStatusType('info');
 
-          chrome.storage.local.get("classStudentList", async (res) => {
-            let localStudents: Student[] = (res.classStudentList as Student[]) || [];
+          (async () => {
+            let localStudents: Student[] = await getClassStudents(classId);
 
             if (SupabaseService.isEnabled(config)) {
               try {
@@ -65,7 +68,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
                       gradedAt: sub.graded_at || new Date().toISOString()
                     };
                   });
-                  await new Promise<void>(resolve => chrome.storage.local.set({ classStudentList: localStudents }, resolve));
+                  await saveClassStudents(classId, localStudents);
                 }
               } catch (err: any) {
                 console.warn("Supabase pullSubmissions failed:", err);
@@ -81,7 +84,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
               setStatusText("🔍 Sẵn sàng quét danh sách học viên từ trang...");
               setStatusType('info');
             }
-          });
+          })();
         } else {
           setStatusText("🔍 Sẵn sàng quét danh sách học viên từ trang...");
           setStatusType('info');
@@ -178,8 +181,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
         if (results && results[0] && results[0].result) {
           const scraped = (results[0].result as any[]) || [];
           if (scraped.length > 0) {
-            chrome.storage.local.get("classStudentList", (res) => {
-              const existingList: Student[] = (res.classStudentList as Student[]) || [];
+            getClassStudents(classId).then((existingList) => {
               const merged: Student[] = scraped.map((newSt: any) => {
                 const existing = existingList.find(st => st.submissionUrl === newSt.submissionUrl || (st.studentId && st.studentId !== 'N/A' && st.studentId === newSt.studentId));
                 return {
@@ -198,7 +200,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
                 };
               });
 
-              chrome.storage.local.set({ classStudentList: merged }, () => {
+              saveClassStudents(classId, merged).then(() => {
                 setStatusText(`✅ Đã quét thành công ${merged.length} học viên từ trang lớp học.`);
                 setStatusType('success');
                 setClassStudents(merged);
@@ -231,7 +233,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
 
   const handleGradeStudent = (st: Student) => {
     chrome.storage.local.set({
-      activeStudentTransition: {
+      [STORAGE_KEYS.activeStudentTransition]: {
         studentId: st.studentId,
         studentName: st.studentName,
         timestamp: Date.now()
@@ -249,7 +251,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
   const handleDeleteStudent = (st: Student) => {
     if (window.confirm(`Xóa học viên ${st.studentName} khỏi danh sách?`)) {
       const updated = classStudents.filter(item => item.studentId !== st.studentId);
-      chrome.storage.local.set({ classStudentList: updated }, () => {
+      saveClassStudents(activeClassId, updated).then(() => {
         setClassStudents(updated);
         showToast("Đã xóa học viên khỏi danh sách.", "success");
       });
@@ -258,33 +260,19 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
 
   const handleClearClass = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ danh sách học viên lớp học hiện tại? Dữ liệu điểm và báo cáo đã lưu sẽ không bị mất trong Chrome Storage.")) {
-      chrome.storage.local.remove("classStudentList", () => {
+      clearClassStudents(activeClassId).then(() => {
         setClassStudents([]);
         showToast("Đã xóa danh sách học viên lớp học.", "success");
       });
     }
   };
 
-  const handleExportExcel = () => {
+  const handleOpenExportModal = () => {
     if (classStudents.length === 0) {
       showToast("Không có dữ liệu học viên để xuất Excel.", "warning");
       return;
     }
-
-    const data = classStudents.map(st => ({
-      "Mã SV": st.studentId || "",
-      "Họ và Tên": st.studentName || "",
-      "Trạng thái LMS": st.lmsStatus || "",
-      "Số bài đã nộp": st.submittedCount || 0,
-      "Số bài hoàn thành": st.completedCount || 0
-    }));
-
-    const columnWidths = [
-      { wch: 15 }, { wch: 25 }, { wch: 18 }, { wch: 15 }, { wch: 18 }
-    ];
-
-    const fileName = `Bao_cao_diem_lop_hoc_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    exportToExcel(data, "Danh sách lớp", fileName, columnWidths);
+    setShowExportModal(true);
   };
 
   // Sort students: Pending first -> Not Completed -> Completed
@@ -336,7 +324,8 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
   const sortedStudents = getSortedStudents();
 
   return (
-    <div className="flex flex-col flex-1 p-4 gap-3.5 overflow-hidden">
+    <>
+      <div className="flex flex-col flex-1 p-4 gap-3.5 overflow-hidden">
       {/* Status banner with stats */}
       <div 
         className={`text-xs p-3 rounded-md border-l-4 font-medium transition-all ${
@@ -519,7 +508,7 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
             <span>📥 Quét Danh Sách Lớp</span>
           </button>
           <button
-            onClick={handleExportExcel}
+            onClick={handleOpenExportModal}
             disabled={classStudents.length === 0}
             className="py-1.5 px-3.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-md text-xs font-bold shadow-md transition-all disabled:opacity-50 active:scale-95 duration-100"
           >
@@ -528,5 +517,15 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
         </div>
       </div>
     </div>
+
+    {/* Excel Export Modal */}
+    {showExportModal && (
+      <ExcelExportModal
+        students={classStudents}
+        onClose={() => setShowExportModal(false)}
+        onExport={(msg, type) => showToast(msg, type)}
+      />
+    )}
+  </>
   );
 };

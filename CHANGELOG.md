@@ -7,6 +7,20 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.0.4] — 2026-07-13
+
+### ✨ Tính năng mới
+- **Xuất Excel linh hoạt cho Quản lý Lớp học:**
+  - Thay thế nút "Xuất Excel" trực tiếp bằng modal tùy chỉnh trước khi xuất.
+  - **Chọn trường tùy ý (8 trường):** Mã sinh viên, Họ và Tên, Trạng thái LMS, Số bài đã nộp, Số bài hoàn thành, Điểm AI, GitHub URL, URL bài nộp LMS. Mặc định bật 5 trường cơ bản.
+  - **Lọc sinh viên theo trạng thái:** Tất cả / Hoàn thành / Chưa hoàn thành / Chờ kiểm tra với số lượng hiển thị trực tiếp trên từng lựa chọn.
+  - Tên file tự động thêm hậu tố theo bộ lọc (ví dụ: `BaoCao_LopHoc_HoanThanh_2026-07-13.xlsx`).
+  - Nút "Chọn tất cả / Bỏ chọn" để thao tác nhanh.
+  - Preview số học viên và số trường sẽ được xuất ngay trên footer modal.
+  - Loading spinner khi đang xuất, validation chống xuất file rỗng.
+
+---
+
 ## [v4.0.0] — 2026-07-10
 
 ### ✨ Tính năng mới & Tái cấu trúc
