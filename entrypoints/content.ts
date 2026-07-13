@@ -10,15 +10,27 @@ export default defineContentScript({
     let reduxCachedSubmissions: any = null;
     let reduxCachedSingleGrader: any = null;
 
-    // Run highlighter immediately and periodically
+    // Run highlighter immediately and periodically, clear interval if context invalidates
     highlightLmsTableRows();
-    setInterval(highlightLmsTableRows, 1500);
+    const highlightInterval = setInterval(() => {
+      if (!chrome.runtime?.id) {
+        clearInterval(highlightInterval);
+        return;
+      }
+      highlightLmsTableRows();
+    }, 1500);
 
     if (window === window.top) {
       initializeFloatingWidget();
     }
 
-    document.addEventListener('click', (event) => {
+    const clickHandler = (event: MouseEvent) => {
+      // If extension context was invalidated, detach this listener to avoid dead calls
+      if (!chrome.runtime?.id || !chrome.storage?.local) {
+        document.removeEventListener('click', clickHandler);
+        return;
+      }
+
       // Only monitor clicks on the class list / homework checking page
       if (!window.location.pathname.includes('/homework-checking')) {
         return;
@@ -60,7 +72,9 @@ export default defineContentScript({
         }
         target = target.parentElement;
       }
-    });
+    };
+
+    document.addEventListener('click', clickHandler);
 
     // Listener for messages from extension popup/sidepanel
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -211,6 +225,11 @@ function initializeFloatingWidget() {
   `;
 
   triggerBtn.addEventListener('click', (e) => {
+    // If context is invalidated, cleanly remove widget to avoid dead interactions
+    if (!chrome.runtime?.id || !chrome.storage?.local) {
+      container.remove();
+      return;
+    }
     e.stopPropagation();
     const isHidden = menu.style.display === 'none';
     menu.style.display = isHidden ? 'flex' : 'none';
@@ -233,6 +252,9 @@ function initializeFloatingWidget() {
 }
 
 function renderShortcutList(menuElement: HTMLDivElement) {
+  if (!chrome.runtime?.id || !chrome.storage?.local) {
+    return;
+  }
   menuElement.innerHTML = `
     <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
       📌 Lối tắt truy cập nhanh

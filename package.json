@@ -2,7 +2,7 @@
   "name": "redux-autoscoring-extension",
   "description": "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports",
   "private": true,
-  "version": "4.0.6",
+  "version": "4.0.7",
   "type": "module",
   "scripts": {
     "dev": "wxt",

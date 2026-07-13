@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.0.7] — 2026-07-13
+
+### 🐛 Sửa lỗi (Bug fixes)
+- **Bảo vệ chống lỗi TypeError ở context bị mồ côi (Orphaned context):**
+    - Sửa triệt để lỗi `Uncaught TypeError: Cannot read properties of undefined (reading 'local')` khi click hoặc tương tác sau khi extension reload.
+    - Thêm kiểm tra trạng thái context hoạt động `chrome.runtime?.id` và `chrome.storage?.local` tại đầu mỗi listener.
+    - Tự động hủy đăng ký (removeEventListener) click handler, dừng định kỳ (clearInterval) highlight, và tự gỡ widget Lối tắt khi context bị vô hiệu hóa, giúp tránh lỗi JS và giải phóng bộ nhớ tài nguyên trình duyệt.
+
+---
+
 ## [v4.0.6] — 2026-07-13
 
 ### 🐛 Sửa lỗi (Bug fixes)
