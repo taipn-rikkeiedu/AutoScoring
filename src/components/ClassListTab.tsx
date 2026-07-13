@@ -218,13 +218,36 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
   const handleStudentScroll = (st: Student) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id!, {
+        const tabId = tabs[0].id!;
+        chrome.tabs.sendMessage(tabId, {
           action: 'scrollToStudent',
           studentId: st.studentId,
           studentName: st.studentName
         }, (response) => {
           if (chrome.runtime.lastError) {
-            console.log("Error sending scrollToStudent message:", chrome.runtime.lastError.message);
+            console.log("REduX: content script connection lost, attempting to inject content.js:", chrome.runtime.lastError.message);
+            // Re-inject content script dynamically
+            chrome.scripting.executeScript({
+              target: { tabId },
+              files: ['/content-scripts/content.js']
+            }, () => {
+              if (chrome.runtime.lastError) {
+                console.error("REduX: Failed to inject content.js:", chrome.runtime.lastError.message);
+                return;
+              }
+              // Wait 150ms for script to initialize and try sending the message again
+              setTimeout(() => {
+                chrome.tabs.sendMessage(tabId, {
+                  action: 'scrollToStudent',
+                  studentId: st.studentId,
+                  studentName: st.studentName
+                }, (res) => {
+                  if (chrome.runtime.lastError) {
+                    console.error("REduX: Failed to send scrollToStudent even after injection:", chrome.runtime.lastError.message);
+                  }
+                });
+              }, 150);
+            });
           }
         });
       }

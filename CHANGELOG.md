@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.0.6] — 2026-07-13
+
+### 🐛 Sửa lỗi (Bug fixes)
+- **Tự động vá lỗi kết nối khi Cuộn đến sinh viên:**
+    - Khắc phục lỗi không thể cuộn đến sinh viên khi Context của Content Script bị mất kết nối (Extension context invalidated) do extension reload/update.
+    - Tự động phát hiện lỗi gửi tin nhắn và thực hiện nạp lại file `/content-scripts/content.js` động bằng `chrome.scripting.executeScript`, sau đó thực hiện lại hành động cuộn mà không cần người dùng tải lại trang LMS bằng F5.
+    - Cải tiến hàm khởi tạo Lối tắt nhanh (`initializeFloatingWidget`) để dọn dẹp các widget cũ và các bộ lắng nghe sự kiện (listeners) đã bị chết, tránh hiện tượng trùng lặp nút Lối tắt trên giao diện.
+
+---
+
 ## [v4.0.5] — 2026-07-13
 
 ### ✨ Tính năng mới

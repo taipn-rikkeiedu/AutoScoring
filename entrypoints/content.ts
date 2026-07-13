@@ -1,4 +1,5 @@
 import { highlightLmsTableRows, scrollToElementBelowPopup } from '~/src/core/contentHighlighter';
+import { STORAGE_KEYS } from '~/src/core/constants';
 
 export default defineContentScript({
   matches: ["https://qldt.rikkei.edu.vn/*"],
@@ -49,7 +50,7 @@ export default defineContentScript({
                   studentName: studentName,
                   timestamp: Date.now()
                 };
-                chrome.storage.local.set({ activeStudentTransition: transitionData }, () => {
+                chrome.storage.local.set({ [STORAGE_KEYS.activeStudentTransition]: transitionData }, () => {
                   console.log("REduX: Saved transition student:", transitionData);
                 });
               }
@@ -148,6 +149,12 @@ export default defineContentScript({
 });
 
 function initializeFloatingWidget() {
+  // Remove existing widget if it exists to clean up dead listeners from invalidated contexts
+  const oldContainer = document.getElementById('redux-quick-access-container');
+  if (oldContainer) {
+    oldContainer.remove();
+  }
+
   const container = document.createElement('div');
   container.id = 'redux-quick-access-container';
   container.style.cssText = `
@@ -232,8 +239,8 @@ function renderShortcutList(menuElement: HTMLDivElement) {
     </div>
   `;
 
-  chrome.storage.local.get('customShortcuts', (res) => {
-    const list = (res.customShortcuts as any[]) || [];
+  chrome.storage.local.get(STORAGE_KEYS.customShortcuts, (res) => {
+    const list = (res[STORAGE_KEYS.customShortcuts] as any[]) || [];
     if (list.length === 0) {
       const emptyDiv = document.createElement('div');
       emptyDiv.style.cssText = 'font-size: 11px; color: #94a3b8; text-align: center; padding: 12px 0; font-style: italic;';
