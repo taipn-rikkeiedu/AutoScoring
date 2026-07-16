@@ -42,18 +42,13 @@ export function useTakeCare() {
                     if (local) {
                       local.note = cloud.note || "";
                     } else {
-                      const stIdMatch = localStudents.find(st => st.studentId === cloud.student_id);
-                      if (stIdMatch && !stIdMatch.note) {
-                        stIdMatch.note = cloud.note || "";
-                      } else {
-                        localStudents.push({
-                          studentId: cloud.student_id,
-                          studentName: cloud.student_name,
-                          subjectName: cloud.subject_name || "",
-                          studyDate: cloud.study_date || "",
-                          note: cloud.note || ""
-                        });
-                      }
+                      localStudents.push({
+                        studentId: cloud.student_id,
+                        studentName: cloud.student_name,
+                        subjectName: cloud.subject_name || "",
+                        studyDate: cloud.study_date || "",
+                        note: cloud.note || ""
+                      });
                     }
                   });
                   allCareStudents[classId] = localStudents;
@@ -64,9 +59,50 @@ export function useTakeCare() {
               }
             }
 
-            setCareStudents(localStudents);
-            setStatusText(localStudents.length > 0 ? `📋 Đã tải danh sách chăm sóc của lớp ${classId}.` : "🔍 Sẵn sàng quét danh sách chăm sóc sinh viên từ trang...");
-            setStatusType(localStudents.length > 0 ? 'success' : 'info');
+            // Run a background scan of the current page to filter records of the currently visible date and subject
+            chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id! },
+              files: ['/careScraper.js']
+            }, (results) => {
+              if (results && results[0]?.result) {
+                const scraped = (results[0].result as CareStudent[]) || [];
+                if (scraped.length > 0) {
+                  const filtered = localStudents.filter(st => 
+                    scraped.some(s => 
+                      s.studentId === st.studentId &&
+                      (s.subjectName || "") === (st.subjectName || "") &&
+                      (s.studyDate || "") === (st.studyDate || "")
+                    )
+                  );
+
+                  // Populate placeholder list for scraped entries that do not have saved notes yet
+                  scraped.forEach(s => {
+                    const exists = filtered.some(f => 
+                      f.studentId === s.studentId && 
+                      f.subjectName === s.subjectName && 
+                      f.studyDate === s.studyDate
+                    );
+                    if (!exists) {
+                      filtered.push({
+                        studentId: s.studentId,
+                        studentName: s.studentName,
+                        subjectName: s.subjectName,
+                        studyDate: s.studyDate,
+                        note: ""
+                      });
+                    }
+                  });
+
+                  setCareStudents(filtered);
+                  setStatusText(`📋 Đã tải danh sách chăm sóc của ngày ${scraped[0].studyDate || ""}.`);
+                  setStatusType('success');
+                  return;
+                }
+              }
+              setCareStudents(localStudents);
+              setStatusText(localStudents.length > 0 ? `📋 Đã tải danh sách chăm sóc của lớp ${classId}.` : "🔍 Sẵn sàng quét danh sách chăm sóc sinh viên từ trang...");
+              setStatusType(localStudents.length > 0 ? 'success' : 'info');
+            });
           });
         }
       }
@@ -117,14 +153,11 @@ export function useTakeCare() {
               const classStudents: CareStudent[] = allCareStudents[classId] || [];
 
               const merged = scraped.map(newSt => {
-                let existing = classStudents.find(st => 
+                const existing = classStudents.find(st => 
                   st.studentId === newSt.studentId &&
                   (st.subjectName || "") === (newSt.subjectName || "") &&
                   (st.studyDate || "") === (newSt.studyDate || "")
                 );
-                if (!existing) {
-                  existing = classStudents.find(st => st.studentId === newSt.studentId && !(st.subjectName) && !(st.studyDate));
-                }
                 return {
                   studentId: newSt.studentId,
                   studentName: newSt.studentName,
@@ -145,7 +178,7 @@ export function useTakeCare() {
                 );
                 if (idx !== -1) {
                   classStudents[idx].studentName = newSt.studentName;
-                  if (newSt.note) classStudents[idx].note = newSt.note;
+                  classStudents[idx].note = newSt.note;
                 } else {
                   classStudents.push(newSt);
                 }
@@ -155,7 +188,15 @@ export function useTakeCare() {
               chrome.storage.local.set({ [STORAGE_KEYS.careStudents]: allCareStudents }, () => {
                 setStatusText(`✅ Đã quét thành công ${merged.length} học viên từ trang.`);
                 setStatusType('success');
-                setCareStudents(classStudents.filter(st => scraped.some(s => s.studentId === st.studentId)));
+                
+                const filtered = classStudents.filter(st => 
+                  scraped.some(s => 
+                    s.studentId === st.studentId &&
+                    (s.subjectName || "") === (st.subjectName || "") &&
+                    (s.studyDate || "") === (st.studyDate || "")
+                  )
+                );
+                setCareStudents(filtered);
               });
             });
           }

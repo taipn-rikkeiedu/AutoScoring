@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.3.10] — 2026-07-16
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Sửa lỗi Ghi Đè/Lẫn Lộn Ghi Chú Chăm Sóc Theo Ngày (Student Care Isolation)**:
+  - Khắc phục triệt để lỗi ghi chú chăm sóc sinh viên của ngày học cũ bị hiển thị trộn lẫn hoặc ghi đè lên ngày học hiện tại.
+  - Tích hợp cơ chế quét ngầm tự động thông tin Môn học và Ngày học đang hiển thị trên LMS khi giáo viên mở tab Chăm Sóc SV để lọc chính xác 100% dữ liệu từ storage theo ngày hiện hành.
+  - Sửa đổi các hàm merge dữ liệu và đồng bộ để đối sánh chính xác đồng thời cả `studentId`, `subjectName` và `studyDate` làm khóa chính phức hợp.
+
+---
+
 ## [v4.3.9] — 2026-07-16
 
 ### 🐛 Sửa lỗi (Bug Fixes)
