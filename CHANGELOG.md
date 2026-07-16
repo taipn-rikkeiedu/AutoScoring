@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.3.11] — 2026-07-16
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Sửa lỗi Không Cào được Tiêu Chí Chấm Bài (AI Rubric Parsing UTF-8)**:
+  - Khắc phục triệt để lỗi Regex bóc tách tiêu chí chấm bài trong `extractCriteriaFromAssignment` của file `utils.ts` bị lỗi font chữ tiếng Việt do double-encoding UTF-8 (ví dụ: `TiÃªu chÃ­ cháº¥m...`).
+  - Viết lại Regex bằng tiếng Việt UTF-8 chuẩn xác, hỗ trợ cả không dấu và có dấu (`Tiêu chí chấm bài`, `Tiêu chí chấm điểm`, `Grading Criteria`, `Rubric`, v.v.) để so khớp thành công 100% với đề bài cào được.
+  - Khắc phục triệt để các chuỗi tiếng Việt so sánh tĩnh bị lỗi mã hóa tương tự trong `utils.ts` như "Khóa học mặc định", "Nhập môn" và "Bài tập mới".
+
+---
+
 ## [v4.3.10] — 2026-07-16
 
 ### 🐛 Sửa lỗi (Bug Fixes)

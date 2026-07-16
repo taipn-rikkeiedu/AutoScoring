@@ -95,7 +95,7 @@ export const DEFAULT_SYSTEM_PROMPT = GRADING_TEXT.defaultSystemPrompt;
 export function extractCriteriaFromAssignment(assignmentText: string | null): { assignment: string; criteria: string | null } {
   if (!assignmentText) return { assignment: '', criteria: null };
   
-  const regex = /(?:TiÃªu\s*chÃ­\s*cháº¥m\s*(?:bÃ i|Ä‘iá»ƒm|thi)?|TiÃªu\s*chÃ­\s*Ä‘Ã¡nh\s*giÃ¡|TiÃªu\s*chÃ­\s*AI|Grading\s*Criteria|AI\s*Criteria|Rubric|Criteria)(?:\s*[\(ï¼ˆ]AI[\)ï¼‰])?\s*:?\s*([\s\S]+)$/i;
+  const regex = /(?:Tiêu\s*chí\s*chấm\s*(?:bài|điểm|thi)?|Tiêu\s*chí\s*đánh\s*giá|Tiêu\s*chí\s*AI|Tieu\s*chi\s*cham\s*(?:bai|diem|thi)?|Tieu\s*chi\s*danh\s*gia|Tieu\s*chi\s*AI|Grading\s*Criteria|AI\s*Criteria|Rubric|Criteria)(?:\s*[\(（]AI[\)）])?\s*:?\s*([\s\S]+)$/i;
   
   const match = assignmentText.match(regex);
   if (match) {
@@ -124,7 +124,7 @@ export function mergeScrapedFrameResults(results: any[] | null): any {
       } else {
         const currentLen = (bestRes.assignment || "").trim().length;
         const newLen = (res.assignment || "").trim().length;
-        const isDefaultMsg = (text: string) => !text || text.includes("KhÃ´ng tÃ¬m tháº¥y ná»™i dung Ä‘á» bÃ i tá»± Ä‘á»™ng");
+        const isDefaultMsg = (text: string) => !text || text.includes("Không tìm thấy nội dung đề bài tự động");
         
         if (isDefaultMsg(bestRes.assignment) && !isDefaultMsg(res.assignment)) {
           bestRes = res;
@@ -132,14 +132,14 @@ export function mergeScrapedFrameResults(results: any[] | null): any {
           bestRes = res;
         }
         
-        if (!bestRes.chapter || bestRes.chapter === "KhÃ³a há»c máº·c Ä‘á»‹nh") {
-          if (res.chapter && res.chapter !== "KhÃ³a há»c máº·c Ä‘á»‹nh") bestRes.chapter = res.chapter;
+        if (!bestRes.chapter || bestRes.chapter === "Khóa học mặc định") {
+          if (res.chapter && res.chapter !== "Khóa học mặc định") bestRes.chapter = res.chapter;
         }
-        if (!bestRes.session || bestRes.session === "Session 01: Nháº­p mÃ´n") {
-          if (res.session && res.session !== "Session 01: Nháº­p mÃ´n") bestRes.session = res.session;
+        if (!bestRes.session || bestRes.session === "Session 01: Nhập môn") {
+          if (res.session && res.session !== "Session 01: Nhập môn") bestRes.session = res.session;
         }
-        if (!bestRes.assignmentName || bestRes.assignmentName === "BÃ i táº­p má»›i") {
-          if (res.assignmentName && res.assignmentName !== "BÃ i táº­p má»›i") bestRes.assignmentName = res.assignmentName;
+        if (!bestRes.assignmentName || bestRes.assignmentName === "Bài tập mới") {
+          if (res.assignmentName && res.assignmentName !== "Bài tập mới") bestRes.assignmentName = res.assignmentName;
         }
       }
     }
