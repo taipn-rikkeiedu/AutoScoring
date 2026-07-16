@@ -4,6 +4,28 @@ import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS } from '~/src/core/constants';
 
 const defaultGraderIgnoreOptions = [...GRADER_IGNORE_DEFAULTS];
 
+const POPULAR_MODELS: Record<string, { label: string; value: string }[]> = {
+  gemini: [
+    { label: "Gemini 2.5 Flash (Khuyên dùng)", value: "gemini-2.5-flash" },
+    { label: "Gemini 2.5 Pro (Thông minh nhất)", value: "gemini-2.5-pro" },
+    { label: "Gemini 2.0 Flash", value: "gemini-2.0-flash" },
+    { label: "Gemini 2.0 Pro", value: "gemini-2.0-pro" },
+    { label: "Gemini 1.5 Flash", value: "gemini-1.5-flash" },
+    { label: "Gemini 1.5 Pro", value: "gemini-1.5-pro" },
+    { label: "Gemini 2.0 Flash Exp (Thử nghiệm)", value: "gemini-2.0-flash-exp" }
+  ],
+  openai: [
+    { label: "GPT-4o (Khuyên dùng)", value: "gpt-4o" },
+    { label: "GPT-4o Mini (Tiết kiệm nhất)", value: "gpt-4o-mini" },
+    { label: "o1-mini (Suy luận thông minh)", value: "o1-mini" },
+    { label: "o1-preview (Suy luận nâng cao)", value: "o1-preview" }
+  ],
+  deepseek: [
+    { label: "DeepSeek-V3 (deepseek-chat)", value: "deepseek-chat" },
+    { label: "DeepSeek Coder (deepseek-coder)", value: "deepseek-coder" }
+  ]
+};
+
 export const SettingsTab: React.FC = () => {
   const {
     aiProvider,
@@ -108,16 +130,43 @@ export const SettingsTab: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-bold text-slate-500">Tên Model (Model Name):</label>
-                <input
-                  type="text"
-                  value={aiModelName}
-                  onChange={(e) => setAiModelName(e.target.value)}
-                  className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
-                  placeholder={aiProvider === "gemini" ? AI_DEFAULTS.geminiModel : AI_DEFAULTS.openAiModel}
-                />
-              </div>
+              {/* Popular Models Dropdown */}
+              {POPULAR_MODELS[aiProvider] && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-slate-500">Chọn Model nhanh:</label>
+                  <select
+                    value={POPULAR_MODELS[aiProvider].some(m => m.value === aiModelName) ? aiModelName : "custom"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val !== "custom") {
+                        setAiModelName(val);
+                      } else {
+                        setAiModelName("");
+                      }
+                    }}
+                    className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+                  >
+                    {POPULAR_MODELS[aiProvider].map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                    <option value="custom">Khác (Nhập thủ công)...</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Text input for custom/unsupported model name */}
+              {(!POPULAR_MODELS[aiProvider] || !POPULAR_MODELS[aiProvider].some(m => m.value === aiModelName)) && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-slate-500">Tên Model (Model Name):</label>
+                  <input
+                    type="text"
+                    value={aiModelName}
+                    onChange={(e) => setAiModelName(e.target.value)}
+                    className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+                    placeholder={aiProvider === "gemini" ? AI_DEFAULTS.geminiModel : AI_DEFAULTS.openAiModel}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

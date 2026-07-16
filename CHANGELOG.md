@@ -7,6 +7,16 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.3.12] — 2026-07-16
+
+### 🎨 Giao diện & Trải nghiệm (UI/UX Improvements)
+- **Cập nhật Danh Sách Lựa Chọn Gemini Models**:
+  - Tích hợp thêm danh sách lựa chọn các model Gemini phổ biến hiện nay bao gồm: `gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.0-flash`, `gemini-2.0-pro`, `gemini-1.5-flash`, `gemini-1.5-pro`, và `gemini-2.0-flash-exp`.
+  - Thay thế input text thông thường bằng một **Dropdown Select box gợi ý nhanh model**, tự động ẩn/hiện ô nhập thủ công khi giáo viên chọn `"Khác (Nhập thủ công)..."`.
+  - Áp dụng tương tự cho các nhà cung cấp phổ biến khác như OpenAI (GPT-4o, GPT-4o Mini, o1) và DeepSeek (V3, Coder).
+
+---
+
 ## [v4.3.11] — 2026-07-16
 
 ### 🐛 Sửa lỗi (Bug Fixes)
