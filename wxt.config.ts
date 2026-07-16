@@ -1,29 +1,21 @@
 import { defineConfig } from 'wxt';
+import { APP_INFO } from './src/core/constants';
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: "REduX",
-    version: "4.0.3",
+    name: APP_INFO.name,
+    description: APP_INFO.description,
+    version: APP_INFO.version,
     permissions: [
       "activeTab",
       "storage",
-      "scripting",
-      "declarativeNetRequest"
+      "scripting"
     ],
     host_permissions: [
       "<all_urls>"
     ],
-    declarative_net_request: {
-      rule_resources: [
-        {
-          id: "ruleset_1",
-          enabled: true,
-          path: "rules.json"
-        }
-      ]
-    },
     icons: {
       "16": "icon.png",
       "48": "icon.png",

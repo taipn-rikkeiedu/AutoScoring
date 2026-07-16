@@ -7,6 +7,173 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.3.9] — 2026-07-16
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Sửa lỗi Stale State khi Chấm Hàng Loạt (Bulk Grading UI Sync)**:
+  - Khắc phục triệt để tình trạng khi chấm hàng loạt nhiều bài tập, điểm số bài tập đã chấm xong trước đó bị biến mất (quay về trạng thái "Chờ chấm") khi chuyển sang chấm bài tập tiếp theo.
+  - Chuyển đổi toàn bộ cơ chế cập nhật state trong `handleGradeSingleRow` sang dạng **functional state updates (`setSubmissions(prev => ...)`)** để bảo vệ và duy trì dữ liệu điểm số của các bài đã chấm xong không bị mảng closure cũ ghi đè.
+
+---
+
+## [v4.3.8] — 2026-07-16
+
+### 🎨 Giao diện & Trải nghiệm (UI/UX Improvements)
+- **Tối ưu hóa Bảng Danh Sách Học Viên**: Loại bỏ cột "Hành động" (Actions) trong bảng quản lý học viên thuộc tab Lớp học để tăng diện tích hiển thị cho các cột thông tin sinh viên, họ tên và số lượng bài hoàn thành.
+
+---
+
+## [v4.3.7] — 2026-07-16
+
+### 🎨 Giao diện & Trải nghiệm (UI/UX Improvements)
+- **Cập nhật nhãn nút nổi toàn cầu**: Sửa đổi nhãn của nút bấm nổi từ `🚀 QLDT` thành chữ thương hiệu `REdux` và loại bỏ hoàn toàn biểu tượng emoji tên lửa `🚀` theo mong muốn của người dùng.
+
+---
+
+## [v4.3.6] — 2026-07-16
+
+### 🎨 Giao diện & Trải nghiệm (UI/UX Improvements)
+- **Tái cấu trúc và căn giữa toàn bộ biểu tượng (Icon Assets)**:
+  - Khắc phục triệt để lỗi icon extension bị lệch và bị cắt mất phần chữ `RE` ở trang quản lý tiện ích (`chrome://extensions` hoặc `edge://extensions`).
+  - Xây dựng và thực thi công cụ PowerShell tự động tạo gói icon hình vuông (128x128, 96x96, 48x48, 32x32, 16x16) được thiết kế lại cân đối, thu nhỏ và căn giữa logo `REduX` trên nền trắng tinh tế.
+
+---
+
+## [v4.3.5] — 2026-07-16
+
+### 🎨 Giao diện & Trải nghiệm (UI/UX Improvements)
+- **Đổi tên nút nổi lối tắt toàn cầu**: Cập nhật nhãn của nút bấm nổi từ `🚀 Lối tắt` thành `🚀 QLDT` theo yêu cầu.
+- **Sửa lỗi hiển thị lệch Logo trên Microsoft Edge**: Bọc thẻ ảnh logo trong một container có kích thước rộng/cao được xác định cứng và cấu hình flex-shrink để ngăn hiện tượng méo hoặc lệch tỷ lệ logo trên các trình duyệt Edge/Chromium.
+
+---
+
+## [v4.3.4] — 2026-07-16
+
+### ✨ Tính năng mới (Features)
+- **Hỗ trợ nút nổi Lối tắt hoạt động toàn cầu (Global Floating Widget)**:
+  - Cập nhật cấu hình matches của content script thành `<all_urls>` để tiêm nút nổi `🚀 Lối tắt` vào tất cả các trang web thay vì chỉ giới hạn ở trang LMS của Rikkei.
+  - Tối ưu hóa hiệu năng bằng cách cô lập hoàn toàn các logic tô màu bảng và sự kiện click đặc thù của trang LMS chỉ kích hoạt khi hostname chứa `rikkei.edu.vn`.
+
+---
+
+## [v4.3.3] — 2026-07-16
+
+### ✨ Tính năng mới (Features)
+- **Tích hợp Supabase JS SDK (Client-Side ORM-like) & Tự động chạy DDL Migrations**:
+  - Cài đặt gói npm `@supabase/supabase-js` chính thức để thay thế toàn bộ mã nguồn gọi REST API thủ công, tối ưu cú pháp truy vấn giống như một ORM.
+  - Xây dựng tính năng **One-Click Database Setup (Khởi tạo CSDL tự động)** sử dụng Supabase Management API và Personal Access Token (PAT) để tự động khởi tạo 4 bảng (`submissions`, `care_notes`, `exercises`, `class_students`) và các chính sách bảo mật RLS trực tiếp từ extension.
+  - Phát triển tính năng **Đồng bộ hóa danh sách lớp học toàn diện (`class_students`)** để tự động tải về đầy đủ thông tin danh sách học viên khi chuyển đổi thiết bị hoặc chia sẻ extension cho người dùng khác.
+
+---
+
+## [v4.3.2] — 2026-07-16
+
+### ✨ Tính năng mới & Cải tiến (Features & Improvements)
+- **Tối ưu hóa Mẫu System Prompt mặc định (Short Concise AI Grader Prompt)**:
+  - Cập nhật định dạng Prompt mặc định cho AI chấm điểm cực kỳ ngắn gọn, cô đọng (viết đoạn nhận xét từ 1 đến 3 câu thay vì danh sách dòng lỗi dài dòng).
+  - Tích hợp 3 mẫu nhận xét thực tế (về quản lý Session Database, lỗi giới hạn GitHub rate limit và lỗi format tên repository) trực tiếp làm mẫu dữ liệu huấn luyện nhanh (few-shot examples) trong System Prompt của AI.
+  - Tự động di chuyển (migrate) và làm sạch định dạng prompt cũ trong bộ nhớ trình duyệt của người dùng để cập nhật lên cấu hình ngắn gọn mới nhất khi khởi chạy extension.
+
+---
+
+## [v4.3.1] — 2026-07-16
+
+### ✨ Tính năng mới (Features)
+- **Tích hợp hệ thống Ghi nhật ký hoạt động nén ZIP (System Logger with ZIP Compression)**:
+  - Xây dựng module [logger.ts](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/core/logger.ts) lưu trữ có giới hạn 150 logs mới nhất trong local storage, tự động ghi nhận nhật ký của toàn bộ hệ thống (kết nối AI, quét LMS, Cloud Sync).
+  - Tích hợp khu vực hiển thị log console-style đẹp mắt trong tab Cài đặt ([SettingsTab.tsx](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/components/SettingsTab.tsx)) phân biệt màu sắc theo cấp độ log, cho phép click dòng log để xem chi tiết thông tin lỗi hoặc log thô.
+  - Hỗ trợ nén nhị phân logs dạng JSON thành tệp nén **ZIP** bằng thư viện **JSZip** để tối ưu hóa dung lượng khi tải file log về máy tính (giảm 80%-90% kích thước file).
+
+---
+
+## [v4.3.0] — 2026-07-16
+
+### ✨ Tính năng mới & Cải tiến UI/UX (Features & UI/UX Improvements)
+- **Tích hợp cảnh báo trang không hỗ trợ (Unsupported Page Warning)**:
+  - Khi mở extension ở các trang ngoài hệ thống `rikkei.edu.vn`, extension sẽ tự động hiển thị màn hình hướng dẫn và cảnh báo đẹp mắt, đồng thời cung cấp nút chuyển hướng nhanh đến trang chủ QLDT thay vì hiển thị dữ liệu rỗng.
+- **Lưu cấu hình tự động (Auto-save in Settings)**:
+  - Cải tiến [SettingsTab.tsx](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/components/SettingsTab.tsx) loại bỏ hoàn toàn nút Lưu cấu hình thủ công.
+  - Tích hợp cơ chế tự động lưu khi thay đổi giá trị (`onChange`) và áp dụng debounce cho các trường nhập text để tránh quá tải lưu trữ, đồng thời hiển thị trạng thái đang lưu trực quan.
+- **Premium Skeleton Loading**:
+  - Tích hợp Skeleton Loader động nhấp nháy 3D bằng Tailwind `animate-pulse` khi AI đang tiến hành chấm bài trong [SingleGraderTab.tsx](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/components/SingleGraderTab.tsx) và khi đang quét bài tập trong [AutoGraderTab.tsx](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/components/AutoGraderTab.tsx).
+- **Sao chép mượt mà với Micro-interactions**:
+  - Khi click nút sao chép báo cáo trong tab chấm bài hoặc modal xem chi tiết, nút bấm sẽ chuyển sang màu xanh lá và hiển thị nhãn `✓ Đã sao chép` trong 1.5 giây để tăng phản hồi trực quan.
+- **Tối ưu hóa Modal**:
+  - Thiết kế backdrop của các Modal (`ExcelExportModal`, `ReportModal`) sử dụng hiệu ứng blur kính mờ tinh tế.
+  - Hỗ trợ đóng nhanh modal bằng phím `Escape` và click ra ngoài vùng trống.
+
+---
+
+## [v4.2.2] — 2026-07-16
+
+### ✨ Tính năng mới (Features)
+- **Tạm thời đóng băng tính năng Phím tắt nhanh và phát triển nút mở rộng nhanh Extension:**
+  - Vô hiệu hóa menu Lối tắt xuất hiện trên trang web.
+  - Tái cấu trúc nút nổi `🚀 Lối tắt` ở góc dưới bên phải trang web theo đúng thiết kế gradient yêu cầu.
+  - Khi click vào nút nổi `🚀 Lối tắt` trên trang web, nút này sẽ gửi message `OPEN_POPUP` để gọi lệnh `chrome.action.openPopup()` trong background script, giúp mở nhanh giao diện Popup của Extension.
+
+---
+
+## [v4.2.1] — 2026-07-16
+
+### 🐛 Sửa lỗi (Bug fixes)
+- **Sửa lỗi Phím tắt nhanh (Quick Shortcuts) không làm mới dữ liệu trên SPA (LMS):**
+  - Tích hợp helper `safeNavigate` để điều hướng tab một cách an toàn. Khi người dùng nhấp vào phím tắt nhanh có cùng origin (hoặc cùng domain `qldt.rikkei.edu.vn`), extension sẽ tự động ép buộc reload tab bằng `chrome.tabs.reload` để đảm bảo ứng dụng SPA React/Angular của trang web cập nhật chính xác dữ liệu của lớp học mới.
+  - Cập nhật logic điều hướng ở tab phím tắt nhanh (`useShortcuts.ts`), thanh truy cập nhanh (`QuickAccessBar.tsx`) và chức năng chuyển đổi nhanh học viên chấm bài (`useClassManager.ts`).
+
+---
+
+## [v4.2.0] — 2026-07-14
+
+### ✨ Tính năng mới (Features)
+- **Tái cấu trúc mã nguồn theo chuẩn WXT & Phân chia Logic/UI:**
+  - Tách biệt hoàn toàn phần xử lý logic (hooks/services) và phần hiển thị (components) giúp mã nguồn sạch sẽ, tuân thủ kiến trúc mô phỏng Frontend/Backend.
+  - Khống chế kích thước tất cả các tệp nguồn trong dự án nghiêm ngặt dưới 200 dòng code để tối đa hóa khả năng bảo trì.
+  - Tách logic global state khởi tạo của `AppContext.tsx` thành hook `useAppInitializer.ts`.
+  - Chuyển đổi toàn bộ React components giao diện (`SettingsTab`, `ShortcutsTab`, `CareTab`, `ExercisesTab`, `LmsApiTestTab`, `ClassListTab`, `ExcelExportModal`, `SingleGraderTab`, `AutoGraderTab`) thành các view component gọn nhẹ.
+  - Xây dựng 8 Custom Hooks chuyên biệt quản lý trạng thái nghiệp vụ trong thư mục `src/hooks/`.
+  - Tổ chức lại cấu trúc dịch vụ dưới `src/services/` với các thư mục module riêng biệt (`supabase/`, `ai/`, `github/`, `lms/`).
+
+---
+
+## [v4.1.0] — 2026-07-14
+
+### ✨ Tính năng mới (Features)
+- **Chuẩn bị cấu trúc dữ liệu LMS Session & Homework:**
+  - Định nghĩa các interface `LmsHomework` và `LmsSession` trong [types.ts](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/types.ts) khớp hoàn toàn với cấu trúc JSON của API Rikkei Portal.
+  - Tạo mới lớp [LmsHomeworkModel](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/services/lmsHomeworkService.ts) và [LmsSessionModel](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/services/lmsHomeworkService.ts) để tự động hóa việc đóng gói dữ liệu, trích xuất đề bài, tách tiêu chí chấm điểm (AI Rubric) và làm sạch HTML tag an toàn ở cả UI lẫn Background Thread.
+  - Hỗ trợ phương thức `toExerciseTemplate` để ánh xạ trực tiếp Session/Homework của LMS sang ngân hàng đề bài của Extension.
+
+---
+
+## [v4.0.9] — 2026-07-14
+
+### ✨ Tính năng mới (Features)
+- **Tự động yêu cầu quyền truy cập website để giải quyết CORS:**
+  - Tích hợp hàm kiểm tra quyền truy cập tên miền `https://apiportal.rikkei.edu.vn/*` khi load tab LMS API Test.
+  - Hiển thị khối thông báo và nút **"🔑 Cấp Quyền Truy Cập"** trực quan giúp người dùng dễ dàng cấp quyền site access cho extension để bypass CORS MV3 mà không cần cấu hình thủ công trong Settings trình duyệt.
+
+---
+
+## [v4.0.8] — 2026-07-14
+
+### ✨ Tính năng mới (Features)
+- **Hỗ trợ thử nghiệm API Portal Rikkei Education:**
+    - Thêm service `LmsApiService` phục vụ kết nối trực tiếp đến endpoint `GET https://apiportal.rikkei.edu.vn/sessions/{sessionId}`.
+    - Xây dựng giao diện thử nghiệm **LMS API Test** với các tính năng nhập liệu Session ID và Bearer Refresh Token, tự lưu token, có cơ chế validation trước khi gọi và hộp thoại xác thực an toàn.
+    - Hỗ trợ hiển thị response dưới dạng **Rendered HTML** trực quan và **HTML Source Code** thô.
+
+### 🐛 Sửa lỗi (Bug fixes)
+- **Sửa lỗi CORS khi gọi API trực tiếp:**
+    - Định tuyến lại các yêu cầu gọi LMS API thông qua Background Service Worker bằng message type `FETCH` thay vì gọi trực tiếp từ popup context.
+    - Bổ sung `apiportal.rikkei.edu.vn` vào danh sách `allowedHosts` của `BACKGROUND_FETCH_PROXY` để hỗ trợ trung chuyển request an toàn.
+- **Bảo vệ server chống lỗi 502 Bad Gateway:**
+    - Triển khai **Validation** nghiêm ngặt định dạng Session ID.
+    - Tích hợp **Rate Limiter** giới hạn khoảng cách giữa các request tối thiểu 3 giây.
+    - Tích hợp **Circuit Breaker** tự động ngắt kết nối chặn request trong 5 phút khi có 2 lỗi server 5xx liên tiếp.
+
+---
+
 ## [v4.0.7] — 2026-07-13
 
 ### 🐛 Sửa lỗi (Bug fixes)

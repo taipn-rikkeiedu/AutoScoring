@@ -1,9 +1,10 @@
-import { SupabaseService } from '~/src/services/supabaseService';
+﻿import { SupabaseService } from '~/src/services/supabaseService';
 import { AppConfig } from '~/src/types';
+import { UI_MESSAGES } from './constants';
 
 export async function loadExercises(config: AppConfig): Promise<{ templates: Record<string, Record<string, Record<string, { assignment: string; criteria: string }>>>; statusText: string }> {
   const res = await fetch(chrome.runtime.getURL("exercises.json"));
-  if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
+  if (!res.ok) throw new Error("KhÃ´ng tÃ¬m tháº¥y file exercises.json trong extension.");
   const templates = await res.json();
 
   if (config.uploadedExercises) {
@@ -19,11 +20,11 @@ export async function loadExercises(config: AppConfig): Promise<{ templates: Rec
     }
   }
 
-  let statusText = "Chưa kích hoạt";
+  let statusText: string = UI_MESSAGES.statuses.supabaseInactive;
   if (SupabaseService.isEnabled(config)) {
     try {
       const cloudExercises = await SupabaseService.pullExercises(config);
-      statusText = "🟢 Sẵn sàng";
+      statusText = UI_MESSAGES.statuses.supabaseReady;
       if (cloudExercises && cloudExercises.length > 0) {
         cloudExercises.forEach(ex => {
           const chap = ex.chapter;
@@ -38,8 +39,8 @@ export async function loadExercises(config: AppConfig): Promise<{ templates: Rec
         });
       }
     } catch (exErr) {
-      console.error("Lỗi đồng bộ đề bài từ Supabase:", exErr);
-      statusText = "🔴 Lỗi kết nối CSDL";
+      console.error("Lá»—i Ä‘á»“ng bá»™ Ä‘á» bÃ i tá»« Supabase:", exErr);
+      statusText = UI_MESSAGES.statuses.supabaseDbError;
     }
   }
   return { templates, statusText };

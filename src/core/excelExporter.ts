@@ -1,7 +1,31 @@
-import * as XLSX from 'xlsx';
+import type { ColInfo } from 'xlsx';
 
-export function exportToExcel(data: any[], sheetName: string, fileName: string, columnWidths: XLSX.ColInfo[] | null = null): void {
-  const worksheet = XLSX.utils.json_to_sheet(data);
+function sanitizeExcelValue(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trimStart();
+  if (/^[=+\-@]/.test(trimmed)) {
+    return `'${value}`;
+  }
+
+  return value
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "")
+    .slice(0, 32767);
+}
+
+function sanitizeExcelRows(data: any[]): any[] {
+  return data.map(row => {
+    const safeRow: Record<string, unknown> = {};
+    Object.entries(row || {}).forEach(([key, value]) => {
+      safeRow[key] = sanitizeExcelValue(value);
+    });
+    return safeRow;
+  });
+}
+
+export async function exportToExcel(data: any[], sheetName: string, fileName: string, columnWidths: ColInfo[] | null = null): Promise<void> {
+  const XLSX = await import('xlsx');
+  const worksheet = XLSX.utils.json_to_sheet(sanitizeExcelRows(data));
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 

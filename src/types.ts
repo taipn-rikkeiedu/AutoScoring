@@ -13,6 +13,7 @@ export interface AppConfig {
   supabaseSyncEnabled: boolean;
   supabaseUrl: string;
   supabaseAnonKey: string;
+  supabasePat: string;
 }
 
 export interface Student {
@@ -68,4 +69,20 @@ export interface ExerciseTemplate {
   assignment_name: string;
   assignment_text: string;
   criteria: string;
+}
+
+export interface LmsHomework {
+  id: number;
+  title: string;
+  description: string;
+}
+
+export interface LmsSession {
+  id: number;
+  name: string;
+  status: boolean;
+  position: number;
+  type: string;
+  mindmap: string | null;
+  homework: LmsHomework[];
 }

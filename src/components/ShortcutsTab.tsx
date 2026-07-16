@@ -1,160 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from '~/src/core/ToastContext';
-
-interface Shortcut {
-  id: string;
-  name: string;
-  url: string;
-  isPinned?: boolean;
-}
+import React from 'react';
+import { useShortcuts, Shortcut } from '~/src/hooks/shortcuts/useShortcuts';
 
 export const ShortcutsTab: React.FC = () => {
-  const toast = useToast();
-  
-  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeTabInfo, setActiveTabInfo] = useState<{ title: string; url: string } | null>(null);
+  const {
+    shortcuts,
+    name,
+    setName,
+    url,
+    setUrl,
+    editingId,
+    setEditingId,
+    activeTabInfo,
+    handleQuickAddActiveTab,
+    handleAddOrUpdate,
+    handleEdit,
+    handleDelete,
+    handleTogglePin,
+    handleNavigate
+  } = useShortcuts();
 
-  // Load shortcuts from storage
-  const loadShortcuts = () => {
-    chrome.storage.local.get('customShortcuts', (res) => {
-      if (res.customShortcuts) {
-        setShortcuts(res.customShortcuts as Shortcut[]);
-      } else {
-        // Seed default shortcuts if empty to help user get started
-        const defaults: Shortcut[] = [
-          { id: '1', name: 'Lớp học mẫu (Trang chủ QLDT)', url: 'https://qldt.rikkei.edu.vn/', isPinned: true }
-        ];
-        chrome.storage.local.set({ customShortcuts: defaults });
-        setShortcuts(defaults);
-      }
-    });
-  };
-
-  // Get active browser tab info for quick capture
-  const fetchActiveTabInfo = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0]) {
-        const tabUrl = tabs[0].url || '';
-        const tabTitle = tabs[0].title || '';
-        if (tabUrl.includes('rikkei.edu.vn') || tabUrl.startsWith('http')) {
-          setActiveTabInfo({ title: tabTitle, url: tabUrl });
-        }
-      }
-    });
-  };
-
-  useEffect(() => {
-    loadShortcuts();
-    fetchActiveTabInfo();
-  }, []);
-
-  const saveShortcutsToStorage = (updatedList: Shortcut[]) => {
-    chrome.storage.local.set({ customShortcuts: updatedList }, () => {
-      setShortcuts(updatedList);
-    });
-  };
-
-  const handleQuickAddActiveTab = () => {
-    if (!activeTabInfo) {
-      toast.showToast('Không lấy được thông tin tab hiện tại.', 'warning');
-      return;
-    }
-
-    // Clean up title
-    let cleanTitle = activeTabInfo.title;
-    if (cleanTitle.includes('-')) {
-      cleanTitle = cleanTitle.split('-')[0].trim();
-    }
-    if (cleanTitle.length > 30) {
-      cleanTitle = cleanTitle.substring(0, 27) + '...';
-    }
-
-    const newShortcut: Shortcut = {
-      id: Date.now().toString(),
-      name: cleanTitle || 'Trang hiện tại',
-      url: activeTabInfo.url,
-      isPinned: false
-    };
-
-    const updated = [...shortcuts, newShortcut];
-    saveShortcutsToStorage(updated);
-    toast.showToast('Đã thêm nhanh trang hiện tại làm lối tắt!', 'success');
-  };
-
-  const handleAddOrUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      toast.showToast('Vui lòng nhập tên lối tắt.', 'warning');
-      return;
-    }
-    if (!url.trim() || !url.startsWith('http')) {
-      toast.showToast('Vui lòng nhập URL hợp lệ (bắt đầu bằng http/https).', 'warning');
-      return;
-    }
-
-    if (editingId) {
-      const updated = shortcuts.map(s => 
-        s.id === editingId ? { ...s, name: name.trim(), url: url.trim() } : s
-      );
-      saveShortcutsToStorage(updated);
-      setEditingId(null);
-      toast.showToast('Đã cập nhật lối tắt thành công!', 'success');
-    } else {
-      const newShortcut: Shortcut = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        url: url.trim(),
-        isPinned: false
-      };
-      const updated = [...shortcuts, newShortcut];
-      saveShortcutsToStorage(updated);
-      toast.showToast('Đã thêm lối tắt mới!', 'success');
-    }
-
-    setName('');
-    setUrl('');
-  };
-
-  const handleEdit = (item: Shortcut) => {
-    setEditingId(item.id);
-    setName(item.name);
-    setUrl(item.url);
-  };
-
-  const handleDelete = (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa lối tắt này không?')) {
-      const updated = shortcuts.filter(s => s.id !== id);
-      saveShortcutsToStorage(updated);
-      toast.showToast('Đã xóa lối tắt.', 'info');
-      if (editingId === id) {
-        setEditingId(null);
-        setName('');
-        setUrl('');
-      }
-    }
-  };
-
-  const handleTogglePin = (id: string) => {
-    const updated = shortcuts.map(s => 
-      s.id === id ? { ...s, isPinned: !s.isPinned } : s
-    );
-    saveShortcutsToStorage(updated);
-  };
-
-  const handleNavigate = (targetUrl: string) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0] && tabs[0].id) {
-        chrome.tabs.update(tabs[0].id, { url: targetUrl });
-      } else {
-        chrome.tabs.create({ url: targetUrl });
-      }
-    });
-  };
-
-  // Sort: pinned first, then by name
   const sortedShortcuts = [...shortcuts].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
@@ -163,15 +27,13 @@ export const ShortcutsTab: React.FC = () => {
 
   return (
     <div className="flex flex-col flex-1 p-4 gap-4 overflow-y-auto">
-      {/* Header Info */}
       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-3.5 text-white shadow-sm">
         <h2 className="text-xs font-bold flex items-center gap-1.5">📌 Lối Tắt Truy Cập Nhanh</h2>
         <p className="text-[10px] text-blue-100 mt-1 leading-relaxed">
-          Ghim các lớp học hay chấm bài của bạn để chuyển trang chỉ với 1 click. Lối tắt này cũng sẽ tự động xuất hiện trên menu nổi ở góc trang web QLDT.
+          Ghim các lớp học hay chấm bài của bạn để chuyển trang chỉ với 1 click.
         </p>
       </div>
 
-      {/* Quick Add Banner if available */}
       {activeTabInfo && (
         <div className="flex items-center justify-between border border-blue-150 rounded-lg bg-blue-50 p-2.5 shadow-sm">
           <div className="flex flex-col gap-0.5 max-w-[70%]">
@@ -187,12 +49,10 @@ export const ShortcutsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Form Container */}
       <form onSubmit={handleAddOrUpdate} className="border border-slate-200 rounded-lg bg-white p-3.5 shadow-sm flex flex-col gap-3">
         <span className="text-xs font-bold text-slate-700">
           {editingId ? '✏️ Chỉnh sửa lối tắt' : '➕ Thêm lối tắt thủ công'}
         </span>
-        
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] font-bold text-slate-500">Tên gợi nhớ:</label>
           <input
@@ -203,7 +63,6 @@ export const ShortcutsTab: React.FC = () => {
             className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
           />
         </div>
-
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] font-bold text-slate-500">Địa chỉ URL:</label>
           <input
@@ -214,7 +73,6 @@ export const ShortcutsTab: React.FC = () => {
             className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
           />
         </div>
-
         <div className="flex gap-2 justify-end mt-1">
           {editingId && (
             <button
@@ -238,7 +96,6 @@ export const ShortcutsTab: React.FC = () => {
         </div>
       </form>
 
-      {/* List Container */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Danh sách lối tắt ({sortedShortcuts.length})</span>
         {sortedShortcuts.length === 0 ? (

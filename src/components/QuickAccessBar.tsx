@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '~/src/core/constants';
+import { safeNavigate } from '~/src/core/utils';
 
 interface Shortcut {
   id: string;
@@ -12,15 +14,15 @@ export const QuickAccessBar: React.FC = () => {
 
   useEffect(() => {
     // Load shortcuts
-    chrome.storage.local.get('customShortcuts', (res) => {
-      const list = (res.customShortcuts as Shortcut[]) || [];
+    chrome.storage.local.get(STORAGE_KEYS.customShortcuts, (res) => {
+      const list = (res[STORAGE_KEYS.customShortcuts] as Shortcut[]) || [];
       setPinnedShortcuts(list.filter(s => s.isPinned));
     });
 
     // Listen for storage changes
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area === 'local' && changes.customShortcuts) {
-        const list = (changes.customShortcuts.newValue as Shortcut[]) || [];
+      if (area === 'local' && changes[STORAGE_KEYS.customShortcuts]) {
+        const list = (changes[STORAGE_KEYS.customShortcuts].newValue as Shortcut[]) || [];
         setPinnedShortcuts(list.filter(s => s.isPinned));
       }
     };
@@ -30,13 +32,7 @@ export const QuickAccessBar: React.FC = () => {
   }, []);
 
   const handleNavigate = (targetUrl: string) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0] && tabs[0].id) {
-        chrome.tabs.update(tabs[0].id, { url: targetUrl });
-      } else {
-        chrome.tabs.create({ url: targetUrl });
-      }
-    });
+    safeNavigate(targetUrl);
   };
 
   if (pinnedShortcuts.length === 0) return null;

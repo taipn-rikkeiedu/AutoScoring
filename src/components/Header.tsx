@@ -17,8 +17,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <header className="flex items-center justify-between px-4.5 py-2.5 border-b border-slate-200 bg-white select-none">
-      <div className="flex items-center">
-        <img src="/logo.png" className="h-7 w-auto object-contain block" alt="REduX Logo" />
+      <div className="flex items-center justify-start h-7 w-[90px] flex-shrink-0">
+        <img src="/logo.png" className="max-h-full max-w-full object-contain block" alt="REduX Logo" />
       </div>
 
       <div className="flex-1 max-w-[200px] mx-4">
@@ -34,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           <option value="tab-care">📞 Chăm Sóc SV</option>
           <option value="tab-exercises">📚 Đề Bài</option>
           <option value="tab-shortcuts">📌 Lối Tắt Nhanh</option>
+          <option value="tab-lms-api">🧪 LMS API Test</option>
           <option value="tab-settings">⚙️ Cài Đặt</option>
         </select>
       </div>

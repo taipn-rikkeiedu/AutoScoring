@@ -2,7 +2,7 @@ import { highlightLmsTableRows, scrollToElementBelowPopup } from '~/src/core/con
 import { STORAGE_KEYS } from '~/src/core/constants';
 
 export default defineContentScript({
-  matches: ["https://qldt.rikkei.edu.vn/*"],
+  matches: ["<all_urls>"],
   allFrames: true,
   main() {
     console.log("REduX: Content script loaded.");
@@ -10,15 +10,18 @@ export default defineContentScript({
     let reduxCachedSubmissions: any = null;
     let reduxCachedSingleGrader: any = null;
 
-    // Run highlighter immediately and periodically, clear interval if context invalidates
-    highlightLmsTableRows();
-    const highlightInterval = setInterval(() => {
-      if (!chrome.runtime?.id) {
-        clearInterval(highlightInterval);
-        return;
-      }
+    const isLmsPage = window.location.hostname.includes('rikkei.edu.vn');
+
+    if (isLmsPage) {
       highlightLmsTableRows();
-    }, 1500);
+      const highlightInterval = setInterval(() => {
+        if (!chrome.runtime?.id) {
+          clearInterval(highlightInterval);
+          return;
+        }
+        highlightLmsTableRows();
+      }, 1500);
+    }
 
     if (window === window.top) {
       initializeFloatingWidget();
@@ -74,7 +77,9 @@ export default defineContentScript({
       }
     };
 
-    document.addEventListener('click', clickHandler);
+    if (isLmsPage) {
+      document.addEventListener('click', clickHandler);
+    }
 
     // Listener for messages from extension popup/sidepanel
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -180,149 +185,46 @@ function initializeFloatingWidget() {
   `;
 
   const triggerBtn = document.createElement('button');
-  triggerBtn.innerHTML = '🚀 Lối tắt';
+  triggerBtn.innerHTML = 'REdux';
   triggerBtn.style.cssText = `
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, rgb(37, 99, 235), rgb(29, 78, 216));
     color: white;
-    border: none;
+    border-width: medium;
+    border-style: none;
+    border-color: currentcolor;
+    border-image: none;
     border-radius: 9999px;
     padding: 10px 16px;
     font-weight: 700;
     font-size: 12px;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    box-shadow: rgba(37, 99, 235, 0.4) 0px 4px 14px;
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: all 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
+    transform: translateY(0px);
   `;
 
   triggerBtn.addEventListener('mouseenter', () => {
     triggerBtn.style.transform = 'translateY(-2px)';
-    triggerBtn.style.boxShadow = '0 6px 20px rgba(37, 99, 235, 0.5)';
+    triggerBtn.style.boxShadow = 'rgba(37, 99, 235, 0.5) 0px 6px 20px';
   });
   triggerBtn.addEventListener('mouseleave', () => {
     triggerBtn.style.transform = 'translateY(0)';
-    triggerBtn.style.boxShadow = '0 4px 14px rgba(37, 99, 235, 0.4)';
+    triggerBtn.style.boxShadow = 'rgba(37, 99, 235, 0.4) 0px 4px 14px';
   });
 
-  const menu = document.createElement('div');
-  menu.style.cssText = `
-    display: none;
-    position: absolute;
-    bottom: 50px;
-    right: 0;
-    width: 260px;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(8px);
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    padding: 12px;
-    flex-direction: column;
-    gap: 8px;
-    transition: all 0.2s ease;
-  `;
-
   triggerBtn.addEventListener('click', (e) => {
-    // If context is invalidated, cleanly remove widget to avoid dead interactions
-    if (!chrome.runtime?.id || !chrome.storage?.local) {
+    if (!chrome.runtime?.id) {
       container.remove();
       return;
     }
     e.stopPropagation();
-    const isHidden = menu.style.display === 'none';
-    menu.style.display = isHidden ? 'flex' : 'none';
-    if (isHidden) {
-      renderShortcutList(menu);
-    }
+    // Gửi message tới background để mở nhanh extension popup
+    chrome.runtime.sendMessage({ type: "OPEN_POPUP" });
   });
 
-  document.addEventListener('click', () => {
-    menu.style.display = 'none';
-  });
-
-  menu.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
-
-  container.appendChild(menu);
   container.appendChild(triggerBtn);
   document.body.appendChild(container);
-}
-
-function renderShortcutList(menuElement: HTMLDivElement) {
-  if (!chrome.runtime?.id || !chrome.storage?.local) {
-    return;
-  }
-  menuElement.innerHTML = `
-    <div style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-      📌 Lối tắt truy cập nhanh
-    </div>
-  `;
-
-  chrome.storage.local.get(STORAGE_KEYS.customShortcuts, (res) => {
-    const list = (res[STORAGE_KEYS.customShortcuts] as any[]) || [];
-    if (list.length === 0) {
-      const emptyDiv = document.createElement('div');
-      emptyDiv.style.cssText = 'font-size: 11px; color: #94a3b8; text-align: center; padding: 12px 0; font-style: italic;';
-      emptyDiv.textContent = 'Chưa cấu hình lối tắt nào. Hãy mở popup extension để thêm!';
-      menuElement.appendChild(emptyDiv);
-      return;
-    }
-
-    const sorted = [...list].sort((a: any, b: any) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    const itemsWrapper = document.createElement('div');
-    itemsWrapper.style.cssText = 'display: flex; flex-direction: column; gap: 6px; max-h: 220px; overflow-y: auto;';
-
-    sorted.forEach((item: any) => {
-      const itemRow = document.createElement('div');
-      itemRow.style.cssText = `
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 6px 8px;
-        border-radius: 6px;
-        background: #f8fafc;
-        border: 1px solid #f1f5f9;
-        transition: all 0.15s ease;
-        gap: 8px;
-      `;
-
-      const titleSpan = document.createElement('span');
-      titleSpan.textContent = `${item.isPinned ? '📌 ' : ''}${item.name}`;
-      titleSpan.style.cssText = 'font-size: 11px; font-weight: 600; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;';
-      titleSpan.title = item.name;
-
-      const goBtn = document.createElement('button');
-      goBtn.innerHTML = 'Vào ➔';
-      goBtn.style.cssText = `
-        background: #0f172a;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 3px 6px;
-        font-size: 9px;
-        font-weight: 700;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: background 0.15s;
-      `;
-      
-      goBtn.addEventListener('click', () => {
-        window.location.href = item.url;
-      });
-
-      itemRow.appendChild(titleSpan);
-      itemRow.appendChild(goBtn);
-      itemsWrapper.appendChild(itemRow);
-    });
-
-    menuElement.appendChild(itemsWrapper);
-  });
 }

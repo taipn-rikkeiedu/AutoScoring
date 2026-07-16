@@ -15,6 +15,14 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
   const [isCopied, setIsCopied] = useState(false);
   const { showToast } = useToast();
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, isOpen]);
+
   if (!isOpen) return null;
 
   // Parse markdown safely
@@ -46,7 +54,10 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/55 backdrop-blur-[2px] animate-fade-in"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
       <div className="relative w-full max-w-lg max-h-[85vh] bg-white rounded-lg shadow-xl border border-slate-200 flex flex-col overflow-hidden animate-scale-up">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
@@ -66,10 +77,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
         <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-white">
           <button
             onClick={handleCopy}
-            disabled={isCopied}
-            className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200 active:scale-95 duration-100"
+            className={`flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded transition-all duration-150 border active:scale-95 ${
+              isCopied
+                ? "bg-green-50 border-green-500 text-green-700"
+                : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
+            }`}
           >
-            {isCopied ? "✅ Đã sao chép" : "📋 Sao chép báo cáo"}
+            {isCopied ? "✓ Đã sao chép" : "📋 Sao chép báo cáo"}
           </button>
 
           <span className={`text-[11px] font-bold py-1 px-2.5 rounded-full shadow-sm ${scoreBadgeClass}`}>

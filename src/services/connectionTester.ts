@@ -1,4 +1,5 @@
 import { AppConfig } from '~/src/types';
+import { API_ENDPOINTS, UI_MESSAGES } from '~/src/core/constants';
 
 export async function testConnection(config: AppConfig): Promise<boolean> {
   const provider = config.aiProvider;
@@ -7,8 +8,8 @@ export async function testConnection(config: AppConfig): Promise<boolean> {
   const modelName = config.aiModelName;
 
   if (provider === "gemini") {
-    if (!apiKey) throw new Error("Chưa cấu hình API Key");
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}?key=${apiKey}`;
+    if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
+    const url = `${API_ENDPOINTS.geminiBase}/models/${modelName}?key=${apiKey}`;
     const res = await fetch(url);
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -24,22 +25,22 @@ export async function testConnection(config: AppConfig): Promise<boolean> {
   }
 
   if (provider === "openai") {
-    if (!apiKey) throw new Error("Chưa cấu hình API Key");
-    testUrl = "https://api.openai.com/v1/models";
+    if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
+    testUrl = `${API_ENDPOINTS.openAiBase}/models`;
   } else if (provider === "deepseek") {
-    if (!apiKey) throw new Error("Chưa cấu hình API Key");
-    testUrl = "https://api.deepseek.com/models";
+    if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
+    testUrl = `${API_ENDPOINTS.deepSeekBase}/models`;
   } else if (provider === "openrouter") {
-    if (!apiKey) throw new Error("Chưa cấu hình API Key");
-    testUrl = "https://openrouter.ai/api/v1/models";
+    if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
+    testUrl = `${API_ENDPOINTS.openRouterBase}/models`;
   } else if (provider === "custom") {
-    if (!apiUrl) throw new Error("Chưa cấu hình Base URL");
+    if (!apiUrl) throw new Error(UI_MESSAGES.common.missingBaseUrl);
     testUrl = `${apiUrl.replace(/\/$/, '')}/models`;
   } else if (provider === "local") {
-    if (!apiUrl) throw new Error("Chưa cấu hình Base URL");
+    if (!apiUrl) throw new Error(UI_MESSAGES.common.missingBaseUrl);
     testUrl = `${apiUrl.replace(/\/$/, '')}/api/tags`;
   } else {
-    throw new Error("Không hỗ trợ AI Provider đã chọn.");
+    throw new Error(UI_MESSAGES.common.unsupportedAiProvider);
   }
 
   const res = await fetch(testUrl, { headers });

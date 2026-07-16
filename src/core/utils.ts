@@ -1,4 +1,5 @@
 import { Student } from '~/src/types';
+import { GRADING_TEXT } from './constants';
 
 export function parseScore(reportText: string | null): string | null {
   if (!reportText) return null;
@@ -9,7 +10,7 @@ export function parseScore(reportText: string | null): string | null {
   match = reportText.match(/(\d+(?:[.,]\d+)?)\s*\/\s*100/);
   if (match) return match[1].replace(',', '.');
   
-  match = reportText.match(/(?:Tổng điểm|TỔNG|Score|Points):\s*\*{0,2}(\d+(?:[.,]\d+)?)\*{0,2}/i);
+  match = reportText.match(/(?:Tá»•ng Ä‘iá»ƒm|Tá»”NG|Score|Points):\s*\*{0,2}(\d+(?:[.,]\d+)?)\*{0,2}/i);
   if (match) return match[1].replace(',', '.');
   
   return null;
@@ -78,7 +79,7 @@ export function findMatchingTemplate(
 
 export function extractComment(reportText: string | null): string {
   if (!reportText) return '';
-  const parts = reportText.split(/##\s*(?:ĐÁNH\s*GIÁ|NHẬN\s*XÉT)/i);
+  const parts = reportText.split(/##\s*(?:ÄÃNH\s*GIÃ|NHáº¬N\s*XÃ‰T)/i);
   if (parts.length > 1) {
     let comment = parts[1].trim();
     comment = comment.split(/---\n/)[0].trim();
@@ -88,37 +89,13 @@ export function extractComment(reportText: string | null): string {
   return reportText.substring(0, 150) + '...';
 }
 
-export const DEFAULT_CRITERIA = `Đúng yêu cầu bài toán. Có thể không cần quan tâm phần Yêu cầu nộp bài.`;
-
-export const DEFAULT_SYSTEM_PROMPT = `Bạn là chuyên gia chấm điểm mã nguồn. Hãy đánh giá mã nguồn học viên theo thang 100 điểm dựa trên ĐỀ BÀI và TIÊU CHÍ.
-
-YÊU CẦU QUAN TRỌNG: Phản hồi phải CỰC KỲ NGẮN GỌN, súc tích, đi thẳng vào lỗi sai và lược bỏ mọi từ ngữ thừa, lời chào hay kết luận.
-
-Định dạng phản hồi bắt buộc (tuân thủ 100% Markdown):
-## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT
-- [Tên file: Dòng X]: [Giải thích lỗi cực ngắn gọn, tối đa 15 từ]
-- [Tên file: Dòng Y]: [Giải thích lỗi cực ngắn gọn, tối đa 15 từ]
-(Nếu code hoàn toàn đúng, chỉ ghi duy nhất 1 dòng: "Mã nguồn chính xác, đạt yêu cầu.")
-
-## TỔNG ĐIỂM
-Tổng điểm: **[Điểm số]/100**
-
-<score>[Điểm số]</score>
-
----
-ĐỀ BÀI:
-{{assignment}}
-
-TIÊU CHÍ:
-{{criteria}}
-
-MÃ NGUỒN:
-{{code}}`;
+export const DEFAULT_CRITERIA = GRADING_TEXT.defaultCriteria;
+export const DEFAULT_SYSTEM_PROMPT = GRADING_TEXT.defaultSystemPrompt;
 
 export function extractCriteriaFromAssignment(assignmentText: string | null): { assignment: string; criteria: string | null } {
   if (!assignmentText) return { assignment: '', criteria: null };
   
-  const regex = /(?:Tiêu\s*chí\s*chấm\s*(?:bài|điểm|thi)?|Tiêu\s*chí\s*đánh\s*giá|Tiêu\s*chí\s*AI|Grading\s*Criteria|AI\s*Criteria|Rubric|Criteria)(?:\s*[\(（]AI[\)）])?\s*:?\s*([\s\S]+)$/i;
+  const regex = /(?:TiÃªu\s*chÃ­\s*cháº¥m\s*(?:bÃ i|Ä‘iá»ƒm|thi)?|TiÃªu\s*chÃ­\s*Ä‘Ã¡nh\s*giÃ¡|TiÃªu\s*chÃ­\s*AI|Grading\s*Criteria|AI\s*Criteria|Rubric|Criteria)(?:\s*[\(ï¼ˆ]AI[\)ï¼‰])?\s*:?\s*([\s\S]+)$/i;
   
   const match = assignmentText.match(regex);
   if (match) {
@@ -147,7 +124,7 @@ export function mergeScrapedFrameResults(results: any[] | null): any {
       } else {
         const currentLen = (bestRes.assignment || "").trim().length;
         const newLen = (res.assignment || "").trim().length;
-        const isDefaultMsg = (text: string) => !text || text.includes("Không tìm thấy nội dung đề bài tự động");
+        const isDefaultMsg = (text: string) => !text || text.includes("KhÃ´ng tÃ¬m tháº¥y ná»™i dung Ä‘á» bÃ i tá»± Ä‘á»™ng");
         
         if (isDefaultMsg(bestRes.assignment) && !isDefaultMsg(res.assignment)) {
           bestRes = res;
@@ -155,14 +132,14 @@ export function mergeScrapedFrameResults(results: any[] | null): any {
           bestRes = res;
         }
         
-        if (!bestRes.chapter || bestRes.chapter === "Khóa học mặc định") {
-          if (res.chapter && res.chapter !== "Khóa học mặc định") bestRes.chapter = res.chapter;
+        if (!bestRes.chapter || bestRes.chapter === "KhÃ³a há»c máº·c Ä‘á»‹nh") {
+          if (res.chapter && res.chapter !== "KhÃ³a há»c máº·c Ä‘á»‹nh") bestRes.chapter = res.chapter;
         }
-        if (!bestRes.session || bestRes.session === "Session 01: Nhập môn") {
-          if (res.session && res.session !== "Session 01: Nhập môn") bestRes.session = res.session;
+        if (!bestRes.session || bestRes.session === "Session 01: Nháº­p mÃ´n") {
+          if (res.session && res.session !== "Session 01: Nháº­p mÃ´n") bestRes.session = res.session;
         }
-        if (!bestRes.assignmentName || bestRes.assignmentName === "Bài tập mới") {
-          if (res.assignmentName && res.assignmentName !== "Bài tập mới") bestRes.assignmentName = res.assignmentName;
+        if (!bestRes.assignmentName || bestRes.assignmentName === "BÃ i táº­p má»›i") {
+          if (res.assignmentName && res.assignmentName !== "BÃ i táº­p má»›i") bestRes.assignmentName = res.assignmentName;
         }
       }
     }
@@ -199,5 +176,28 @@ export function matchStudent(
       if (st.studentName && transition.studentName && st.studentName.toLowerCase() === transition.studentName.toLowerCase()) return true;
     }
     return false;
+  });
+}
+
+/**
+ * Safe navigation utility to handle SPA redirects inside Chrome extension.
+ * Sends a message to the background service worker to perform navigation and reload safely
+ * without being interrupted if the popup closes.
+ */
+export function safeNavigate(targetUrl: string): void {
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+    window.location.href = targetUrl;
+    return;
+  }
+
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tabId = tabs && tabs[0]?.id;
+    const currentUrl = tabs && tabs[0]?.url || '';
+    chrome.runtime.sendMessage({ 
+      type: "SAFE_NAVIGATE", 
+      targetUrl, 
+      tabId, 
+      currentUrl 
+    });
   });
 }
