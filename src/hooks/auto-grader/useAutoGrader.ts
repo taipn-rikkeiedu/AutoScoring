@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
-import { DEFAULT_CRITERIA, findMatchingTemplate, parseScore, matchStudent } from '~/src/core/utils';
-import { STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
-import { GitHubService } from '~/src/services/githubService';
-import { AIService } from '~/src/services/aiService';
+import { findMatchingTemplate, matchStudent, parseScore } from '~/src/core/utils';
+import { STORAGE_KEYS } from '~/src/core/constants';
 import { SupabaseService } from '~/src/services/supabaseService';
 import { getClassStudents, saveClassStudents } from '~/src/core/classStudentStorage';
 import { Submission } from '~/src/types';
+import { gradeSubmission } from '~/src/services/graderService';
+import { GitHubService } from '~/src/services/githubService';
+import { AIService } from '~/src/services/aiService';
 
 export function useAutoGrader() {
   const { config, exerciseTemplates, activeClassId, aiStatus } = useApp();
@@ -21,7 +22,6 @@ export function useAutoGrader() {
   const [isBulkGrading, setIsBulkGrading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
   const [bulkProgressText, setBulkProgressText] = useState("");
-  const [currentGradingStudent, setCurrentGradingStudent] = useState<string | null>(null);
 
   const syncDetectedSubmissions = (subs: Submission[]) => {
     chrome.storage.local.set({ [STORAGE_KEYS.detectedSubmissions]: subs });
@@ -138,27 +138,26 @@ export function useAutoGrader() {
       const template = exerciseTemplates?.[chapter]?.[session]?.[assignmentName];
       if (!template?.assignment) throw new Error("Thiếu đề bài.");
 
-      const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
-      const repoData = await github.getRepoContents(sub.githubUrl, () => {});
-
-      // Set state to 'grading' with files list
-      setSubmissions(prev => {
-        const next = [...prev];
-        next[index] = { ...next[index], fileList: repoData.fileList, status: 'grading' };
-        updateContentScriptCache(next);
-        return next;
-      });
-
-      const ai = new AIService(config);
-      const report = await ai.generateGradingReport(template.assignment, template.criteria || DEFAULT_CRITERIA, repoData.content, null);
-
-      const score = parseScore(report);
-      if (!score) throw new Error(UI_MESSAGES.common.invalidScoreResponse);
+      const result = await gradeSubmission(
+        config,
+        sub.githubUrl,
+        template.assignment,
+        template.criteria || null,
+        null,
+        (fileList) => {
+          setSubmissions(prev => {
+            const next = [...prev];
+            next[index] = { ...next[index], fileList, status: 'grading' };
+            updateContentScriptCache(next);
+            return next;
+          });
+        }
+      );
 
       // Set state to 'success' with score and report
       setSubmissions(prev => {
         const next = [...prev];
-        next[index] = { ...next[index], status: 'success', score, report };
+        next[index] = { ...next[index], status: 'success', score: result.score, report: result.report };
         syncDetectedSubmissions(next);
         updateContentScriptCache(next);
         return next;
@@ -173,14 +172,14 @@ export function useAutoGrader() {
         const matched = matchStudent(studentList, "", pageId, pageName, null);
         if (matched) {
           if (!matched.submissions) matched.submissions = {};
-          matched.submissions[`${chapter}_${session}_${assignmentName}`] = { score, report, githubUrl: sub.githubUrl, gradedAt: new Date().toISOString() };
+          matched.submissions[`${chapter}_${session}_${assignmentName}`] = { score: result.score, report: result.report, githubUrl: sub.githubUrl, gradedAt: new Date().toISOString() };
           const classIdMatch = (matched.submissionUrl || "").match(/\/homework-checking\/(\d+)/);
           const classId = activeClassId || (classIdMatch ? classIdMatch[1] : null);
           await saveClassStudents(classId, studentList);
 
           if (SupabaseService.isEnabled(config) && classId) {
             try {
-              await SupabaseService.upsertSubmission(config, classId, matched.studentId, matched.studentName, chapter, session, assignmentName, sub.githubUrl, score, report);
+              await SupabaseService.upsertSubmission(config, classId, matched.studentId, matched.studentName, chapter, session, assignmentName, sub.githubUrl, result.score, result.report);
             } catch (err: any) {
               showToast("Cloud sync failed: " + err.message, "warning");
             }
@@ -203,23 +202,176 @@ export function useAutoGrader() {
     const checkedRows = submissions.filter(s => s.checked && s.matchedTemplate);
     if (checkedRows.length === 0) return;
 
-    setIsBulkGrading(true); setBulkProgress(0); setBulkProgressText(`Đang chuẩn bị...`);
-    let processed = 0, success = 0, failed = 0;
+    setIsBulkGrading(true);
+    setBulkProgress(0);
+    setBulkProgressText("Đang chuẩn bị...");
+    
+    // Group checked submissions by githubUrl to download once and grade in parallel
+    const groups: Record<string, Array<{ sub: Submission; originalIndex: number }>> = {};
+    submissions.forEach((sub, idx) => {
+      if (!sub.checked || !sub.matchedTemplate) return;
+      const url = sub.githubUrl || 'no_url';
+      if (!groups[url]) groups[url] = [];
+      groups[url].push({ sub, originalIndex: idx });
+    });
 
-    for (let i = 0; i < submissions.length; i++) {
-      const sub = submissions[i];
-      if (!sub.checked || !sub.matchedTemplate) continue;
+    const urls = Object.keys(groups);
+    let processedCount = 0;
+    let success = 0;
+    let failed = 0;
 
-      setCurrentGradingStudent(sub.studentName || `Bài số ${i + 1}`);
-      setBulkProgressText(`Đang chấm bài cho: ${sub.studentName || 'Học viên'} (${processed + 1}/${checkedRows.length})`);
+    for (let u = 0; u < urls.length; u++) {
+      const url = urls[u];
+      const items = groups[url];
+      
+      setBulkProgressText(`Đang tải mã nguồn (${processedCount + 1}/${checkedRows.length})...`);
+      
+      // Set status to 'downloading' for all items in this group
+      setSubmissions(prev => {
+        const next = [...prev];
+        items.forEach(item => {
+          next[item.originalIndex] = {
+            ...next[item.originalIndex],
+            status: 'downloading',
+            score: null,
+            report: undefined,
+            error: undefined
+          };
+        });
+        updateContentScriptCache(next);
+        return next;
+      });
 
-      const ok = await handleGradeSingleRow(i);
-      if (ok) success++; else failed++;
-      processed++;
-      setBulkProgress(Math.round((processed / checkedRows.length) * 100));
+      try {
+        // Download repo once
+        const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
+        const repoData = await github.getRepoContents(url, (msg) => {
+          setBulkProgressText(msg);
+        });
+
+        // Set status to 'grading' for all items
+        setSubmissions(prev => {
+          const next = [...prev];
+          items.forEach(item => {
+            next[item.originalIndex] = {
+              ...next[item.originalIndex],
+              status: 'grading',
+              fileList: repoData.fileList
+            };
+          });
+          updateContentScriptCache(next);
+          return next;
+        });
+
+        setBulkProgressText(`Đang chấm song song ${items.length} bài tập...`);
+        const ai = new AIService(config);
+
+        // Grade all checked exercises for this repo in parallel
+        const gradingPromises = items.map(async (item) => {
+          const { chapter, session, assignmentName } = item.sub.matchedTemplate!;
+          const template = exerciseTemplates?.[chapter]?.[session]?.[assignmentName];
+          if (!template?.assignment) throw new Error("Thiếu đề bài.");
+
+          const report = await ai.generateGradingReport(
+            template.assignment,
+            template.criteria || "",
+            repoData.content,
+            null
+          );
+
+          const score = parseScore(report);
+          if (!score) throw new Error("Không bóc tách được điểm.");
+
+          return {
+            originalIndex: item.originalIndex,
+            score,
+            report,
+            sub: item.sub
+          };
+        });
+
+        const gradedResults = await Promise.all(gradingPromises);
+
+        // Save state
+        setSubmissions(prev => {
+          const next = [...prev];
+          gradedResults.forEach(res => {
+            next[res.originalIndex] = {
+              ...next[res.originalIndex],
+              status: 'success',
+              score: res.score,
+              report: res.report
+            };
+          });
+          syncDetectedSubmissions(next);
+          updateContentScriptCache(next);
+          return next;
+        });
+
+        // Sync to local student list and Supabase
+        const classId = activeClassId;
+        const studentList = await getClassStudents(classId);
+
+        const sampleSub = items[0].sub;
+        if (sampleSub.studentName) {
+          let pageId = null, pageName = sampleSub.studentName;
+          const parenMatch = sampleSub.studentName.match(/(.*?)\s*\((.*?)\)/);
+          if (parenMatch) {
+            pageName = parenMatch[1].trim();
+            pageId = parenMatch[2].trim();
+          }
+
+          const matched = matchStudent(studentList, "", pageId, pageName, null);
+          if (matched) {
+            if (!matched.submissions) matched.submissions = {};
+            const submissionsMap = matched.submissions;
+            
+            gradedResults.forEach(res => {
+              const { chapter, session, assignmentName } = res.sub.matchedTemplate!;
+              submissionsMap[`${chapter}_${session}_${assignmentName}`] = {
+                score: res.score,
+                report: res.report,
+                githubUrl: url,
+                gradedAt: new Date().toISOString()
+              };
+            });
+            await saveClassStudents(classId, studentList);
+
+            if (SupabaseService.isEnabled(config) && classId) {
+              await Promise.all(gradedResults.map(res => {
+                const { chapter, session, assignmentName } = res.sub.matchedTemplate!;
+                return SupabaseService.upsertSubmission(
+                  config, classId, matched.studentId, matched.studentName,
+                  chapter, session, assignmentName, url, res.score, res.report
+                ).catch(err => console.warn("Supabase sync failed:", err));
+              }));
+            }
+          }
+        }
+
+        success += items.length;
+      } catch (err: any) {
+        console.error("Lỗi chấm hàng loạt:", err);
+        failed += items.length;
+        setSubmissions(prev => {
+          const next = [...prev];
+          items.forEach(item => {
+            next[item.originalIndex] = {
+              ...next[item.originalIndex],
+              status: 'error',
+              error: err.message
+            };
+          });
+          updateContentScriptCache(next);
+          return next;
+        });
+      }
+
+      processedCount += items.length;
+      setBulkProgress(Math.round((processedCount / checkedRows.length) * 100));
     }
 
-    setIsBulkGrading(false); setCurrentGradingStudent(null);
+    setIsBulkGrading(false);
     showToast(`Chấm hoàn tất! Thành công: ${success}, Thất bại: ${failed}`, "success");
   };
 
@@ -234,7 +386,6 @@ export function useAutoGrader() {
     isBulkGrading,
     bulkProgress,
     bulkProgressText,
-    currentGradingStudent,
     exerciseTemplates,
     aiStatus,
     handleRescan,

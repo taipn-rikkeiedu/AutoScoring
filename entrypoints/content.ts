@@ -25,6 +25,7 @@ export default defineContentScript({
 
     if (window === window.top) {
       initializeFloatingWidget();
+      setupAutoDetectionObserver();
     }
 
     const clickHandler = (event: MouseEvent) => {
@@ -155,6 +156,12 @@ export default defineContentScript({
           }
           if (message.singleGrader !== undefined) {
             reduxCachedSingleGrader = message.singleGrader;
+            // Tự động điền điểm & nhận xét lên trang LMS hiện tại nếu có thay đổi
+            const { score, report } = message.singleGrader;
+            if (score && report) {
+              const comment = extractCommentInContent(report);
+              updateLmsPageInputs(score, comment);
+            }
           }
           sendResponse({ success: true });
         }
@@ -185,7 +192,7 @@ function initializeFloatingWidget() {
   `;
 
   const triggerBtn = document.createElement('button');
-  triggerBtn.innerHTML = 'REdux';
+  triggerBtn.innerHTML = 'REduX';
   triggerBtn.style.cssText = `
     background: linear-gradient(135deg, rgb(37, 99, 235), rgb(29, 78, 216));
     color: white;
@@ -227,4 +234,147 @@ function initializeFloatingWidget() {
 
   container.appendChild(triggerBtn);
   document.body.appendChild(container);
+}
+
+let lastProcessedUrl = '';
+let lastStudentId = '';
+let lastStudentName = '';
+let lastFilledScore = '';
+let lastFilledComment = '';
+
+function extractCommentInContent(reportText: string): string {
+  if (!reportText) return "";
+  const parts = reportText.split(/##\s*(?:ĐÁNH GIÁ|NHẬN XÉT|Ä\s*Ã\s*NH\s*GI\s*Ã|NHáº¬N\s*XÃ‰T)/i);
+  if (parts.length > 1) {
+    let comment = parts[1].trim();
+    comment = comment.split(/---\n/)[0].trim();
+    comment = comment.split(/##\s*/)[0].trim();
+    comment = comment.replace(/<score>[\s\S]*<\/score>/gi, '').trim();
+    return comment;
+  }
+  return reportText.substring(0, 300);
+}
+
+function updateLmsPageInputs(score: string, comment: string): boolean {
+  if (score === lastFilledScore && comment === lastFilledComment) {
+    return false;
+  }
+
+  const inputs = Array.from(document.querySelectorAll('input'));
+  let scoreInput = inputs.find(input => input.type === 'number') as HTMLInputElement | null;
+  if (!scoreInput) {
+    scoreInput = inputs.find(input => {
+      const name = (input.name || '').toLowerCase();
+      const id = (input.id || '').toLowerCase();
+      const placeholder = (input.placeholder || '').toLowerCase();
+      return name.includes('score') || name.includes('diem') || id.includes('score') || id.includes('diem') || placeholder.includes('điểm');
+    }) || null;
+  }
+
+  const textareas = Array.from(document.querySelectorAll('textarea'));
+  let commentInput = textareas[0] as HTMLTextAreaElement | null;
+  if (!commentInput) {
+    const editables = Array.from(document.querySelectorAll('[contenteditable="true"]')) as HTMLElement[];
+    if (editables.length > 0) {
+      commentInput = editables[0] as any;
+    }
+  }
+
+  let isChanged = false;
+
+  if (scoreInput && score) {
+    if (scoreInput.value !== score) {
+      scoreInput.value = score;
+      scoreInput.dispatchEvent(new Event('input', { bubbles: true }));
+      scoreInput.dispatchEvent(new Event('change', { bubbles: true }));
+      scoreInput.dispatchEvent(new Event('blur', { bubbles: true }));
+      lastFilledScore = score;
+      isChanged = true;
+      console.log("REduX: Auto-filled score:", score);
+    }
+  }
+
+  if (commentInput && comment) {
+    if (commentInput.tagName === 'TEXTAREA' || commentInput.tagName === 'INPUT') {
+      if ((commentInput as any).value !== comment) {
+        (commentInput as any).value = comment;
+        commentInput.dispatchEvent(new Event('input', { bubbles: true }));
+        commentInput.dispatchEvent(new Event('change', { bubbles: true }));
+        commentInput.dispatchEvent(new Event('blur', { bubbles: true }));
+        lastFilledComment = comment;
+        isChanged = true;
+        console.log("REduX: Auto-filled comment textarea.");
+      }
+    } else {
+      if (commentInput.innerText !== comment) {
+        commentInput.innerHTML = comment.replace(/\n/g, '<br>');
+        commentInput.dispatchEvent(new Event('input', { bubbles: true }));
+        commentInput.dispatchEvent(new Event('change', { bubbles: true }));
+        commentInput.dispatchEvent(new Event('blur', { bubbles: true }));
+        lastFilledComment = comment;
+        isChanged = true;
+        console.log("REduX: Auto-filled comment contenteditable.");
+      }
+    }
+  }
+
+  return isChanged;
+}
+
+function autoDetectStudentAndNotify() {
+  const currentUrl = window.location.href;
+  const isLmsPage = window.location.hostname.includes('rikkei.edu.vn');
+  if (!isLmsPage) return;
+
+  let studentId = '';
+  let studentName = '';
+
+  const pageText = document.body.innerText || '';
+  const idMatch = pageText.match(/PTIT[-_\s]?[A-Z]+[-_\s]?\d+/i);
+  if (idMatch) {
+    studentId = idMatch[0].trim().replace(/[\s_]/g, '-').toUpperCase();
+  }
+
+  const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, .student-name, [class*="student-name"], [class*="user-name"], .breadcrumb, [class*="title"], [class*="header"]'));
+  for (const el of elements) {
+    const text = el.textContent?.trim() || '';
+    if (text && text.length > 2 && text.length < 50 && !text.includes('http') && !text.includes('/') && /^[A-ZÀ-Ỹ]/.test(text.split(' ')[0])) {
+      studentName = text.split('\n')[0].trim();
+      break;
+    }
+  }
+
+  if (studentId && (studentId !== lastStudentId || studentName !== lastStudentName)) {
+    lastStudentId = studentId;
+    lastStudentName = studentName;
+    lastProcessedUrl = currentUrl;
+
+    const transitionData = {
+      studentId: studentId,
+      studentName: studentName,
+      timestamp: Date.now()
+    };
+
+    chrome.storage.local.set({ [STORAGE_KEYS.activeStudentTransition]: transitionData }, () => {
+      console.log("REduX: Auto-detected active student change:", transitionData);
+    });
+  }
+}
+
+function setupAutoDetectionObserver() {
+  let observerTimer: any = null;
+  const observer = new MutationObserver(() => {
+    if (observerTimer) clearTimeout(observerTimer);
+    observerTimer = setTimeout(() => {
+      autoDetectStudentAndNotify();
+    }, 500);
+  });
+
+  if (window.location.hostname.includes('rikkei.edu.vn')) {
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    setTimeout(autoDetectStudentAndNotify, 1000);
+  }
 }

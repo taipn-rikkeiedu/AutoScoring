@@ -46,7 +46,7 @@ async function writeLog(level: LogEntry['level'], module: string, message: strin
   }
 
   chrome.storage.local.get('systemLogs', (res) => {
-    let logs: LogEntry[] = res.systemLogs || [];
+    let logs: LogEntry[] = (res as any).systemLogs || [];
     if (!Array.isArray(logs)) logs = [];
     
     logs.push(newEntry);
@@ -78,7 +78,7 @@ export const logger = {
     }
     return new Promise((resolve) => {
       chrome.storage.local.get('systemLogs', (res) => {
-        resolve(res.systemLogs || []);
+        resolve((res as any).systemLogs || []);
       });
     });
   },

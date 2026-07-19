@@ -206,11 +206,65 @@ export function useSettings() {
     }
   };
 
+  const [cacheCount, setCacheCount] = useState(0);
+
+  const loadCacheStats = () => {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
+    chrome.storage.local.get(null, (allData) => {
+      const now = Date.now();
+      const keysToRemove: string[] = [];
+      let count = 0;
+      
+      for (const key in allData) {
+        if (key.startsWith('code_cache:')) {
+          const entry = allData[key] as any;
+          if (entry && entry.cachedAt && (now - entry.cachedAt > 24 * 60 * 60 * 1000)) {
+            keysToRemove.push(key);
+          } else {
+            count++;
+          }
+        }
+      }
+
+      if (keysToRemove.length > 0) {
+        chrome.storage.local.remove(keysToRemove, () => {
+          logger.info("SYSTEM", `Đã tự động dọn dẹp ${keysToRemove.length} bản ghi cache quá hạn (24h) khi tải thống kê.`);
+        });
+      }
+
+      setCacheCount(count);
+    });
+  };
+
+  useEffect(() => {
+    loadCacheStats();
+  }, []);
+
+  const handleClearCodeCache = () => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm mã nguồn không?")) {
+      chrome.storage.local.get(null, (allData) => {
+        const keysToRemove = Object.keys(allData).filter(k => k.startsWith('code_cache:'));
+        if (keysToRemove.length === 0) {
+          showToast("Không có bộ nhớ đệm mã nguồn nào để xóa.", "info");
+          return;
+        }
+        chrome.storage.local.remove(keysToRemove, () => {
+          setCacheCount(0);
+          showToast("Đã xóa toàn bộ bộ nhớ đệm mã nguồn!", "success");
+          logger.success("SYSTEM", `Đã xóa sạch bộ nhớ đệm mã nguồn (${keysToRemove.length} bài).`);
+        });
+      });
+    }
+  };
+
   const toggleSection = (section: string) => {
     setExpanded(prev => {
       const nextExpanded = !prev[section];
       if (section === 'logs' && nextExpanded) {
         loadSystemLogs();
+      }
+      if (section === 'github' && nextExpanded) {
+        loadCacheStats();
       }
       return { ...prev, [section]: nextExpanded };
     });
@@ -327,6 +381,9 @@ export function useSettings() {
     systemLogs,
     loadSystemLogs,
     handleClearLogs,
-    handleDownloadLogsZip
+    handleDownloadLogsZip,
+    cacheCount,
+    handleClearCodeCache,
+    loadCacheStats
   };
 }

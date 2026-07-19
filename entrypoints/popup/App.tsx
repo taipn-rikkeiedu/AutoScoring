@@ -3,7 +3,6 @@ import { AppProvider, useApp } from '~/src/core/AppContext';
 import { ToastProvider } from '~/src/core/ToastContext';
 import { Header } from '~/src/components/Header';
 import { AutoGraderTab } from '~/src/components/AutoGraderTab';
-import { SingleGraderTab } from '~/src/components/SingleGraderTab';
 import { ClassListTab } from '~/src/components/ClassListTab';
 import { CareTab } from '~/src/components/CareTab';
 import { ExercisesTab } from '~/src/components/ExercisesTab';
@@ -102,12 +101,11 @@ const AppContent: React.FC = () => {
       <QuickAccessBar />
       
       <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
-        {!isLmsPage && ["tab-auto", "tab-grader", "tab-class-list", "tab-care", "tab-exercises", "tab-lms-api"].includes(activeTab) ? (
+        {!isLmsPage && ["tab-auto", "tab-class-list", "tab-care", "tab-exercises", "tab-lms-api"].includes(activeTab) ? (
           <UnsupportedPageWarning />
         ) : (
           <>
             {activeTab === "tab-auto" && <AutoGraderTab />}
-            {activeTab === "tab-grader" && <SingleGraderTab />}
             {activeTab === "tab-class-list" && <ClassListTab setActiveTab={setActiveTab} />}
             {activeTab === "tab-care" && <CareTab />}
             {activeTab === "tab-exercises" && <ExercisesTab />}

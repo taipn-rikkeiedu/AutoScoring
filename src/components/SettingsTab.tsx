@@ -67,7 +67,9 @@ export const SettingsTab: React.FC = () => {
     systemLogs,
     loadSystemLogs,
     handleClearLogs,
-    handleDownloadLogsZip
+    handleDownloadLogsZip,
+    cacheCount,
+    handleClearCodeCache
   } = useSettings();
 
   const providerNames: Record<string, string> = { gemini: "Google Gemini", openai: "OpenAI", deepseek: "DeepSeek", openrouter: "OpenRouter", local: "Ollama (Local)" };
@@ -181,7 +183,7 @@ export const SettingsTab: React.FC = () => {
             <span className="text-[9px] text-slate-400">{expanded.github ? '▲' : '▼'}</span>
           </div>
           {expanded.github && (
-            <div className="p-3.5 flex flex-col gap-2">
+            <div className="p-3.5 flex flex-col gap-3.5">
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-bold text-slate-500">Personal Access Token:</label>
                 <input
@@ -191,6 +193,19 @@ export const SettingsTab: React.FC = () => {
                   className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
                   placeholder="ghp_xxxxxxxxxxxx"
                 />
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-1 select-none">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[11px] font-bold text-slate-600">Bộ nhớ đệm mã nguồn (Cache):</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Đang lưu trữ: <span className="font-bold text-blue-600">{cacheCount} bài</span> (Hạn dùng 24h)</span>
+                </div>
+                <button
+                  onClick={handleClearCodeCache}
+                  className="text-[10.5px] font-bold py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-md transition-colors duration-150 active:scale-95 cursor-pointer"
+                >
+                  🧹 Xóa bộ nhớ đệm
+                </button>
               </div>
             </div>
           )}

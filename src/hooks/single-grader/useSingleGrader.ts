@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
-import { DEFAULT_CRITERIA, matchStudent, parseScore } from '~/src/core/utils';
-import { STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
-import { GitHubService } from '~/src/services/githubService';
-import { AIService } from '~/src/services/aiService';
+import { matchStudent } from '~/src/core/utils';
+import { STORAGE_KEYS } from '~/src/core/constants';
 import { SupabaseService } from '~/src/services/supabaseService';
 import { getClassStudents, saveClassStudents } from '~/src/core/classStudentStorage';
 import { logger } from '~/src/core/logger';
+import { gradeSubmission } from '~/src/services/graderService';
 
 export function useSingleGrader() {
   const { config, exerciseTemplates, classStudents, activeClassId, activeStudentTransition, aiStatus } = useApp();
@@ -142,20 +141,17 @@ export function useSingleGrader() {
       const template = exerciseTemplates?.[selectedChapter]?.[selectedSession]?.[selectedAssignment];
       if (!template?.assignment) throw new Error("Mẫu bài tập thiếu nội dung.");
 
-      const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
-      const repoData = await github.getRepoContents(repoUrl, setStatusMessage);
-      logger.success("SINGLE_GRADER", `Tải mã nguồn thành công. Số lượng tệp: ${repoData.fileList.length}`);
+      const result = await gradeSubmission(
+        config,
+        repoUrl,
+        template.assignment,
+        template.criteria || null,
+        setStatusMessage
+      );
 
-      setStatusMessage("AI đang thực hiện chấm điểm...");
-      const ai = new AIService(config);
-      const report = await ai.generateGradingReport(template.assignment, template.criteria || DEFAULT_CRITERIA, repoData.content, setStatusMessage);
-
-      const score = parseScore(report);
-      if (!score) throw new Error(UI_MESSAGES.common.invalidScoreResponse);
-
-      setResults({ score, report, fileList: repoData.fileList });
-      logger.success("SINGLE_GRADER", `Chấm điểm thành công bằng AI. Điểm số: ${score}/100.`);
-      if (activeStudent) await saveResolvedStudentResult(score, report);
+      setResults({ score: result.score, report: result.report, fileList: result.fileList });
+      logger.success("SINGLE_GRADER", `Chấm điểm thành công bằng AI. Điểm số: ${result.score}/100.`);
+      if (activeStudent) await saveResolvedStudentResult(result.score, result.report);
     } catch (err: any) {
       showToast(`Lỗi: ${err.message}`, "error");
       logger.error("SINGLE_GRADER", `Quá trình chấm bài đơn thất bại: ${err.message}`, err);

@@ -11,7 +11,8 @@ export default defineConfig({
     permissions: [
       "activeTab",
       "storage",
-      "scripting"
+      "scripting",
+      "unlimitedStorage"
     ],
     host_permissions: [
       "<all_urls>"
@@ -20,6 +21,15 @@ export default defineConfig({
       "16": "icon.png",
       "48": "icon.png",
       "128": "icon.png"
+    },
+    commands: {
+      "_execute_action": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+Y",
+          "mac": "MacCtrl+Shift+Y"
+        },
+        "description": "Mở nhanh tiện ích REduX AutoScoring"
+      }
     }
   }
 });

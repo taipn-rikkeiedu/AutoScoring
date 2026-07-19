@@ -29,7 +29,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           className="w-full text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm"
         >
           <option value="tab-auto">⚡ Chấm Hàng Loạt</option>
-          <option value="tab-grader">🚀 Chấm Đơn</option>
           <option value="tab-class-list">👥 Quản Lý Lớp Học</option>
           <option value="tab-care">📞 Chăm Sóc SV</option>
           <option value="tab-exercises">📚 Đề Bài</option>

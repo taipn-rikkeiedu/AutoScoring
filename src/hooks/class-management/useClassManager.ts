@@ -35,29 +35,8 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
 
           if (SupabaseService.isEnabled(config)) {
             try {
-              logger.info("CLASS_MANAGER", `Đang đồng bộ danh sách học viên và điểm số từ Supabase cho lớp ${classId}...`);
-              const [cloudStudents, cloudSubs] = await Promise.all([
-                SupabaseService.pullClassStudents(config, classId),
-                SupabaseService.pullSubmissions(config, classId)
-              ]);
-
-              // Merge student list
-              if (cloudStudents && cloudStudents.length > 0) {
-                cloudStudents.forEach(cs => {
-                  let localSt = localStudents.find(st => st.studentId === cs.studentId);
-                  if (!localSt) {
-                    localStudents.push(cs);
-                  } else {
-                    localSt.studentName = cs.studentName;
-                    localSt.submissionUrl = cs.submissionUrl;
-                    if (cs.githubUrl) (localSt as any).githubUrl = cs.githubUrl;
-                    if (cs.dbId) localSt.dbId = cs.dbId;
-                    if (cs.lmsStatus) localSt.lmsStatus = cs.lmsStatus;
-                    if (cs.submittedCount) localSt.submittedCount = cs.submittedCount;
-                    if (cs.completedCount) localSt.completedCount = cs.completedCount;
-                  }
-                });
-              }
+              logger.info("CLASS_MANAGER", `Đang đồng bộ điểm số từ Supabase cho lớp ${classId}...`);
+              const cloudSubs = await SupabaseService.pullSubmissions(config, classId);
 
               // Merge submissions
               if (cloudSubs && cloudSubs.length > 0) {
@@ -80,7 +59,7 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
               }
 
               await saveClassStudents(classId, localStudents);
-              logger.success("CLASS_MANAGER", `Đồng bộ thành công lớp ${classId} (${cloudStudents.length} học viên, ${cloudSubs.length} bài chấm).`);
+              logger.success("CLASS_MANAGER", `Đồng bộ thành công lớp ${classId} (${localStudents.length} học viên, ${cloudSubs.length} bài chấm).`);
             } catch (err: any) {
               showToast("Đồng bộ kết quả từ Cloud thất bại: " + err.message, "warning");
               logger.error("CLASS_MANAGER", `Đồng bộ dữ liệu Supabase cho lớp ${classId} thất bại.`, err.message);
@@ -193,17 +172,6 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
                 setStatusType('success');
                 setClassStudents(merged);
                 logger.success("CLASS_MANAGER", `Đã quét danh sách lớp ${classId} thành công. Số lượng: ${merged.length} học viên.`);
-
-                if (SupabaseService.isEnabled(config)) {
-                  logger.info("CLASS_MANAGER", `Đang đồng bộ danh sách học viên lớp ${classId} lên Supabase Cloud...`);
-                  SupabaseService.upsertClassStudents(config, classId, merged)
-                    .then(() => {
-                      logger.success("CLASS_MANAGER", `Đồng bộ danh sách học viên lớp ${classId} lên Cloud thành công.`);
-                    })
-                    .catch((err: any) => {
-                      logger.error("CLASS_MANAGER", "Lỗi đồng bộ danh sách học viên lên Supabase Cloud.", err.message);
-                    });
-                }
               });
             });
           } else {

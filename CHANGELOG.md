@@ -7,6 +7,90 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.6.0] — 2026-07-18
+
+### 🚀 Tính năng mới (New Features)
+- **Chấm hàng loạt theo sinh viên/kho lưu trữ (Student-based Parallel Bulk Grading):** Tự động gom nhóm các bài nộp theo `githubUrl` (từng học viên) khi chấm hàng loạt ở tab Chấm Hàng Loạt. 
+  - Chỉ tải mã nguồn học viên **1 lần duy nhất** cho toàn bộ các bài tập trong nhóm.
+  - Chạy song song (`Promise.all`) các tiến trình AI để chấm đồng thời tất cả bài tập của học viên đó trong session.
+  - Tối ưu hóa hoàn toàn tốc độ chấm bài hàng loạt và tránh tải lại trùng lặp.
+- **Bộ nhớ đệm mã nguồn (GitHub Code Cache):** Tự động lưu cache mã nguồn đã nén vào `chrome.storage.local`. Cache tự động được kiểm tra tính mới bằng cách đối chiếu commit SHA mới nhất từ API GitHub trước khi chấm bài.
+  - Hạn dùng cache cố định **24 giờ**.
+  - Giới hạn lưu tối đa **100 bài cache** hoạt động (LRU eviction).
+  - Tự động dọn dẹp các bản cache hết hạn khi khởi chạy tiện ích và khi truy cập trang Cài đặt.
+- **Tải song song đa luồng (Parallel File Fetching):** Nâng cấp hàm tải Git Trees API thủ công chạy đa luồng giới hạn song song tối đa 5 file cùng lúc (`concurrencyLimit = 5`), cải thiện tốc độ tải mã nguồn lên gấp 3-5 lần khi tải ZIP gặp sự cố.
+- **Nén mã nguồn thông minh theo Ngôn ngữ:** Tích hợp bộ nén mã nguồn để tối ưu token AI gửi đi. Giữ nguyên thụt dòng đối với Python (`.py`) và YAML (`.yml`, `.yaml`) để tránh lỗi cú pháp, các ngôn ngữ khác sẽ lược bỏ thụt dòng hoàn toàn để tiết kiệm tokens tối đa.
+- **Tối ưu hóa nhiệt độ AI (Temperature 0.0):** Cấu hình `temperature: 0.0` cho toàn bộ các AI Provider để điểm số và báo cáo chấm ra có độ chính xác, nhất quán cao nhất.
+- **Bổ sung quyền `unlimitedStorage`:** Khai báo quyền lưu trữ không giới hạn trong manifest để đáp ứng việc lưu trữ cache cục bộ.
+
+### ⚙️ Cấu hình & Giao diện (Configuration & UI)
+- **Loại bỏ tab "Chấm Đơn":** Loại bỏ hoàn toàn Tab Chấm Đơn khỏi hệ thống menu điều hướng và cấu trúc của popup để tinh giản giao diện theo yêu cầu công việc.
+- **Lược bỏ hiển thị tên khi chấm bài:** Không hiển thị tên sinh viên trong tiến trình chấm bài hàng loạt ở popup.
+- **Thống kê & Quản lý Cache trong Settings:** Hiển thị thông số lượng bài cache hoạt động thời gian thực kèm nút **"Xóa bộ nhớ đệm"** màu đỏ để xóa cache thủ công trong mục cấu hình GitHub.
+
+---
+
+## [v4.5.4] — 2026-07-18
+
+### ⚙️ Tối ưu hóa & Tái cấu trúc (Optimization & Refactoring)
+- **Tái cấu trúc logic chấm bài**: Tạo hàm dịch vụ chung `gradeSubmission` tại [graderService.ts](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/services/graderService.ts) để thống nhất logic tải code từ GitHub, phân tích AI và bóc tách điểm. Nhờ vậy, loại bỏ hoàn toàn phần mã nguồn trùng lặp ở `useSingleGrader` và `useAutoGrader`.
+- **Hỗ trợ callback phản hồi trung gian**: Hàm dịch vụ chung hỗ trợ nhận callback `onFilesDownloaded` để cập nhật trạng thái UI sang chế độ `grading` ngay khi hoàn tất tải tệp từ GitHub.
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Sửa lỗi crash khi đồng bộ Supabase**: Sửa lỗi ReferenceError do biến undefined `cloudStudents` trong tệp [useClassManager.ts](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/hooks/class-management/useClassManager.ts).
+- **Sửa lỗi kiểu dữ liệu logger**: Ép kiểu dữ liệu nhận được từ Chrome local storage trong [logger.ts](file:///s:/WorkSpace/RikkeiEducation/AutoScoring/src/core/logger.ts) sang `any` để tránh báo lỗi biên dịch TS.
+
+---
+
+## [v4.5.3] — 2026-07-18
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Đồng nhất thương hiệu REduX**: Thay thế toàn bộ các từ hiển thị và tài liệu cũ mang chữ `REdux` (chữ x thường) thành `REduX` (chữ X hoa) để đồng nhất thương hiệu thương mại trên mọi mặt giao diện và tài liệu hướng dẫn.
+
+---
+
+## [v4.5.2] — 2026-07-17
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Sửa lỗi xung đột phím tắt trên Microsoft Edge**:
+  - Đổi phím tắt gợi ý mặc định để mở Extension từ `Ctrl + Shift + U` sang **`Ctrl + Shift + Y`** (trên macOS là `Cmd + Shift + Y`) nhằm tránh xung đột với phím tắt kích hoạt tính năng đọc văn bản mặc định (Read aloud) của trình duyệt Microsoft Edge.
+
+---
+
+## [v4.5.1] — 2026-07-17
+
+### ♻️ Tái cấu trúc & Dọn dẹp (Refactoring & Cleanup)
+- **Xóa bỏ hoàn toàn bảng class_students khỏi Supabase Service**:
+  - Gỡ bỏ câu lệnh tạo bảng `class_students` và cấu hình RLS policies tương ứng khỏi tập lệnh SQL Migrations của tiện ích.
+  - Loại bỏ các hàm đồng bộ `upsertClassStudents`, `pullClassStudents` cùng logic xác thực kết nối bảng `class_students` trên server.
+  - Chuyển giao hoàn toàn việc quản lý và lưu trữ thông tin danh sách lớp học cục bộ dưới trình duyệt (`chrome.storage.local`), đảm bảo an toàn bảo mật và không có bất kỳ footprint dữ liệu cá nhân nào lưu trên đám mây.
+
+---
+
+## [v4.5.0] — 2026-07-17
+
+### 🚀 Tính năng mới (New Features)
+- **Tự Động Đồng Bộ Học Viên & Điền Điểm 2 Chiều (Bidirectional Sync)**:
+  - Tự động điền điểm số và nhận xét ngắn gọn do AI chấm vào form nhập liệu trên trang web LMS ngay khi AI hoàn thành chấm bài.
+  - Tự động phát hiện chuyển đổi học viên trên trang web LMS (bằng URL thay đổi hoặc DOM cập nhật động) và chuyển đổi giao diện chấm điểm tương ứng trên popup extension trong thời gian thực.
+  - Tích hợp cơ chế chống lặp vô hạn (anti-loop) và debounce (500ms) để tối ưu hóa tài nguyên CPU, tránh tình trạng đơ trang do render lặp.
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Khắc Phục Lỗi Đồng Bộ Bảng class_students Supabase**:
+  - Gỡ bỏ hoàn toàn việc lưu trữ/đồng bộ danh sách lớp học (`class_students`) lên đám mây Supabase Cloud. Danh sách học viên được chuyển sang lưu trữ cục bộ hoàn toàn tại máy giáo viên (`chrome.storage.local`).
+  - Khắc phục triệt để lỗi không tìm thấy cột dữ liệu `completed_count` trên schema cache của Supabase và tăng tính bảo mật thông tin học viên.
+
+---
+
+## [v4.4.0] — 2026-07-17
+
+### 🚀 Tính năng mới (New Features)
+- **Phím tắt Toàn hệ thống Mở nhanh Extension**:
+  - Đăng ký lệnh manifest `_execute_action` với tổ hợp phím gợi ý mặc định là `Ctrl + Shift + U` (trên Windows/Linux) và `Cmd + Shift + U` (trên macOS) để người dùng mở nhanh popup extension trực tiếp từ bàn phím.
+  - Hướng dẫn cấu hình tùy chỉnh phím tắt tại trang quản lý của trình duyệt `chrome://extensions/shortcuts` được nêu trong tài liệu.
+
+---
+
 ## [v4.3.12] — 2026-07-16
 
 ### 🎨 Giao diện & Trải nghiệm (UI/UX Improvements)
@@ -56,7 +140,7 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 ## [v4.3.7] — 2026-07-16
 
 ### 🎨 Giao diện & Trải nghiệm (UI/UX Improvements)
-- **Cập nhật nhãn nút nổi toàn cầu**: Sửa đổi nhãn của nút bấm nổi từ `🚀 QLDT` thành chữ thương hiệu `REdux` và loại bỏ hoàn toàn biểu tượng emoji tên lửa `🚀` theo mong muốn của người dùng.
+- **Cập nhật nhãn nút nổi toàn cầu**: Sửa đổi nhãn của nút bấm nổi từ `🚀 QLDT` thành chữ thương hiệu `REduX` và loại bỏ hoàn toàn biểu tượng emoji tên lửa `🚀` theo mong muốn của người dùng.
 
 ---
 

@@ -40,6 +40,25 @@ export function useAppInitializer() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Clean expired cache (older than 24h)
+    chrome.storage.local.get(null, (allData) => {
+      const now = Date.now();
+      const keysToRemove: string[] = [];
+      for (const key in allData) {
+        if (key.startsWith('code_cache:')) {
+          const entry = allData[key] as any;
+          if (entry && entry.cachedAt && (now - entry.cachedAt > 24 * 60 * 60 * 1000)) {
+            keysToRemove.push(key);
+          }
+        }
+      }
+      if (keysToRemove.length > 0) {
+        chrome.storage.local.remove(keysToRemove, () => {
+          logger.info("SYSTEM", `Đã tự động xóa ${keysToRemove.length} bản ghi cache mã nguồn hết hạn (>24 giờ).`);
+        });
+      }
+    });
+
     chrome.storage.local.get([
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseSource, STORAGE_KEYS.exerciseApiUrl, STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.uploadedExercises,

@@ -111,6 +111,54 @@ export class GitHubService {
     return isExcludedDir || isExcludedFile;
   }
 
+  private compressCodeByLanguage(content: string, filePath: string): string {
+    const isPython = filePath.endsWith('.py');
+    const isYaml = filePath.endsWith('.yml') || filePath.endsWith('.yaml');
+    const lines = content.split('\n');
+    const compressed: string[] = [];
+    let prevBlank = false;
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
+        if (!prevBlank) compressed.push("");
+        prevBlank = true;
+      } else {
+        prevBlank = false;
+        if (isPython || isYaml) {
+          compressed.push(line.trimEnd());
+        } else {
+          compressed.push(trimmedLine);
+        }
+      }
+    }
+    return compressed.join('\n');
+  }
+
+  private async saveToCache(cacheKey: string, newEntry: any): Promise<void> {
+    try {
+      const allData = await new Promise<any>(resolve => chrome.storage.local.get(null, resolve));
+      const cacheEntries: Array<{ key: string; cachedAt: number }> = [];
+      
+      for (const key in allData) {
+        if (key.startsWith('code_cache:')) {
+          cacheEntries.push({ key, cachedAt: allData[key].cachedAt || 0 });
+        }
+      }
+
+      if (cacheEntries.length >= 100) {
+        cacheEntries.sort((a, b) => a.cachedAt - b.cachedAt);
+        const toRemoveCount = (cacheEntries.length - 100) + 1;
+        const keysToRemove = cacheEntries.slice(0, toRemoveCount).map(item => item.key);
+        await new Promise<void>(resolve => chrome.storage.local.remove(keysToRemove, () => resolve()));
+      }
+
+      await new Promise<void>(resolve => chrome.storage.local.set({ [cacheKey]: newEntry }, resolve));
+    } catch (err) {
+      console.warn("Lỗi ghi cache:", err);
+    }
+  }
+
   async getRepoContents(
     repoUrl: string, 
     onProgress: ((msg: string) => void) | null = null
@@ -119,6 +167,47 @@ export class GitHubService {
     if (onProgress) onProgress("Đang dò tìm nhánh mặc định...");
     const branch = await this.getDefaultBranch(owner, repo);
 
+    const cacheKey = `code_cache:${owner.toLowerCase()}/${repo.toLowerCase()}`;
+    let cachedData: any = null;
+    try {
+      const res = await new Promise<any>(resolve => chrome.storage.local.get(cacheKey, resolve));
+      cachedData = res[cacheKey];
+    } catch (err) {
+      console.warn("Lỗi đọc cache:", err);
+    }
+
+    let latestSha = "";
+    let useCache = false;
+
+    if (cachedData && cachedData.sha) {
+      if (onProgress) onProgress("Đang kiểm tra cập nhật mã nguồn trên GitHub...");
+      try {
+        const commitUrl = `https://api.github.com/repos/${owner}/${repo}/commits?sha=${branch}&per_page=1`;
+        const commitRes = await this.safeFetch(commitUrl, { headers: this.headers });
+        if (commitRes.ok) {
+          const commits = await commitRes.json();
+          if (commits && commits[0] && commits[0].sha) {
+            latestSha = commits[0].sha;
+            if (latestSha === cachedData.sha) {
+              useCache = true;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Lỗi kiểm tra commit SHA mới nhất, bỏ qua cache:", err);
+      }
+    }
+
+    if (useCache && cachedData) {
+      if (onProgress) onProgress("Sử dụng mã nguồn từ bộ nhớ đệm (Cache)...");
+      return {
+        content: cachedData.content,
+        totalFiles: cachedData.totalFiles,
+        fileList: cachedData.fileList
+      };
+    }
+
+    let repoData: any = null;
     try {
       if (onProgress) onProgress("Đang tải toàn bộ mã nguồn (.ZIP)...");
       const archiveUrl = this.headers["Authorization"]
@@ -128,14 +217,44 @@ export class GitHubService {
       const res = await this.safeFetch(archiveUrl, { headers: this.headers["Authorization"] ? this.headers : { "Accept": "*/*" } });
       if (res.ok) {
         const zipBlob = await res.blob();
-        return await this.processZipBlob(zipBlob, onProgress);
+        repoData = await this.processZipBlob(zipBlob, onProgress);
       }
     } catch (err) {
       console.warn("Tải ZIP lỗi, thử fallback Git Trees API", err);
     }
 
-    if (onProgress) onProgress("Tải ZIP thất bại. Đang thử dùng Git Trees API...");
-    return await this.fetchGitTreeFallback(owner, repo, branch, onProgress);
+    if (!repoData) {
+      if (onProgress) onProgress("Tải ZIP thất bại. Đang thử dùng Git Trees API...");
+      repoData = await this.fetchGitTreeFallback(owner, repo, branch, onProgress);
+    }
+
+    if (repoData) {
+      if (!latestSha) {
+        try {
+          const commitUrl = `https://api.github.com/repos/${owner}/${repo}/commits?sha=${branch}&per_page=1`;
+          const commitRes = await this.safeFetch(commitUrl, { headers: this.headers });
+          if (commitRes.ok) {
+            const commits = await commitRes.json();
+            if (commits && commits[0] && commits[0].sha) {
+              latestSha = commits[0].sha;
+            }
+          }
+        } catch {}
+      }
+
+      if (latestSha) {
+        const newCacheEntry = {
+          sha: latestSha,
+          cachedAt: Date.now(),
+          content: repoData.content,
+          totalFiles: repoData.totalFiles,
+          fileList: repoData.fileList
+        };
+        await this.saveToCache(cacheKey, newCacheEntry);
+      }
+    }
+
+    return repoData;
   }
 
   private async processZipBlob(zipBlob: Blob, onProgress: any): Promise<any> {
@@ -165,8 +284,9 @@ export class GitHubService {
         }
 
         const cleanPath = prefix ? name.replace(prefix, "") : name;
+        const compressedContent = this.compressCodeByLanguage(content, cleanPath);
         fileList.push(cleanPath);
-        payload += `\n\n=============================================\nFILE PATH: ${cleanPath}\n=============================================\n${content}`;
+        payload += `\n\n=============================================\nFILE PATH: ${cleanPath}\n=============================================\n${compressedContent}`;
         
         processedFiles++;
         if (processedFiles > this.maxFiles) throw new Error(`Vượt giới hạn số lượng ${this.maxFiles} tệp tin.`);
@@ -190,52 +310,88 @@ export class GitHubService {
 
     const treeData = await treeRes.json();
     const files = treeData.tree || [];
-    let payload = "";
-    let processedFiles = 0;
-    const fileList: string[] = [];
-
-    for (const file of files) {
-      if (file.type !== "blob") continue;
+    const filesToDownload = files.filter((file: any) => {
+      if (file.type !== "blob") return false;
       const name = file.path;
       const normalizedPath = name.replace(/\\/g, '/');
       const segments = normalizedPath.split("/");
       const filename = segments.pop() || "";
+      return !this.isFileExcluded(normalizedPath, filename, segments);
+    }).slice(0, this.maxFiles);
 
-      if (!this.isFileExcluded(normalizedPath, filename, segments)) {
-        if (onProgress) onProgress(`Đang tải file: ${filename} (${processedFiles + 1})...`);
-        const contentUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${name}?ref=${branch}`;
-        const fileRes = await this.safeFetch(contentUrl, { headers: this.headers });
-        if (!fileRes.ok) continue;
+    if (filesToDownload.length === 0) throw new Error("Không tìm thấy mã nguồn hợp lệ trong Repo.");
 
-        const fileData = await fileRes.json();
-        let content = "";
-        if (fileData.encoding === "base64" && fileData.content) {
-          const cleanBase64 = fileData.content.replace(/\s/g, "");
-          if (name.endsWith(".docx")) {
-            const binary = atob(cleanBase64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            content = await ZipExtractor.parseDocxFromBlob(new Blob([bytes], { type: "application/vnd.docx" }));
-          } else {
-            try {
-              content = decodeURIComponent(atob(cleanBase64).split("").map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join(""));
-            } catch {
-              content = atob(cleanBase64);
-            }
-          }
-        } else {
-          content = fileData.content || "";
+    const concurrencyLimit = 5;
+    const downloadResults: Array<{ name: string; content: string } | null> = Array(filesToDownload.length).fill(null);
+    let index = 0;
+
+    const downloadWorker = async () => {
+      while (true) {
+        const currentIndex = index++;
+        if (currentIndex >= filesToDownload.length) break;
+
+        const file = filesToDownload[currentIndex];
+        const name = file.path;
+        const normalizedPath = name.replace(/\\/g, '/');
+        const segments = normalizedPath.split("/");
+        const filename = segments.pop() || "";
+
+        if (onProgress) {
+          onProgress(`Đang tải file: ${filename} (${currentIndex + 1}/${filesToDownload.length})...`);
         }
 
-        fileList.push(name);
-        payload += `\n\n=============================================\nFILE PATH: ${name}\n=============================================\n${content}`;
-        processedFiles++;
+        try {
+          const contentUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(name)}?ref=${branch}`;
+          const fileRes = await this.safeFetch(contentUrl, { headers: this.headers });
+          if (!fileRes.ok) continue;
 
-        if (processedFiles > this.maxFiles) throw new Error(`Vượt giới hạn số lượng ${this.maxFiles} tệp tin.`);
-        if (payload.length > this.maxChars) throw new Error(`Vượt giới hạn kích thước ${this.maxChars} ký tự.`);
+          const fileData = await fileRes.json();
+          let content = "";
+          if (fileData.encoding === "base64" && fileData.content) {
+            const cleanBase64 = fileData.content.replace(/\s/g, "");
+            if (name.endsWith(".docx")) {
+              const binary = atob(cleanBase64);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+              content = await ZipExtractor.parseDocxFromBlob(new Blob([bytes], { type: "application/vnd.docx" }));
+            } else {
+              try {
+                content = decodeURIComponent(atob(cleanBase64).split("").map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join(""));
+              } catch {
+                content = atob(cleanBase64);
+              }
+            }
+          } else {
+            content = fileData.content || "";
+          }
+
+          const compressedContent = this.compressCodeByLanguage(content, name);
+          downloadResults[currentIndex] = { name, content: compressedContent };
+        } catch (err) {
+          console.warn(`Lỗi tải tệp ${name}:`, err);
+        }
+      }
+    };
+
+    const workers = Array(Math.min(concurrencyLimit, filesToDownload.length))
+      .fill(null)
+      .map(() => downloadWorker());
+
+    await Promise.all(workers);
+
+    let payload = "";
+    let processedFiles = 0;
+    const fileList: string[] = [];
+
+    for (const res of downloadResults) {
+      if (res) {
+        fileList.push(res.name);
+        payload += `\n\n=============================================\nFILE PATH: ${res.name}\n=============================================\n${res.content}`;
+        processedFiles++;
       }
     }
-    if (processedFiles === 0) throw new Error("Không tìm thấy mã nguồn hợp lệ trong Repo.");
+
+    if (processedFiles === 0) throw new Error("Không tải được tệp tin hợp lệ nào từ Repo.");
     const treeStr = ZipExtractor.buildDirectoryTree(fileList);
     return { content: `[CẤU TRÚC THƯ MỤC DỰ ÁN]\n${treeStr}\n\n` + payload, totalFiles: processedFiles, fileList };
   }

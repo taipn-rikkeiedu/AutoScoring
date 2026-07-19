@@ -13,7 +13,6 @@ export const AutoGraderTab: React.FC = () => {
     isBulkGrading,
     bulkProgress,
     bulkProgressText,
-    currentGradingStudent,
     exerciseTemplates,
     aiStatus,
     handleRescan,
@@ -206,7 +205,6 @@ export const AutoGraderTab: React.FC = () => {
 
       {isBulkGrading && (
         <div className="flex flex-col gap-2 p-3 border border-slate-200 rounded-md bg-slate-50 select-none animate-pulse">
-          {currentGradingStudent && <div className="text-[11px] font-semibold text-green-800">👤 Đang chấm cho: <span className="font-extrabold">{currentGradingStudent}</span></div>}
           <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
             <div style={{ width: `${bulkProgress}%` }} className="bg-green-600 h-full rounded-full transition-all duration-300"></div>
           </div>

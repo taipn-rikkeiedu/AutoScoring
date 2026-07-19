@@ -66,7 +66,7 @@ export class AIService {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ role: 'user', parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0.2 }
+              generationConfig: { temperature: 0.0 }
             })
           });
 
@@ -102,7 +102,7 @@ export class AIService {
             body: JSON.stringify({
               model: this.modelName,
               messages: [{ role: 'user', content: prompt }],
-              temperature: 0.2
+              temperature: 0.0
             })
           });
 
@@ -127,7 +127,7 @@ export class AIService {
           const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: this.modelName, prompt: prompt, stream: false })
+            body: JSON.stringify({ model: this.modelName, prompt: prompt, stream: false, options: { temperature: 0.0 } })
           });
 
           if (response.status === 429) throw new Error("RATE_LIMIT");
