@@ -9,10 +9,9 @@ Kỹ năng này hướng dẫn AI cách đọc, ghi và đồng bộ dữ liệu
 
 ## 1. Lược đồ cơ sở dữ liệu (Database Schema)
 
-Supabase sử dụng các bảng chính sau:
+Supabase sử dụng các bảng chính sau (DDL được tự động tạo bởi `SupabaseService`, không dùng cột `id` uuid mà dùng khóa chính tổng hợp):
 
 ### Bảng `submissions` (Bài nộp của sinh viên)
-* `id` (uuid, khóa chính)
 * `class_id` (text): Mã lớp học (trích xuất từ LMS)
 * `student_id` (text): Mã sinh viên
 * `student_name` (text): Họ và tên sinh viên
@@ -23,14 +22,24 @@ Supabase sử dụng các bảng chính sau:
 * `score` (numeric): Điểm số (0 - 100)
 * `report` (text): Nhận xét chi tiết từ AI
 * `graded_at` (timestamptz): Thời gian chấm điểm
+* Khóa chính tổng hợp: `(class_id, student_id, chapter, session, assignment_name)`
 
-### Bảng `take_care` (Chăm sóc sinh viên)
-* `id` (uuid, khóa chính)
+### Bảng `care_notes` (Chăm sóc sinh viên)
+* `class_id` (text): Mã lớp học
 * `student_id` (text)
 * `student_name` (text)
 * `subject_name` (text): Tên môn học chăm sóc
 * `study_date` (text): Ngày học tương ứng
 * `note` (text): Ghi chú chăm sóc cụ thể
+* `updated_at` (timestamptz)
+* Khóa chính tổng hợp: `(class_id, student_id, subject_name, study_date)`
+
+### Bảng `exercises` (Đề bài & tiêu chí chấm, dùng chung giữa các máy)
+* `chapter` (text), `session` (text), `assignment_name` (text)
+* `assignment_text` (text): Nội dung đề bài
+* `criteria` (text): Tiêu chí chấm điểm
+* `updated_at` (timestamptz)
+* Khóa chính tổng hợp: `(chapter, session, assignment_name)`
 
 ## 2. Quy trình đồng bộ dữ liệu (Sync Pipeline)
 
