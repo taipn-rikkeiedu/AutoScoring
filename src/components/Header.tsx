@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '~/src/core/AppContext';
+import { STORAGE_KEYS } from '~/src/core/constants';
 
 interface HeaderProps {
   activeTab: string;
@@ -9,10 +10,30 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   const { supabaseStatus, aiStatus } = useApp();
   const version = chrome.runtime.getManifest().version;
+  const [isWindowMode, setIsWindowMode] = useState(false);
+
+  useEffect(() => {
+    chrome.storage.local.get(STORAGE_KEYS.uiWindowMode, (result) => {
+      setIsWindowMode(result[STORAGE_KEYS.uiWindowMode] === "window");
+    });
+  }, []);
 
   const handleSupabaseClick = () => {
     setActiveTab("tab-settings");
     // Scroll to supabase config accordion item if needed, but since it's Settings Tab, it's fine
+  };
+
+  const handleToggleWindowMode = () => {
+    const nextMode = isWindowMode ? "popup" : "window";
+    chrome.storage.local.set({ [STORAGE_KEYS.uiWindowMode]: nextMode }, () => {
+      if (nextMode === "window") {
+        // Mở cửa sổ nổi trước, đóng popup thả xuống hiện tại sau khi cửa sổ đã mở
+        chrome.runtime.sendMessage({ type: "OPEN_FLOATING_WINDOW" }, () => window.close());
+      } else {
+        // Quay lại chế độ ghim cứng như cũ: đóng cửa sổ nổi hiện tại, lần bấm icon tiếp theo sẽ mở popup thả xuống
+        window.close();
+      }
+    });
   };
 
   return (
@@ -32,6 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           <option value="tab-class-list">👥 Quản Lý Lớp Học</option>
           <option value="tab-care">📞 Chăm Sóc SV</option>
           <option value="tab-exercises">📚 Đề Bài</option>
+          <option value="tab-drive-scanner">📁 Quét Drive</option>
           <option value="tab-shortcuts">📌 Lối Tắt Nhanh</option>
           <option value="tab-lms-api">🧪 LMS API Test</option>
           <option value="tab-settings">⚙️ Cài Đặt</option>
@@ -39,6 +61,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
       </div>
 
       <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={handleToggleWindowMode}
+          className="text-[10px] font-bold py-0.5 px-1.5 rounded-full cursor-pointer bg-blue-100 text-blue-700 border border-blue-200 transition-colors hover:bg-blue-200"
+          title={isWindowMode ? "Chuyển về dạng ghim cứng (mở popup từ icon tiện ích)" : "Chuyển sang dạng cửa sổ nổi (tách rời, không tự đóng)"}
+        >
+          {isWindowMode ? "📌 Ghim" : "🗗 Cửa sổ"}
+        </button>
+
         {supabaseStatus.includes("🟢") ? (
           <span
             onClick={handleSupabaseClick}

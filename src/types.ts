@@ -14,6 +14,7 @@ export interface AppConfig {
   supabaseUrl: string;
   supabaseAnonKey: string;
   supabasePat: string;
+  googleApiKey: string;
 }
 
 export interface Student {

@@ -37,6 +37,7 @@ export function useSettings() {
   const [supabaseUrl, setSupabaseUrl] = useState(config.supabaseUrl);
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(config.supabaseAnonKey);
   const [supabasePat, setSupabasePat] = useState(config.supabasePat || "");
+  const [googleApiKey, setGoogleApiKey] = useState(config.googleApiKey || "");
 
   const [dbInitialized, setDbInitialized] = useState<boolean | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
@@ -57,6 +58,7 @@ export function useSettings() {
     setSupabaseUrl(config.supabaseUrl);
     setSupabaseAnonKey(config.supabaseAnonKey);
     setSupabasePat(config.supabasePat || "");
+    setGoogleApiKey(config.googleApiKey || "");
   }, [config]);
 
   useEffect(() => {
@@ -78,7 +80,8 @@ export function useSettings() {
       systemPrompt !== config.systemPrompt ||
       supabaseUrl !== config.supabaseUrl ||
       supabaseAnonKey !== config.supabaseAnonKey ||
-      supabasePat !== config.supabasePat;
+      supabasePat !== config.supabasePat ||
+      googleApiKey !== config.googleApiKey;
 
     if (!hasChanges) return;
 
@@ -93,7 +96,8 @@ export function useSettings() {
           systemPrompt,
           supabaseUrl: supabaseUrl.trim(),
           supabaseAnonKey: supabaseAnonKey.trim(),
-          supabasePat: supabasePat.trim()
+          supabasePat: supabasePat.trim(),
+          googleApiKey: googleApiKey.trim()
         });
         showToast("Cấu hình đã được tự động lưu!", "success");
         await verifyDatabaseSchema();
@@ -105,7 +109,7 @@ export function useSettings() {
     }, 1200); // 1.2 seconds debounce
 
     return () => clearTimeout(timer);
-  }, [aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat]);
+  }, [aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat, googleApiKey]);
 
   const verifyDatabaseSchema = async () => {
     if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
@@ -363,6 +367,8 @@ export function useSettings() {
     setSupabaseAnonKey,
     supabasePat,
     setSupabasePat,
+    googleApiKey,
+    setGoogleApiKey,
     dbInitialized,
     isMigrating,
     handleMigrateDatabase,

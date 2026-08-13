@@ -23,7 +23,8 @@ export const defaultConfig: AppConfig = {
   supabaseSyncEnabled: false,
   supabaseUrl: "",
   supabaseAnonKey: "",
-  supabasePat: ""
+  supabasePat: "",
+  googleApiKey: ""
 };
 
 export function useAppInitializer() {
@@ -62,7 +63,7 @@ export function useAppInitializer() {
     chrome.storage.local.get([
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseSource, STORAGE_KEYS.exerciseApiUrl, STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.uploadedExercises,
-      STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat,
+      STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey,
       STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
@@ -86,7 +87,8 @@ export function useAppInitializer() {
         supabaseSyncEnabled: !!stored[STORAGE_KEYS.supabaseSyncEnabled],
         supabaseUrl: stored[STORAGE_KEYS.supabaseUrl] || defaultConfig.supabaseUrl,
         supabaseAnonKey: stored[STORAGE_KEYS.supabaseAnonKey] || defaultConfig.supabaseAnonKey,
-        supabasePat: stored[STORAGE_KEYS.supabasePat] || defaultConfig.supabasePat
+        supabasePat: stored[STORAGE_KEYS.supabasePat] || defaultConfig.supabasePat,
+        googleApiKey: stored[STORAGE_KEYS.googleApiKey] || defaultConfig.googleApiKey
       };
 
       setConfig(mergedConfig);

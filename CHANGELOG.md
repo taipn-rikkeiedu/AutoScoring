@@ -7,6 +7,27 @@ và dự án tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
+## [v4.6.3] — 2026-08-13
+
+### 🚀 Tính năng mới (New Features)
+- **Quét Drive:** Bổ sung tính năng quét thư mục public từ Google Drive qua API, cho phép lọc theo từ khoá và sao chép toàn bộ đường dẫn của các tệp tin một cách nhanh chóng. Tính năng yêu cầu cấu hình Google API Key trong phần Cài đặt.
+
+---
+
+## [v4.6.2] — 2026-08-12
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Giao diện Cửa sổ (Responsive Window):** Bổ sung class CSS giúp chế độ cửa sổ nổi (`mode=window`) có thể tự động co giãn (`100vw`, `100vh`) khi người dùng thay đổi kích thước cửa sổ hệ điều hành, khắc phục tình trạng bị cố định kích thước 780x600px như popup.
+
+---
+
+## [v4.6.1] — 2026-08-12
+
+### 🐛 Sửa lỗi (Bug Fixes)
+- **Cửa sổ nổi (Floating Window):** Sửa lỗi tính năng cửa sổ nổi tự động mở thêm một cửa sổ mới thay vì focus cửa sổ cũ khi người dùng click vào icon tiện ích trong trường hợp Service Worker của Chrome (MV3) bị ngủ đông và tái khởi động.
+
+---
+
 ## [v4.6.0] — 2026-07-18
 
 ### 🚀 Tính năng mới (New Features)

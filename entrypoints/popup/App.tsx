@@ -11,6 +11,7 @@ import { ShortcutsTab } from '~/src/components/ShortcutsTab';
 import { LmsApiTestTab } from '~/src/components/LmsApiTestTab';
 import { QuickAccessBar } from '~/src/components/QuickAccessBar';
 import { ReportModal } from '~/src/components/ReportModal';
+import { DriveScannerTab } from '~/src/components/DriveScannerTab';
 
 const UnsupportedPageWarning: React.FC = () => {
   return (
@@ -111,6 +112,7 @@ const AppContent: React.FC = () => {
             {activeTab === "tab-exercises" && <ExercisesTab />}
             {activeTab === "tab-shortcuts" && <ShortcutsTab />}
             {activeTab === "tab-lms-api" && <LmsApiTestTab />}
+            {activeTab === "tab-drive-scanner" && <DriveScannerTab />}
             {activeTab === "tab-settings" && <SettingsTab />}
           </>
         )}

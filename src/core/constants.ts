@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "4.6.0",
+  version: "4.6.3",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -44,12 +44,14 @@ export const STORAGE_KEYS = {
   supabaseUrl: "supabaseUrl",
   supabaseAnonKey: "supabaseAnonKey",
   supabasePat: "supabasePat",
+  googleApiKey: "googleApiKey",
   activeStudentTransition: "activeStudentTransition",
   careStudents: "careStudents",
   classStudentLists: "classStudentLists",
   legacyClassStudentList: "classStudentList",
   detectedSubmissions: "detectedSubmissions",
-  customShortcuts: "customShortcuts"
+  customShortcuts: "customShortcuts",
+  uiWindowMode: "uiWindowMode"
 } as const;
 
 export const GRADER_IGNORE_DEFAULTS = [

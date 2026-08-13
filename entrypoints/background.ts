@@ -1,7 +1,88 @@
-import { BACKGROUND_FETCH_PROXY, UI_MESSAGES } from '~/src/core/constants';
+import { BACKGROUND_FETCH_PROXY, STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
 
 export default defineBackground(() => {
   const allowedFetchHosts = new Set<string>(BACKGROUND_FETCH_PROXY.allowedHosts);
+
+  // --- Chuyển đổi nhanh giữa dạng cửa sổ nổi (window) và dạng ghim cứng trên toolbar (popup) ---
+  const FLOATING_WINDOW_SIZE = { width: 420, height: 720 };
+  let defaultPopupPath = "";
+  let floatingWindowId: number | null = null;
+
+  const getDefaultPopupPath = async (): Promise<string> => {
+    if (!defaultPopupPath) {
+      defaultPopupPath = (await chrome.action.getPopup({})) || "popup.html";
+    }
+    return defaultPopupPath;
+  };
+
+  // getPopup() có thể trả về đường dẫn tương đối ("popup.html") hoặc URL tuyệt đối
+  // ("chrome-extension://<id>/popup.html") tùy trình duyệt, nên resolve qua URL() thay vì
+  // chrome.runtime.getURL() để tránh bị nhân đôi tiền tố chrome-extension://.
+  const buildFloatingWindowUrl = (popupPath: string): string => {
+    const url = new URL(popupPath, chrome.runtime.getURL("/"));
+    url.searchParams.set("mode", "window");
+    return url.toString();
+  };
+
+  const applyPopupModeFromStorage = async () => {
+    const popupPath = await getDefaultPopupPath();
+    const stored = await chrome.storage.local.get(STORAGE_KEYS.uiWindowMode);
+    const mode = stored[STORAGE_KEYS.uiWindowMode] === "window" ? "window" : "popup";
+    // Chế độ "window": bỏ popup mặc định để chrome.action.onClicked tự mở cửa sổ nổi.
+    // Chế độ "popup": khôi phục hành vi ghim cứng như cũ (click icon mở popup thả xuống).
+    await chrome.action.setPopup({ popup: mode === "popup" ? popupPath : "" });
+  };
+
+  applyPopupModeFromStorage();
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes[STORAGE_KEYS.uiWindowMode]) {
+      applyPopupModeFromStorage();
+    }
+  });
+
+  const openOrFocusFloatingWindow = async () => {
+    if (floatingWindowId !== null) {
+      try {
+        await chrome.windows.update(floatingWindowId, { focused: true });
+        return;
+      } catch {
+        floatingWindowId = null;
+      }
+    }
+
+    // Phục hồi ID của cửa sổ nổi trong trường hợp Service Worker bị ngủ đông rồi thức dậy
+    try {
+      const tabs = await chrome.tabs.query({ url: chrome.runtime.getURL("/*") });
+      const windowTab = tabs.find(t => t.url && t.url.includes("mode=window"));
+      if (windowTab && windowTab.windowId) {
+        floatingWindowId = windowTab.windowId;
+        await chrome.windows.update(floatingWindowId, { focused: true });
+        return;
+      }
+    } catch (e) {
+      console.error("Lỗi khi tìm kiếm cửa sổ nổi:", e);
+    }
+
+    const popupPath = await getDefaultPopupPath();
+    const win = await chrome.windows.create({
+      url: buildFloatingWindowUrl(popupPath),
+      type: "popup",
+      width: FLOATING_WINDOW_SIZE.width,
+      height: FLOATING_WINDOW_SIZE.height
+    });
+    floatingWindowId = win?.id ?? null;
+  };
+
+  chrome.windows.onRemoved.addListener((windowId) => {
+    if (windowId === floatingWindowId) {
+      floatingWindowId = null;
+    }
+  });
+
+  chrome.action.onClicked.addListener(() => {
+    openOrFocusFloatingWindow();
+  });
 
   const getSafeFetchRequest = (message: any): { url: string; options: RequestInit } => {
     const requestUrl = new URL(String(message.url || ""));
@@ -120,14 +201,11 @@ export default defineBackground(() => {
       return false;
     }
 
-    if (message.type === "OPEN_POPUP") {
-      if (chrome.action && chrome.action.openPopup) {
-        chrome.action.openPopup().catch((err) => {
-          console.error("Failed to open popup:", err);
-        });
-      }
-      sendResponse({ success: true });
-      return false;
+    if (message.type === "OPEN_FLOATING_WINDOW") {
+      openOrFocusFloatingWindow()
+        .then(() => sendResponse({ success: true }))
+        .catch((err) => sendResponse({ success: false, error: err.message }));
+      return true;
     }
   });
 });

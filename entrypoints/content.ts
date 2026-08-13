@@ -24,7 +24,6 @@ export default defineContentScript({
     }
 
     if (window === window.top) {
-      initializeFloatingWidget();
       setupAutoDetectionObserver();
     }
 
@@ -173,68 +172,6 @@ export default defineContentScript({
     });
   }
 });
-
-function initializeFloatingWidget() {
-  // Remove existing widget if it exists to clean up dead listeners from invalidated contexts
-  const oldContainer = document.getElementById('redux-quick-access-container');
-  if (oldContainer) {
-    oldContainer.remove();
-  }
-
-  const container = document.createElement('div');
-  container.id = 'redux-quick-access-container';
-  container.style.cssText = `
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 2147483647;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  `;
-
-  const triggerBtn = document.createElement('button');
-  triggerBtn.innerHTML = 'REduX';
-  triggerBtn.style.cssText = `
-    background: linear-gradient(135deg, rgb(37, 99, 235), rgb(29, 78, 216));
-    color: white;
-    border-width: medium;
-    border-style: none;
-    border-color: currentcolor;
-    border-image: none;
-    border-radius: 9999px;
-    padding: 10px 16px;
-    font-weight: 700;
-    font-size: 12px;
-    cursor: pointer;
-    box-shadow: rgba(37, 99, 235, 0.4) 0px 4px 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: 0.2s ease-in-out;
-    transform: translateY(0px);
-  `;
-
-  triggerBtn.addEventListener('mouseenter', () => {
-    triggerBtn.style.transform = 'translateY(-2px)';
-    triggerBtn.style.boxShadow = 'rgba(37, 99, 235, 0.5) 0px 6px 20px';
-  });
-  triggerBtn.addEventListener('mouseleave', () => {
-    triggerBtn.style.transform = 'translateY(0)';
-    triggerBtn.style.boxShadow = 'rgba(37, 99, 235, 0.4) 0px 4px 14px';
-  });
-
-  triggerBtn.addEventListener('click', (e) => {
-    if (!chrome.runtime?.id) {
-      container.remove();
-      return;
-    }
-    e.stopPropagation();
-    // Gửi message tới background để mở nhanh extension popup
-    chrome.runtime.sendMessage({ type: "OPEN_POPUP" });
-  });
-
-  container.appendChild(triggerBtn);
-  document.body.appendChild(container);
-}
 
 let lastProcessedUrl = '';
 let lastStudentId = '';
