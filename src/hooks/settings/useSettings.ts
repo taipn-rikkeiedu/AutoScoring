@@ -8,6 +8,7 @@ import { AppConfig } from '~/src/types';
 import { logger, LogEntry } from '~/src/core/logger';
 import JSZip from 'jszip';
 import { SupabaseService } from '~/src/services/supabaseService';
+import { AiClient } from '~/src/services/api';
 
 const defaultGraderIgnoreOptions = [...GRADER_IGNORE_DEFAULTS];
 
@@ -38,6 +39,8 @@ export function useSettings() {
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(config.supabaseAnonKey);
   const [supabasePat, setSupabasePat] = useState(config.supabasePat || "");
   const [googleApiKey, setGoogleApiKey] = useState(config.googleApiKey || "");
+  const [fastApiServerUrl, setFastApiServerUrl] = useState(config.fastApiServerUrl || "");
+  const [fastApiSecretKey, setFastApiSecretKey] = useState(config.fastApiSecretKey || "");
 
   const [dbInitialized, setDbInitialized] = useState<boolean | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
@@ -45,6 +48,39 @@ export function useSettings() {
   const [aiReady, setAiReady] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  const [providerModels, setProviderModels] = useState<{ label: string; value: string; description?: string }[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+  const fetchProviderModels = async () => {
+    const key = (googleApiKey || aiApiKey || "").trim();
+    setIsLoadingModels(true);
+    try {
+      const models = await AiClient.fetchModelsForProvider(
+        aiProvider,
+        key,
+        aiApiUrl,
+        fastApiServerUrl,
+        fastApiSecretKey
+      );
+      if (models && models.length > 0) {
+        setProviderModels(models);
+        logger.info("SETTINGS", `Đã tự động tải ${models.length} model hợp lệ trực tiếp từ API của [${aiProvider}].`);
+        // Nếu model hiện tại chưa được chọn hoặc rỗng, tự động chọn model đầu tiên
+        if (!aiModelName || !models.some(m => m.value === aiModelName)) {
+          setAiModelName(models[0].value);
+        }
+      }
+    } catch (err: any) {
+      console.warn(`Lỗi tải danh sách models từ API ${aiProvider}:`, err);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProviderModels();
+  }, [aiProvider, aiApiKey, googleApiKey, aiApiUrl, fastApiServerUrl, fastApiSecretKey]);
 
   useEffect(() => {
     setAiProvider(config.aiProvider);
@@ -59,14 +95,17 @@ export function useSettings() {
     setSupabaseAnonKey(config.supabaseAnonKey);
     setSupabasePat(config.supabasePat || "");
     setGoogleApiKey(config.googleApiKey || "");
+    setFastApiServerUrl(config.fastApiServerUrl || "");
+    setFastApiSecretKey(config.fastApiSecretKey || "");
   }, [config]);
 
   useEffect(() => {
     const isConfigured = 
       (aiProvider === "local" && aiApiUrl.trim().length > 0) || 
-      (aiProvider !== "local" && aiApiKey.trim().length > 0 && aiModelName.trim().length > 0);
+      (aiProvider === "fastapi_server") ||
+      (aiProvider !== "local" && aiProvider !== "fastapi_server" && aiApiKey.trim().length > 0 && aiModelName.trim().length > 0);
     setAiReady(isConfigured);
-  }, [aiProvider, aiApiKey, aiApiUrl, aiModelName]);
+  }, [aiProvider, aiApiKey, aiApiUrl, aiModelName, fastApiServerUrl]);
 
   // Debounced auto-save for text inputs
   useEffect(() => {
@@ -81,7 +120,9 @@ export function useSettings() {
       supabaseUrl !== config.supabaseUrl ||
       supabaseAnonKey !== config.supabaseAnonKey ||
       supabasePat !== config.supabasePat ||
-      googleApiKey !== config.googleApiKey;
+      googleApiKey !== config.googleApiKey ||
+      fastApiServerUrl !== config.fastApiServerUrl ||
+      fastApiSecretKey !== config.fastApiSecretKey;
 
     if (!hasChanges) return;
 
@@ -97,7 +138,9 @@ export function useSettings() {
           supabaseUrl: supabaseUrl.trim(),
           supabaseAnonKey: supabaseAnonKey.trim(),
           supabasePat: supabasePat.trim(),
-          googleApiKey: googleApiKey.trim()
+          googleApiKey: googleApiKey.trim(),
+          fastApiServerUrl: fastApiServerUrl.trim(),
+          fastApiSecretKey: fastApiSecretKey.trim()
         });
         showToast("Cấu hình đã được tự động lưu!", "success");
         await verifyDatabaseSchema();
@@ -109,50 +152,29 @@ export function useSettings() {
     }, 1200); // 1.2 seconds debounce
 
     return () => clearTimeout(timer);
-  }, [aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat, googleApiKey]);
+  }, [aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat, googleApiKey, fastApiServerUrl, fastApiSecretKey]);
 
   const verifyDatabaseSchema = async () => {
-    if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
+    try {
+      const ready = await SupabaseService.checkDatabaseTables(config);
+      setDbInitialized(ready);
+    } catch {
       setDbInitialized(false);
-      return;
     }
-    const ready = await SupabaseService.checkDatabaseTables({
-      ...config,
-      supabaseUrl: supabaseUrl.trim(),
-      supabaseAnonKey: supabaseAnonKey.trim(),
-      supabaseSyncEnabled: true
-    });
-    setDbInitialized(ready);
   };
 
   useEffect(() => {
-    if (supabaseUrl && supabaseAnonKey) {
-      verifyDatabaseSchema();
-    }
-  }, [supabaseSyncEnabled, supabaseUrl, supabaseAnonKey]);
+    verifyDatabaseSchema();
+  }, [fastApiServerUrl, fastApiSecretKey, supabaseSyncEnabled]);
 
   const handleMigrateDatabase = async () => {
-    if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
-      showToast("Vui lòng nhập Supabase URL và Anon Key trước.", "warning");
-      return;
-    }
-    if (!supabasePat.trim()) {
-      showToast("Vui lòng nhập Supabase Personal Access Token (PAT) để tiếp tục.", "warning");
-      return;
-    }
-
     setIsMigrating(true);
-    showToast("Đang gửi yêu cầu khởi tạo cơ sở dữ liệu lên Supabase Cloud...", "info");
-    logger.info("SUPABASE", "Bắt đầu chạy SQL DDL Migrations để tạo cấu trúc bảng...");
+    showToast("Đang gửi yêu cầu khởi tạo cơ sở dữ liệu qua Backend...", "info");
+    logger.info("SUPABASE", "Bắt đầu chạy SQL DDL Migrations để tạo cấu trúc bảng qua Backend...");
 
     try {
-      await SupabaseService.initializeDatabaseSchema({
-        ...config,
-        supabaseUrl: supabaseUrl.trim(),
-        supabaseAnonKey: supabaseAnonKey.trim(),
-      }, supabasePat);
-
-      showToast("Khởi tạo cấu trúc bảng Supabase thành công!", "success");
+      await SupabaseService.initializeDatabaseSchema(config, supabasePat || "");
+      showToast("Khởi tạo cấu trúc bảng Supabase thành công qua Backend!", "success");
       logger.success("SUPABASE", "Chạy SQL DDL Migrations tạo bảng thành công.");
       await verifyDatabaseSchema();
     } catch (err: any) {
@@ -240,6 +262,26 @@ export function useSettings() {
     });
   };
 
+  const [isTestingAi, setIsTestingAi] = useState(false);
+  const handleTestAiConnection = async () => {
+    setIsTestingAi(true);
+    try {
+      await testConnection({
+        ...config,
+        aiProvider,
+        aiApiKey: aiApiKey.trim(),
+        aiApiUrl: aiApiUrl.trim(),
+        aiModelName: aiModelName.trim(),
+        googleApiKey: googleApiKey.trim()
+      });
+      showToast(`Kết nối tới ${aiProvider === 'fastapi_server' ? 'FastAPI Server' : 'AI Provider'} thành công!`, "success");
+    } catch (err: any) {
+      showToast(`Kết nối thất bại: ${err.message}`, "error");
+    } finally {
+      setIsTestingAi(false);
+    }
+  };
+
   useEffect(() => {
     loadCacheStats();
   }, []);
@@ -279,6 +321,7 @@ export function useSettings() {
     setAiProvider(provider);
     
     let defaultModel = aiModelName;
+    let nextApiUrl = aiApiUrl;
     if (provider === "gemini") {
       defaultModel = AI_DEFAULTS.geminiModel;
     } else if (provider === "openai") {
@@ -289,12 +332,19 @@ export function useSettings() {
       defaultModel = AI_DEFAULTS.openRouterModel;
     } else if (provider === "local") {
       defaultModel = AI_DEFAULTS.localModel;
+    } else if (provider === "fastapi_server") {
+      defaultModel = AI_DEFAULTS.fastApiModel || "gemini-2.5-flash";
+      if (!nextApiUrl || !nextApiUrl.trim()) {
+        nextApiUrl = "http://localhost:8000";
+        setAiApiUrl("http://localhost:8000");
+      }
     }
     setAiModelName(defaultModel);
 
     updateConfig({
       aiProvider: provider,
-      aiModelName: defaultModel
+      aiModelName: defaultModel,
+      aiApiUrl: nextApiUrl
     }).then(() => {
       showToast("Đã cập nhật AI Provider!", "success");
     });
@@ -369,12 +419,21 @@ export function useSettings() {
     setSupabasePat,
     googleApiKey,
     setGoogleApiKey,
+    fastApiServerUrl,
+    setFastApiServerUrl,
+    fastApiSecretKey,
+    setFastApiSecretKey,
+    providerModels,
+    isLoadingModels,
+    refreshModels: () => fetchProviderModels(),
     dbInitialized,
     isMigrating,
     handleMigrateDatabase,
     verifyDatabaseSchema,
     aiReady,
     isTesting: isAutoSaving,
+    isTestingAi,
+    handleTestAiConnection,
     expanded,
     supabaseStatus,
     toggleSection,

@@ -41,7 +41,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
 
   const handleCopy = () => {
     if (!report) return;
-    navigator.clipboard.writeText(report).then(() => {
+    let textToCopy = report.replace(/<score>[\s\S]*?<\/score>/gi, '').trim();
+    if (score && !textToCopy.toLowerCase().includes('tổng điểm')) {
+      textToCopy = `${textToCopy}\n\nTổng điểm: ${score}/100`;
+    }
+    navigator.clipboard.writeText(textToCopy).then(() => {
       setIsCopied(true);
       showToast("Đã sao chép báo cáo vào bộ nhớ tạm!", "success");
       setTimeout(() => {
@@ -86,9 +90,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
             {isCopied ? "✓ Đã sao chép" : "📋 Sao chép báo cáo"}
           </button>
 
-          <span className={`text-[11px] font-bold py-1 px-2.5 rounded-full shadow-sm ${scoreBadgeClass}`}>
+          <button
+            onClick={handleCopy}
+            className={`text-[11px] font-bold py-1 px-2.5 rounded-full shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all ${scoreBadgeClass}`}
+            title="Nhấp để sao chép báo cáo"
+          >
             {score !== null ? `${score} / 100` : '-- / 100'}
-          </span>
+          </button>
         </div>
 
         {/* Content */}

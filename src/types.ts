@@ -15,6 +15,8 @@ export interface AppConfig {
   supabaseAnonKey: string;
   supabasePat: string;
   googleApiKey: string;
+  fastApiServerUrl?: string;
+  fastApiSecretKey?: string;
 }
 
 export interface Student {

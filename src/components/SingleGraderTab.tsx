@@ -44,8 +44,8 @@ export const SingleGraderTab: React.FC = () => {
   return (
     <div className="flex flex-col flex-1 p-4 gap-4 overflow-y-auto">
       {activeStudent && (
-        <div className="flex items-center gap-1.5 px-3 py-2 bg-green-50 border border-green-200 border-l-4 border-l-green-500 rounded text-xs text-green-800 font-semibold select-none">
-          👤 Đang chấm cho: <span className="font-extrabold text-green-900">{activeStudent.studentName} ({activeStudent.studentId})</span>
+        <div className="flex items-center gap-1.5 px-3 py-2 bg-sky-50 border border-sky-200 border-l-4 border-l-amber-400 rounded text-xs text-sky-900 font-semibold select-none">
+          👤 Đang chấm cho: <span className="font-extrabold text-slate-900">{activeStudent.studentName} ({activeStudent.studentId})</span>
         </div>
       )}
 
@@ -55,7 +55,7 @@ export const SingleGraderTab: React.FC = () => {
           <select
             value={detectedSubIndex}
             onChange={handleDetectedSubmissionChange}
-            className="w-full text-xs font-semibold text-slate-700 bg-green-50/50 border border-blue-200 rounded-md py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+            className="w-full text-xs font-semibold text-slate-700 bg-sky-50/50 border border-sky-200 rounded-md py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-sky-400 shadow-sm"
           >
             <option value="">-- Chọn bài nộp phát hiện trên trang --</option>
             {detectedSubmissions.map((sub, idx) => (
@@ -72,7 +72,7 @@ export const SingleGraderTab: React.FC = () => {
           value={repoUrl}
           onChange={(e) => setRepoUrl(e.target.value)}
           placeholder="https://github.com/username/repository"
-          className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+          className="w-full text-xs font-medium text-slate-700 bg-white border border-sky-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-sky-400 shadow-sm"
         />
       </div>
 
@@ -82,7 +82,7 @@ export const SingleGraderTab: React.FC = () => {
           <select
             value={selectedChapter}
             onChange={(e) => setSelectedChapter(e.target.value)}
-            className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2 focus:outline-none shadow-sm"
+            className="w-full text-xs font-medium text-slate-700 bg-white border border-sky-200 rounded-md py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-sky-400 shadow-sm"
           >
             <option value="">-- Chọn Chương --</option>
             {chapters.map(c => <option key={c} value={c}>{c}</option>)}
@@ -96,7 +96,7 @@ export const SingleGraderTab: React.FC = () => {
               value={selectedSession}
               onChange={(e) => setSelectedSession(e.target.value)}
               disabled={!selectedChapter}
-              className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2 focus:outline-none disabled:opacity-60"
+              className="w-full text-xs font-medium text-slate-700 bg-white border border-sky-200 rounded-md py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-sky-400 disabled:opacity-60"
             >
               <option value="">-- Chọn --</option>
               {sessions.map(s => <option key={s} value={s}>{s}</option>)}
@@ -109,7 +109,7 @@ export const SingleGraderTab: React.FC = () => {
               value={selectedAssignment}
               onChange={(e) => setSelectedAssignment(e.target.value)}
               disabled={!selectedSession}
-              className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2 focus:outline-none disabled:opacity-60"
+              className="w-full text-xs font-medium text-slate-700 bg-white border border-sky-200 rounded-md py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-sky-400 disabled:opacity-60"
             >
               <option value="">-- Chọn --</option>
               {assignments.map(a => <option key={a} value={a}>{a}</option>)}
@@ -121,16 +121,16 @@ export const SingleGraderTab: React.FC = () => {
       <button
         onClick={handleGradeSingle}
         disabled={isGrading || aiStatus !== "success"}
-        className="w-full py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-md text-xs font-bold shadow-md hover:from-blue-700 hover:to-blue-800 disabled:opacity-60 cursor-pointer"
+        className="w-full py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-md text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 disabled:bg-slate-200 disabled:text-slate-400 cursor-pointer"
       >
         {isGrading ? "⏳ Đang chấm..." : "🚀 Bắt đầu Chấm điểm"}
       </button>
 
       {isGrading && (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2.5 px-3 py-2.5 border border-blue-200 rounded-lg bg-blue-50/50 shadow-sm select-none">
-            <div className="animate-spin rounded-full h-3 w-3 border-2 border-blue-600 border-t-transparent"></div>
-            <span className="text-[11px] font-bold text-blue-700 animate-pulse">{statusMessage}</span>
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border border-sky-200 rounded-lg bg-sky-50 shadow-sm select-none">
+            <div className="animate-spin rounded-full h-3 w-3 border-2 border-sky-600 border-t-transparent"></div>
+            <span className="text-[11px] font-bold text-sky-800 animate-pulse">{statusMessage}</span>
           </div>
 
           {/* Premium Skeleton Card Loader */}

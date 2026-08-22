@@ -5,8 +5,8 @@ body {
   margin: 0;
   font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 14px;
-  background-color: #f8fafc;
-  color: #1e293b;
+  background-color: #ffffff;
+  color: #0f172a;
   width: 780px;
   height: 600px;
   overflow: hidden;
@@ -26,16 +26,16 @@ body.window-mode {
 
 /* Custom Scrollbar for sleek UI */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f8fafc;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #bae6fd;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #38bdf8;
 }

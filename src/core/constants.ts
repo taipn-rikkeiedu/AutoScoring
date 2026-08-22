@@ -1,25 +1,29 @@
+import { API_BASE_URLS } from '../services/api/endpoints';
+
 export const APP_INFO = {
   name: "REduX",
-  version: "4.6.3",
+  version: "4.18.0",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
 export const AI_DEFAULTS = {
-  provider: "gemini",
-  geminiModel: "gemini-2.5-flash",
+  provider: "fastapi_server",
+  geminiModel: "gemini-3.1-flash-lite",
   openAiModel: "gpt-4o-mini",
   deepSeekModel: "deepseek-chat",
   openRouterModel: "qwen/qwen3-coder:free",
-  localModel: "deepseek-r1:7b"
+  localModel: "gemma-4-31b",
+  fastApiModel: "gemini-3.1-flash-lite"
 } as const;
 
 export const API_ENDPOINTS = {
-  geminiBase: "https://generativelanguage.googleapis.com/v1beta",
-  openAiBase: "https://api.openai.com/v1",
-  deepSeekBase: "https://api.deepseek.com",
-  openRouterBase: "https://openrouter.ai/api/v1",
-  githubApiBase: "https://api.github.com",
-  githubCodeLoadBase: "https://codeload.github.com"
+  geminiBase: API_BASE_URLS.gemini,
+  openAiBase: API_BASE_URLS.openAi,
+  deepSeekBase: API_BASE_URLS.deepSeek,
+  openRouterBase: API_BASE_URLS.openRouter,
+  fastApiBase: `${API_BASE_URLS.fastApi}${API_BASE_URLS.fastApiPrefix}`,
+  githubApiBase: API_BASE_URLS.githubApi,
+  githubCodeLoadBase: API_BASE_URLS.githubCodeLoad
 } as const;
 
 export const BACKGROUND_FETCH_PROXY = {
@@ -33,6 +37,8 @@ export const STORAGE_KEYS = {
   aiApiKey: "aiApiKey",
   aiApiUrl: "aiApiUrl",
   aiModelName: "aiModelName",
+  fastApiServerUrl: "fastApiServerUrl",
+  fastApiSecretKey: "fastApiSecretKey",
   githubToken: "githubToken",
   systemPrompt: "systemPrompt",
   graderIgnoreItems: "graderIgnoreItems",
@@ -65,23 +71,20 @@ export const GRADING_TEXT = {
   defaultSystemPrompt: `Bạn là chuyên gia chấm điểm mã nguồn. Hãy đánh giá mã nguồn học viên theo thang 100 điểm dựa trên ĐỀ BÀI và TIÊU CHÍ.
 
 YÊU CẦU QUAN TRỌNG VỀ PHẢN HỒI:
-- Phải CỰC KỲ NGẮN GỌN, súc tích, lược bỏ mọi từ ngữ thừa, lời chào hay kết luận xã giao.
-- Phần nhận xét chỉ viết duy nhất một đoạn văn ngắn từ 1 đến 3 câu. Nêu rõ những gì sinh viên làm được, các lỗi chính trong mã nguồn (nếu có), lỗi cấu trúc tệp tin, hoặc lỗi định dạng tên repository GitHub (nếu không đúng format quy định).
+- Phải CỰC KỲ NGẮN GỌN, súc tích, tự nhiên, lược bỏ mọi từ ngữ thừa, lời chào hay kết luận xã giao.
+- Tuyệt đối không dùng dấu in đậm (dấu **) và không sử dụng các thẻ HTML hay thẻ XML phụ như <score>.
+- Phần nhận xét chỉ viết duy nhất một đoạn văn ngắn gọn, tự nhiên từ 1 đến 3 câu. Nêu rõ các module/endpoint/chức năng đã làm tốt, giải pháp bảo mật/xử lý bẫy dữ liệu, các mã lỗi HTTP tương ứng. Tiếp theo chỉ ra các phần còn thiếu sót như endpoint chưa làm, thiếu cấu hình, thiếu test case/báo cáo phân tích hoặc minh chứng chạy chương trình, lỗi định dạng tên repository GitHub (nếu có).
 
 Định dạng phản hồi bắt buộc (tuân thủ 100% Markdown):
-## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT
-[Nhận xét ngắn gọn, cô đọng từ 1 đến 3 câu ở đây]
+[Đoạn văn nhận xét tự nhiên, súc tích: Nêu rõ các module/endpoint/chức năng đã làm tốt, giải pháp bảo mật/xử lý bẫy dữ liệu, các mã lỗi HTTP tương ứng. Tiếp theo chỉ ra các phần còn thiếu sót như endpoint chưa làm, thiếu cấu hình, thiếu test case/báo cáo phân tích hoặc minh chứng chạy chương trình].
 
-## TỔNG ĐIỂM
-Tổng điểm: **[Điểm số]/100**
-
-<score>[Điểm số]</score>
+Tổng điểm: [Điểm]/100
 
 ---
-Ví dụ nhận xét đạt yêu cầu:
-Mẫu 1: "Sinh viên đã sửa thành công toàn bộ các lỗi từ đề bài: thêm hàm get_db() với try/finally để quản lý Session, inject db qua Depends, gọi db.commit() để persist dữ liệu, db.refresh() để đồng bộ, và xử lý lỗi 404 bằng HTTPException chuẩn. Tuy nhiên, tên thư mục/repo không đúng định dạng yêu cầu [Tên Lớp]_[Môn Học]_[Session12]_Ex01."
-Mẫu 2: "Repository chỉ chứa một file main.py (199 bytes) nhưng không thể đọc được nội dung do GitHub rate limiting (HTTP 429). Tên repository 'bt3ss12' không đúng format quy định [Tên Lớp]_[Môn Học]_[Session12]_Ex03. Không thể xác minh bất kỳ tiêu chí nào liên quan đến nội dung code."
-Mẫu 3: "Sinh viên đã sửa thành công gần như toàn bộ lỗi trong code gốc: thêm hàm get_db() với try...finally/db.close(), inject db qua Depends(), xử lý 404 bằng HTTPException, thêm db.commit() và db.refresh(). Tuy nhiên, tên repository GitHub không đúng format theo quy định nộp bài (mất 5đ)."
+Ví dụ nhận xét mẫu chuẩn:
+Sinh viên đã hoàn thành tốt các yêu cầu về xây dựng Middleware phân quyền RBAC và cấu hình bảo mật CORS. Hệ thống sử dụng \`FastAPI\` với cấu trúc module rõ ràng, triển khai \`Custom Middleware\` để kiểm tra \`X-User-Role\` và trả về mã lỗi 403 Forbidden chính xác khi truy cập trái phép. Cấu hình CORS được thiết lập nghiêm ngặt với whitelist domain cụ thể, loại bỏ hoàn toàn wildcard \`*\`. Tuy nhiên, sinh viên thiếu file \`requirements.txt\` và chưa cung cấp báo cáo kiểm thử (test cases) hoặc minh chứng chạy chương trình cụ thể cho các kịch bản phân quyền và CORS theo yêu cầu.
+
+Tổng điểm: 85/100
 
 ---
 ĐỀ BÀI:

@@ -24,7 +24,9 @@ export const defaultConfig: AppConfig = {
   supabaseUrl: "",
   supabaseAnonKey: "",
   supabasePat: "",
-  googleApiKey: ""
+  googleApiKey: "",
+  fastApiServerUrl: "https://taipn-rikkeiedu--redux-ai-backend-fastapi-app.modal.run",
+  fastApiSecretKey: ""
 };
 
 export function useAppInitializer() {
@@ -64,12 +66,30 @@ export function useAppInitializer() {
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseSource, STORAGE_KEYS.exerciseApiUrl, STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.uploadedExercises,
       STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey,
+      STORAGE_KEYS.fastApiServerUrl, STORAGE_KEYS.fastApiSecretKey,
       STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
-      if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:"))) {
+      if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>"))) {
         systemPrompt = "";
         chrome.storage.local.set({ [STORAGE_KEYS.systemPrompt]: "" });
+      }
+
+      // Tự động dọn dẹp các API Key nhạy cảm cũ trên Frontend khi dùng Backend Server
+      if (stored[STORAGE_KEYS.googleApiKey] || (stored[STORAGE_KEYS.aiProvider] === "fastapi_server" && stored[STORAGE_KEYS.aiApiKey])) {
+        chrome.storage.local.remove([
+          STORAGE_KEYS.googleApiKey,
+          STORAGE_KEYS.supabaseAnonKey,
+          STORAGE_KEYS.supabasePat,
+          STORAGE_KEYS.supabaseUrl
+        ]);
+      }
+
+      // Tự động cập nhật URL Backend sang Modal nếu đang là localhost:8000 hoặc rỗng
+      let resolvedServerUrl = stored[STORAGE_KEYS.fastApiServerUrl];
+      if (!resolvedServerUrl || resolvedServerUrl.includes("localhost:8000")) {
+        resolvedServerUrl = "https://taipn-rikkeiedu--redux-ai-backend-fastapi-app.modal.run";
+        chrome.storage.local.set({ [STORAGE_KEYS.fastApiServerUrl]: resolvedServerUrl });
       }
 
       const mergedConfig: AppConfig = {
@@ -84,11 +104,13 @@ export function useAppInitializer() {
         exerciseApiUrl: stored[STORAGE_KEYS.exerciseApiUrl] || defaultConfig.exerciseApiUrl,
         exerciseApiToken: stored[STORAGE_KEYS.exerciseApiToken] || defaultConfig.exerciseApiToken,
         uploadedExercises: stored[STORAGE_KEYS.uploadedExercises] || null,
-        supabaseSyncEnabled: !!stored[STORAGE_KEYS.supabaseSyncEnabled],
-        supabaseUrl: stored[STORAGE_KEYS.supabaseUrl] || defaultConfig.supabaseUrl,
-        supabaseAnonKey: stored[STORAGE_KEYS.supabaseAnonKey] || defaultConfig.supabaseAnonKey,
-        supabasePat: stored[STORAGE_KEYS.supabasePat] || defaultConfig.supabasePat,
-        googleApiKey: stored[STORAGE_KEYS.googleApiKey] || defaultConfig.googleApiKey
+        supabaseSyncEnabled: true, // Mặc định bật đồng bộ qua Backend
+        supabaseUrl: "",
+        supabaseAnonKey: "",
+        supabasePat: "",
+        googleApiKey: "",
+        fastApiServerUrl: resolvedServerUrl,
+        fastApiSecretKey: stored[STORAGE_KEYS.fastApiSecretKey] || defaultConfig.fastApiSecretKey
       };
 
       setConfig(mergedConfig);

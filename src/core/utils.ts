@@ -7,10 +7,13 @@ export function parseScore(reportText: string | null): string | null {
   let match = reportText.match(/<score>\s*(\d+(?:[.,]\d+)?)\s*<\/score>/i);
   if (match) return match[1].replace(',', '.');
 
-  match = reportText.match(/(\d+(?:[.,]\d+)?)\s*\/\s*100/);
+  match = reportText.match(/(?:Tổng điểm|TỔNG ĐIỂM|Total Score|Score|Points)?:\s*\*{0,2}(\d+(?:[.,]\d+)?)\*{0,2}\s*\/\s*100/i);
   if (match) return match[1].replace(',', '.');
-  
-  match = reportText.match(/(?:Tá»•ng Ä‘iá»ƒm|Tá»”NG|Score|Points):\s*\*{0,2}(\d+(?:[.,]\d+)?)\*{0,2}/i);
+
+  match = reportText.match(/(?:Tổng điểm|TỔNG ĐIỂM|Total Score|Score|Points):\s*\*{0,2}(\d+(?:[.,]\d+)?)\*{0,2}/i);
+  if (match) return match[1].replace(',', '.');
+
+  match = reportText.match(/(\d+(?:[.,]\d+)?)\s*\/\s*100/);
   if (match) return match[1].replace(',', '.');
   
   return null;
@@ -79,13 +82,24 @@ export function findMatchingTemplate(
 
 export function extractComment(reportText: string | null): string {
   if (!reportText) return '';
-  const parts = reportText.split(/##\s*(?:ÄÃNH\s*GIÃ|NHáº¬N\s*XÃ‰T)/i);
-  if (parts.length > 1) {
-    let comment = parts[1].trim();
+
+  // Case 1: Heading style with ## ĐÁNH GIÁ
+  const headingParts = reportText.split(/##\s*(?:ĐÁNH\s*GIÁ|NHẬN\s*XÉT|ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT)/i);
+  if (headingParts.length > 1) {
+    let comment = headingParts[1].trim();
     comment = comment.split(/---\n/)[0].trim();
     comment = comment.split(/##\s*/)[0].trim();
     return comment;
   }
+
+  // Case 2: Clean single paragraph format (before "Tổng điểm:" or "<score>")
+  let comment = reportText;
+  comment = comment.split(/(?:Tổng điểm|TỔNG ĐIỂM|Total Score|Score):/i)[0].trim();
+  comment = comment.split(/<score>/i)[0].trim();
+  if (comment && comment.length > 0) {
+    return comment;
+  }
+
   return reportText.substring(0, 150) + '...';
 }
 

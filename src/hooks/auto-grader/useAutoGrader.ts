@@ -10,6 +10,32 @@ import { gradeSubmission } from '~/src/services/graderService';
 import { GitHubService } from '~/src/services/githubService';
 import { AIService } from '~/src/services/aiService';
 
+const BULK_GRADING_CONCURRENCY = 3;
+
+async function runWithConcurrencyLimit<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let nextIndex = 0;
+
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex++;
+      try {
+        const value = await worker(items[currentIndex]);
+        results[currentIndex] = { status: 'fulfilled', value };
+      } catch (reason) {
+        results[currentIndex] = { status: 'rejected', reason };
+      }
+    }
+  });
+
+  await Promise.all(runners);
+  return results;
+}
+
 export function useAutoGrader() {
   const { config, exerciseTemplates, activeClassId, aiStatus } = useApp();
   const { showToast } = useToast();
@@ -243,11 +269,18 @@ export function useAutoGrader() {
       });
 
       try {
-        // Download repo once
+        // Download repo once via Backend API
+        const serverUrl = config.fastApiServerUrl || config.aiApiUrl || undefined;
+        const serverKey = config.fastApiSecretKey || config.aiApiKey || undefined;
         const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
-        const repoData = await github.getRepoContents(url, (msg) => {
-          setBulkProgressText(msg);
-        });
+        const repoData = await github.getRepoContents(
+          url, 
+          (msg) => {
+            setBulkProgressText(msg);
+          },
+          serverUrl,
+          serverKey
+        );
 
         // Set status to 'grading' for all items
         setSubmissions(prev => {
@@ -263,11 +296,13 @@ export function useAutoGrader() {
           return next;
         });
 
-        setBulkProgressText(`Đang chấm song song ${items.length} bài tập...`);
+        setBulkProgressText(`Đang chấm ${items.length} bài tập (tối đa ${BULK_GRADING_CONCURRENCY} song song)...`);
         const ai = new AIService(config);
 
-        // Grade all checked exercises for this repo in parallel
-        const gradingPromises = items.map(async (item) => {
+        // Grade checked exercises for this repo with bounded concurrency to avoid
+        // overwhelming the backend with many full-payload requests at once.
+        let gradedSoFar = 0;
+        const settledResults = await runWithConcurrencyLimit(items, BULK_GRADING_CONCURRENCY, async (item) => {
           const { chapter, session, assignmentName } = item.sub.matchedTemplate!;
           const template = exerciseTemplates?.[chapter]?.[session]?.[assignmentName];
           if (!template?.assignment) throw new Error("Thiếu đề bài.");
@@ -282,6 +317,9 @@ export function useAutoGrader() {
           const score = parseScore(report);
           if (!score) throw new Error("Không bóc tách được điểm.");
 
+          gradedSoFar++;
+          setBulkProgressText(`Đang chấm ${gradedSoFar}/${items.length} bài tập (tối đa ${BULK_GRADING_CONCURRENCY} song song)...`);
+
           return {
             originalIndex: item.originalIndex,
             score,
@@ -290,66 +328,93 @@ export function useAutoGrader() {
           };
         });
 
-        const gradedResults = await Promise.all(gradingPromises);
+        const gradedResults = settledResults
+          .filter((r): r is PromiseFulfilledResult<{ originalIndex: number; score: string; report: string; sub: Submission }> => r.status === 'fulfilled')
+          .map(r => r.value);
+        const itemFailures = settledResults
+          .map((r, idx) => ({ r, item: items[idx] }))
+          .filter(({ r }) => r.status === 'rejected') as { r: PromiseRejectedResult; item: { sub: Submission; originalIndex: number } }[];
 
-        // Save state
-        setSubmissions(prev => {
-          const next = [...prev];
-          gradedResults.forEach(res => {
-            next[res.originalIndex] = {
-              ...next[res.originalIndex],
-              status: 'success',
-              score: res.score,
-              report: res.report
-            };
-          });
-          syncDetectedSubmissions(next);
-          updateContentScriptCache(next);
-          return next;
-        });
-
-        // Sync to local student list and Supabase
-        const classId = activeClassId;
-        const studentList = await getClassStudents(classId);
-
-        const sampleSub = items[0].sub;
-        if (sampleSub.studentName) {
-          let pageId = null, pageName = sampleSub.studentName;
-          const parenMatch = sampleSub.studentName.match(/(.*?)\s*\((.*?)\)/);
-          if (parenMatch) {
-            pageName = parenMatch[1].trim();
-            pageId = parenMatch[2].trim();
-          }
-
-          const matched = matchStudent(studentList, "", pageId, pageName, null);
-          if (matched) {
-            if (!matched.submissions) matched.submissions = {};
-            const submissionsMap = matched.submissions;
-            
+        // Save state for successfully graded items
+        if (gradedResults.length > 0) {
+          setSubmissions(prev => {
+            const next = [...prev];
             gradedResults.forEach(res => {
-              const { chapter, session, assignmentName } = res.sub.matchedTemplate!;
-              submissionsMap[`${chapter}_${session}_${assignmentName}`] = {
+              next[res.originalIndex] = {
+                ...next[res.originalIndex],
+                status: 'success',
                 score: res.score,
-                report: res.report,
-                githubUrl: url,
-                gradedAt: new Date().toISOString()
+                report: res.report
               };
             });
-            await saveClassStudents(classId, studentList);
+            syncDetectedSubmissions(next);
+            updateContentScriptCache(next);
+            return next;
+          });
+        }
 
-            if (SupabaseService.isEnabled(config) && classId) {
-              await Promise.all(gradedResults.map(res => {
+        // Mark individually failed items without discarding successes in the same group
+        if (itemFailures.length > 0) {
+          setSubmissions(prev => {
+            const next = [...prev];
+            itemFailures.forEach(({ r, item }) => {
+              const reason = r.reason instanceof Error ? r.reason.message : String(r.reason);
+              next[item.originalIndex] = {
+                ...next[item.originalIndex],
+                status: 'error',
+                error: reason
+              };
+            });
+            updateContentScriptCache(next);
+            return next;
+          });
+        }
+
+        // Sync to local student list and Supabase (only when at least one item succeeded)
+        if (gradedResults.length > 0) {
+          const classId = activeClassId;
+          const studentList = await getClassStudents(classId);
+
+          const sampleSub = items[0].sub;
+          if (sampleSub.studentName) {
+            let pageId = null, pageName = sampleSub.studentName;
+            const parenMatch = sampleSub.studentName.match(/(.*?)\s*\((.*?)\)/);
+            if (parenMatch) {
+              pageName = parenMatch[1].trim();
+              pageId = parenMatch[2].trim();
+            }
+
+            const matched = matchStudent(studentList, "", pageId, pageName, null);
+            if (matched) {
+              if (!matched.submissions) matched.submissions = {};
+              const submissionsMap = matched.submissions;
+
+              gradedResults.forEach(res => {
                 const { chapter, session, assignmentName } = res.sub.matchedTemplate!;
-                return SupabaseService.upsertSubmission(
-                  config, classId, matched.studentId, matched.studentName,
-                  chapter, session, assignmentName, url, res.score, res.report
-                ).catch(err => console.warn("Supabase sync failed:", err));
-              }));
+                submissionsMap[`${chapter}_${session}_${assignmentName}`] = {
+                  score: res.score,
+                  report: res.report,
+                  githubUrl: url,
+                  gradedAt: new Date().toISOString()
+                };
+              });
+              await saveClassStudents(classId, studentList);
+
+              if (SupabaseService.isEnabled(config) && classId) {
+                await Promise.all(gradedResults.map(res => {
+                  const { chapter, session, assignmentName } = res.sub.matchedTemplate!;
+                  return SupabaseService.upsertSubmission(
+                    config, classId, matched.studentId, matched.studentName,
+                    chapter, session, assignmentName, url, res.score, res.report
+                  ).catch(err => console.warn("Supabase sync failed:", err));
+                }));
+              }
             }
           }
         }
 
-        success += items.length;
+        success += gradedResults.length;
+        failed += itemFailures.length;
       } catch (err: any) {
         console.error("Lỗi chấm hàng loạt:", err);
         failed += items.length;
@@ -373,6 +438,85 @@ export function useAutoGrader() {
 
     setIsBulkGrading(false);
     showToast(`Chấm hoàn tất! Thành công: ${success}, Thất bại: ${failed}`, "success");
+  };
+
+  const handleCopySingleSubmission = (sub: Submission) => {
+    if (!sub || !sub.githubUrl) return;
+    const studentPart = sub.studentName ? `[${sub.studentName}] ` : '';
+    const scorePart = sub.score !== null && sub.score !== undefined ? ` (Điểm: ${sub.score}/100)` : '';
+    const text = `${studentPart}${sub.exerciseName}: ${sub.githubUrl}${scorePart}`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`Đã sao chép link & đề: ${sub.studentName || sub.exerciseName}`, "success");
+    }).catch(err => {
+      showToast("Lỗi sao chép: " + err.message, "error");
+    });
+  };
+
+  const handleCopyReport = (format: 'detailed' | 'simple' | 'tsv' | 'markdown' = 'detailed') => {
+    if (submissions.length === 0) {
+      showToast("Không có bài nộp nào để sao chép báo cáo.", "warning");
+      return;
+    }
+
+    const hasChecked = submissions.some(s => s.checked);
+    const targetSubs = hasChecked ? submissions.filter(s => s.checked) : submissions;
+
+    if (targetSubs.length === 0) {
+      showToast("Vui lòng chọn ít nhất một bài nộp.", "warning");
+      return;
+    }
+
+    let text = '';
+    const nowStr = new Date().toLocaleString('vi-VN');
+
+    if (format === 'detailed') {
+      const header = `📊 BÁO CÁO BÀI TẬP GITHUB (${targetSubs.length} bài)\n⏰ Thời gian: ${nowStr}\n--------------------------------------------------\n`;
+      const body = targetSubs.map((s, idx) => {
+        const studentPart = s.studentName ? `[${s.studentName}] ` : '';
+        const templatePart = s.matchedTemplate ? `\n   - Đề liên kết: ${s.matchedTemplate.session} - ${s.matchedTemplate.assignmentName}` : '';
+        const scorePart = s.score !== null && s.score !== undefined ? `\n   - Điểm số: ${s.score}/100` : '';
+        const statusPart = s.status === 'success' ? ' (Đã chấm)' : s.status === 'error' ? ' (Lỗi)' : '';
+        return `${idx + 1}. ${studentPart}${s.exerciseName}${statusPart}\n   - Link: ${s.githubUrl}${templatePart}${scorePart}`;
+      }).join('\n\n');
+      text = header + body;
+    } else if (format === 'simple') {
+      text = targetSubs.map(s => {
+        const studentPart = s.studentName ? `[${s.studentName}] ` : '';
+        return `- ${studentPart}${s.exerciseName}: ${s.githubUrl}`;
+      }).join('\n');
+    } else if (format === 'tsv') {
+      const header = "STT\tHọ và tên\tTên bài tập trên trang\tĐề bài liên kết\tLink GitHub\tĐiểm số\tTrạng thái";
+      const rows = targetSubs.map((s, idx) => {
+        const matched = s.matchedTemplate ? `${s.matchedTemplate.session} - ${s.matchedTemplate.assignmentName}` : '';
+        const score = s.score || '';
+        const status = s.status === 'success' ? 'Đã chấm' : s.status === 'error' ? 'Lỗi' : s.status === 'grading' ? 'Đang chấm' : 'Chờ chấm';
+        return `${idx + 1}\t${s.studentName || ''}\t${s.exerciseName}\t${matched}\t${s.githubUrl}\t${score}\t${status}`;
+      });
+      text = [header, ...rows].join('\n');
+    } else if (format === 'markdown') {
+      const header = "| STT | Học viên | Bài tập trên trang | Đề liên kết | Link GitHub | Điểm |\n|---|---|---|---|---|---|";
+      const rows = targetSubs.map((s, idx) => {
+        const student = s.studentName ? s.studentName.replace(/\|/g, '-') : '-';
+        const exercise = s.exerciseName.replace(/\|/g, '-');
+        const matched = s.matchedTemplate ? `${s.matchedTemplate.session} - ${s.matchedTemplate.assignmentName}`.replace(/\|/g, '-') : '-';
+        const score = s.score !== null && s.score !== undefined ? `${s.score}` : '--';
+        return `| ${idx + 1} | ${student} | ${exercise} | ${matched} | [GitHub](${s.githubUrl}) | ${score} |`;
+      });
+      text = [header, ...rows].join('\n');
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      const formatNames: Record<string, string> = {
+        detailed: 'Báo cáo chi tiết',
+        simple: 'Link & Tên đề ngắn gọn',
+        tsv: 'Bảng tính Excel/Sheets (TSV)',
+        markdown: 'Bảng Markdown'
+      };
+      showToast(`Đã sao chép ${targetSubs.length} bài (${formatNames[format]}) vào Clipboard!`, "success");
+    }).catch(err => {
+      showToast("Lỗi sao chép vào bộ nhớ tạm: " + err.message, "error");
+    });
   };
 
   return {
@@ -409,6 +553,9 @@ export function useAutoGrader() {
     },
     toggleRowExpansion: (index: number) => setExpandedRows(prev => ({ ...prev, [index]: !prev[index] })),
     handleGradeSingleRow,
-    handleBulkGrading
+    handleBulkGrading,
+    handleCopySingleSubmission,
+    handleCopyReport
   };
 }
+

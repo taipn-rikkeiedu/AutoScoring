@@ -1,5 +1,6 @@
 import { circuitBreaker } from './circuitBreaker';
 import { rateLimiter, MIN_REQUEST_INTERVAL_MS } from './rateLimiter';
+import { API_BASE_URLS } from '~/src/services/api';
 
 export interface LmsSubmissionResponse {
   data?: any;
@@ -18,7 +19,7 @@ export interface LmsValidationResult {
   errors: string[];
 }
 
-const LMS_API_BASE = "https://apiportal.rikkei.edu.vn";
+const LMS_API_BASE = API_BASE_URLS.lmsPortal;
 
 export function validateParams(params: LmsApiParams): LmsValidationResult {
   const errors: string[] = [];

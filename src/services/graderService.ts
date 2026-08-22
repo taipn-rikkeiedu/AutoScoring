@@ -1,5 +1,4 @@
-import { GitHubService } from './githubService';
-import { AIService } from './aiService';
+import { FastApiClient } from '~/src/services/api';
 import { DEFAULT_CRITERIA, parseScore } from '~/src/core/utils';
 import { UI_MESSAGES } from '~/src/core/constants';
 import { AppConfig } from '~/src/types';
@@ -11,7 +10,9 @@ export interface GradingResult {
 }
 
 /**
- * Orchestrates downloading code from GitHub and grading it using AI.
+ * Điều phối chấm điểm bài tập:
+ * Frontend chỉ gọi API xuống Backend.
+ * Backend tự động tải mã nguồn GitHub, giải nén ZIP, phân tích AST, gọi AI và lưu CSDL.
  */
 export async function gradeSubmission(
   config: AppConfig,
@@ -21,33 +22,52 @@ export async function gradeSubmission(
   onStatusUpdate: ((status: string) => void) | null = null,
   onFilesDownloaded: ((fileList: string[]) => void) | null = null
 ): Promise<GradingResult> {
-  const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
-  const repoData = await github.getRepoContents(githubUrl, onStatusUpdate || (() => {}));
-
-  if (onFilesDownloaded) {
-    onFilesDownloaded(repoData.fileList);
-  }
-
   if (onStatusUpdate) {
-    onStatusUpdate("AI đang thực hiện chấm điểm...");
+    onStatusUpdate("Đang gửi yêu cầu tới FastAPI Server (Backend tự động tải GitHub, phân tích AST & chấm điểm)...");
   }
 
-  const ai = new AIService(config);
-  const report = await ai.generateGradingReport(
-    assignmentText,
-    criteriaText || DEFAULT_CRITERIA,
-    repoData.content,
-    onStatusUpdate
-  );
+  let backendProvider = "gemini";
+  const lowerModel = (config.aiModelName || "").toLowerCase();
+  if (lowerModel.startsWith("gpt") || lowerModel.startsWith("o1") || lowerModel.startsWith("chatgpt")) {
+    backendProvider = "openai";
+  } else if (lowerModel.startsWith("deepseek")) {
+    backendProvider = "deepseek";
+  } else {
+    backendProvider = "gemini";
+  }
 
-  const score = parseScore(report);
-  if (!score) {
-    throw new Error(UI_MESSAGES.common.invalidScoreResponse);
+  const serverUrl = config.fastApiServerUrl || config.aiApiUrl || undefined;
+  const serverKey = config.fastApiSecretKey || config.aiApiKey || undefined;
+
+  const result = await FastApiClient.gradeSubmission({
+    github_url: githubUrl,
+    github_token: config.githubToken || undefined,
+    ignore_items: config.graderIgnoreItems || undefined,
+    assignment_name: assignmentText,
+    criteria: criteriaText || DEFAULT_CRITERIA,
+    system_prompt: config.systemPrompt || undefined,
+    provider: backendProvider,
+    model_name: config.aiModelName || undefined,
+    save_to_supabase: true
+  }, serverUrl, serverKey);
+
+  if (onFilesDownloaded && result.file_list && result.file_list.length > 0) {
+    onFilesDownloaded(result.file_list);
+  }
+
+  let reportText = result.raw_markdown || result.summary_comment || "";
+  let scoreStr = result.total_score ? String(result.total_score) : null;
+
+  if (!scoreStr) {
+    scoreStr = parseScore(reportText);
+  }
+  if (!scoreStr) {
+    scoreStr = String(result.total_score || 0);
   }
 
   return {
-    score,
-    report,
-    fileList: repoData.fileList
+    score: scoreStr,
+    report: reportText,
+    fileList: result.file_list || []
   };
 }

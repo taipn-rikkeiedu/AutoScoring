@@ -3,6 +3,11 @@ import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
 import { SupabaseService } from '~/src/services/supabaseService';
 import { mergeScrapedFrameResults, DEFAULT_CRITERIA, extractCriteriaFromAssignment } from '~/src/core/utils';
+import {
+  exportSingleExerciseToMd,
+  formatExerciseToMarkdown,
+  copyMarkdownToClipboard
+} from '~/src/core/markdownExporter';
 
 export function useExerciseManager() {
   const { config, updateConfig, exerciseTemplates, reloadExercises } = useApp();
@@ -15,6 +20,7 @@ export function useExerciseManager() {
   const [criteriaText, setCriteriaText] = useState("");
   const [showDetail, setShowDetail] = useState(false);
 
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isScrapeModalOpen, setIsScrapeModalOpen] = useState(false);
   const [scrapeChapter, setScrapeChapter] = useState("");
   const [scrapeSession, setScrapeSession] = useState("");
@@ -177,6 +183,35 @@ export function useExerciseManager() {
     return !!localEdits[selectedChapter]?.[selectedSession]?.[selectedAssignment];
   };
 
+  const handleExportCurrentMd = () => {
+    if (!selectedChapter || !selectedSession || !selectedAssignment) {
+      showToast("Vui lòng chọn đề bài trước khi xuất.", "warning");
+      return;
+    }
+    exportSingleExerciseToMd(selectedChapter, selectedSession, selectedAssignment, promptText, criteriaText);
+    showToast(`Đã xuất đề bài '${selectedAssignment}' sang file .md!`, "success");
+  };
+
+  const handleCopyCurrentMd = async () => {
+    if (!selectedChapter || !selectedSession || !selectedAssignment) {
+      showToast("Vui lòng chọn đề bài trước khi sao chép.", "warning");
+      return;
+    }
+    const content = formatExerciseToMarkdown({
+      chapter: selectedChapter,
+      session: selectedSession,
+      assignmentName: selectedAssignment,
+      assignmentText: promptText,
+      criteriaText: criteriaText
+    });
+    const ok = await copyMarkdownToClipboard(content);
+    if (ok) {
+      showToast("Đã sao chép nội dung Markdown vào Clipboard!", "success");
+    } else {
+      showToast("Không thể sao chép vào Clipboard.", "error");
+    }
+  };
+
   return {
     selectedChapter,
     setSelectedChapter,
@@ -189,6 +224,8 @@ export function useExerciseManager() {
     criteriaText,
     setCriteriaText,
     showDetail,
+    isExportModalOpen,
+    setIsExportModalOpen,
     isScrapeModalOpen,
     setIsScrapeModalOpen,
     scrapeChapter,
@@ -205,6 +242,7 @@ export function useExerciseManager() {
     chapters,
     sessions,
     assignments,
+    exerciseTemplates,
     handleChapterChange,
     handleSessionChange,
     handleAssignmentChange,
@@ -212,6 +250,10 @@ export function useExerciseManager() {
     handleDeleteExercise,
     handleSaveDetail,
     handleConfirmScrapeSave,
-    isLocalDeletable
+    isLocalDeletable,
+    handleExportCurrentMd,
+    handleCopyCurrentMd,
+    showToast
   };
 }
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from '~/src/core/AppContext';
 import { ToastProvider } from '~/src/core/ToastContext';
+import { NavigationSidebar } from '~/src/components/NavigationSidebar';
 import { Header } from '~/src/components/Header';
 import { AutoGraderTab } from '~/src/components/AutoGraderTab';
 import { ClassListTab } from '~/src/components/ClassListTab';
@@ -9,23 +10,21 @@ import { ExercisesTab } from '~/src/components/ExercisesTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
 import { ShortcutsTab } from '~/src/components/ShortcutsTab';
 import { LmsApiTestTab } from '~/src/components/LmsApiTestTab';
-import { QuickAccessBar } from '~/src/components/QuickAccessBar';
 import { ReportModal } from '~/src/components/ReportModal';
 import { DriveScannerTab } from '~/src/components/DriveScannerTab';
 
 const UnsupportedPageWarning: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col justify-center items-center p-8 bg-slate-50 text-center select-none">
-      <div className="text-5xl mb-4 animate-bounce">🚀</div>
-      <h3 className="text-base font-bold text-slate-800 mb-2">Trang web không được hỗ trợ</h3>
-      <p className="text-xs text-slate-500 max-w-sm leading-relaxed mb-6">
-        Tiện ích REduX AutoScoring chỉ hoạt động trên hệ thống LMS Rikkei Education (<span className="font-semibold text-blue-600">rikkei.edu.vn</span>).
+      <h3 className="text-sm font-bold text-slate-800 mb-1.5">Trang web không thuộc LMS</h3>
+      <p className="text-xs text-slate-500 max-w-xs leading-relaxed mb-4">
+        Tính năng này cần hoạt động trên hệ thống đào tạo Rikkei Education (<span className="font-semibold text-blue-600">rikkei.edu.vn</span>).
       </p>
       <button
         onClick={() => {
           chrome.tabs.create({ url: "https://qldt.rikkei.edu.vn" });
         }}
-        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs font-bold rounded-lg shadow-md hover:shadow-lg transition-all duration-150 cursor-pointer"
+        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors cursor-pointer"
       >
         Mở QLDT Rikkei Education
       </button>
@@ -87,9 +86,9 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col justify-center items-center bg-slate-50 h-full w-full">
-        <div className="animate-spin rounded-full h-7 w-7 border-2 border-blue-600 border-t-transparent mb-2.5"></div>
-        <span className="text-xs font-bold text-slate-400 animate-pulse">Đang khởi động REduX...</span>
+      <div className="flex-1 flex flex-col justify-center items-center bg-slate-900 text-white h-full w-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-3 border-blue-500 border-t-transparent mb-3"></div>
+        <span className="text-xs font-bold text-slate-300 animate-pulse">Đang khởi động REduX AutoScoring...</span>
       </div>
     );
   }
@@ -97,27 +96,33 @@ const AppContent: React.FC = () => {
   const isLmsPage = activeTabUrl.includes('rikkei.edu.vn') || activeTabUrl.includes('localhost') || activeTabUrl.includes('127.0.0.1');
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-50 select-none overflow-hidden">
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
-      <QuickAccessBar />
-      
-      <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
-        {!isLmsPage && ["tab-auto", "tab-class-list", "tab-care", "tab-exercises", "tab-lms-api"].includes(activeTab) ? (
-          <UnsupportedPageWarning />
-        ) : (
-          <>
-            {activeTab === "tab-auto" && <AutoGraderTab />}
-            {activeTab === "tab-class-list" && <ClassListTab setActiveTab={setActiveTab} />}
-            {activeTab === "tab-care" && <CareTab />}
-            {activeTab === "tab-exercises" && <ExercisesTab />}
-            {activeTab === "tab-shortcuts" && <ShortcutsTab />}
-            {activeTab === "tab-lms-api" && <LmsApiTestTab />}
-            {activeTab === "tab-drive-scanner" && <DriveScannerTab />}
-            {activeTab === "tab-settings" && <SettingsTab />}
-          </>
-        )}
+    <div className="flex h-full w-full bg-slate-50 select-none overflow-hidden font-sans">
+      {/* Modern Navigation Sidebar */}
+      <NavigationSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-slate-50 overflow-hidden">
+        <Header activeTab={activeTab} />
+        
+        <main className="flex-1 overflow-hidden flex flex-col bg-slate-50">
+          {!isLmsPage && ["tab-auto", "tab-class-list", "tab-care", "tab-exercises", "tab-lms-api"].includes(activeTab) ? (
+            <UnsupportedPageWarning />
+          ) : (
+            <>
+              {activeTab === "tab-auto" && <AutoGraderTab />}
+              {activeTab === "tab-class-list" && <ClassListTab setActiveTab={setActiveTab} />}
+              {activeTab === "tab-care" && <CareTab />}
+              {activeTab === "tab-exercises" && <ExercisesTab />}
+              {activeTab === "tab-shortcuts" && <ShortcutsTab />}
+              {activeTab === "tab-lms-api" && <LmsApiTestTab />}
+              {activeTab === "tab-drive-scanner" && <DriveScannerTab />}
+              {activeTab === "tab-settings" && <SettingsTab />}
+            </>
+          )}
+        </main>
       </div>
 
+      {/* Modal View */}
       <ReportModal
         isOpen={reportModalData.isOpen}
         onClose={() => setReportModalData(prev => ({ ...prev, isOpen: false }))}
