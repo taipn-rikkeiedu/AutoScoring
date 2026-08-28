@@ -4,6 +4,15 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [4.18.3] - 2026-08-28
+
+### 🔧 Mặc Định Backend Chuyển Về Local
+- **Backend Modal đã ngưng hoạt động**: Đổi URL mặc định của `fastapi_server` từ Modal sang `http://localhost:8000`, để extension hoạt động ngay khi người dùng tự chạy backend cục bộ (`start_backend.bat`/`start_backend.ps1`).
+- **Sửa lỗi ô nhập URL/Secret Key trong Cài đặt không có tác dụng**: Trước đây ô "Backend Server URL"/"Secret Key" trong tab AI & Kết nối ghi nhầm vào field `aiApiUrl`/`aiApiKey`, trong khi luồng kết nối thực tế lại ưu tiên đọc field `fastApiServerUrl`/`fastApiSecretKey` — khiến giá trị người dùng nhập vào không được áp dụng. Giờ cả hai field đã đồng bộ.
+- **Xóa logic tự động ép URL về Modal**: Trước đây nếu `fastApiServerUrl` chứa `localhost:8000`, hệ thống tự động ghi đè về URL Modal — logic này không còn phù hợp và đã được gỡ bỏ.
+
+---
+
 ## [4.18.2] - 2026-08-28
 
 ### 🐛 Thông Báo Lỗi Xác Thực Backend

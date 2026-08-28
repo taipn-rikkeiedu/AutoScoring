@@ -5,7 +5,7 @@
  */
 
 export const API_BASE_URLS = {
-  fastApi: "https://taipn-rikkeiedu--redux-ai-backend-fastapi-app.modal.run",
+  fastApi: "http://localhost:8000",
   fastApiPrefix: "/api/v1",
   gemini: "https://generativelanguage.googleapis.com/v1beta",
   openAi: "https://api.openai.com/v1",

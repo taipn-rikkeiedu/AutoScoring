@@ -324,9 +324,10 @@ export function useSettings() {
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const provider = e.target.value;
     setAiProvider(provider);
-    
+
     let defaultModel = aiModelName;
     let nextApiUrl = aiApiUrl;
+    let nextFastApiServerUrl = fastApiServerUrl;
     if (provider === "gemini") {
       defaultModel = AI_DEFAULTS.geminiModel;
     } else if (provider === "openai") {
@@ -339,9 +340,9 @@ export function useSettings() {
       defaultModel = AI_DEFAULTS.localModel;
     } else if (provider === "fastapi_server") {
       defaultModel = AI_DEFAULTS.fastApiModel || "gemini-2.5-flash";
-      if (!nextApiUrl || !nextApiUrl.trim()) {
-        nextApiUrl = "http://localhost:8000";
-        setAiApiUrl("http://localhost:8000");
+      if (!nextFastApiServerUrl || !nextFastApiServerUrl.trim()) {
+        nextFastApiServerUrl = "http://localhost:8000";
+        setFastApiServerUrl(nextFastApiServerUrl);
       }
     }
     setAiModelName(defaultModel);
@@ -349,7 +350,8 @@ export function useSettings() {
     updateConfig({
       aiProvider: provider,
       aiModelName: defaultModel,
-      aiApiUrl: nextApiUrl
+      aiApiUrl: nextApiUrl,
+      fastApiServerUrl: nextFastApiServerUrl
     }).then(() => {
       showToast("Đã cập nhật AI Provider!", "success");
     });

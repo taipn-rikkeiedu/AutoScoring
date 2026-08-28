@@ -29,7 +29,7 @@ export const defaultConfig: AppConfig = {
   supabaseAnonKey: "",
   supabasePat: "",
   googleApiKey: "",
-  fastApiServerUrl: "https://taipn-rikkeiedu--redux-ai-backend-fastapi-app.modal.run",
+  fastApiServerUrl: "http://localhost:8000",
   fastApiSecretKey: ""
 };
 
@@ -99,12 +99,7 @@ export function useAppInitializer() {
         ]);
       }
 
-      // Tự động cập nhật URL Backend sang Modal nếu đang là localhost:8000 hoặc rỗng
-      let resolvedServerUrl = stored[STORAGE_KEYS.fastApiServerUrl];
-      if (!resolvedServerUrl || resolvedServerUrl.includes("localhost:8000")) {
-        resolvedServerUrl = "https://taipn-rikkeiedu--redux-ai-backend-fastapi-app.modal.run";
-        chrome.storage.local.set({ [STORAGE_KEYS.fastApiServerUrl]: resolvedServerUrl });
-      }
+      const resolvedServerUrl = stored[STORAGE_KEYS.fastApiServerUrl] || defaultConfig.fastApiServerUrl;
 
       const mergedConfig: AppConfig = {
         aiProvider: stored[STORAGE_KEYS.aiProvider] || defaultConfig.aiProvider,
