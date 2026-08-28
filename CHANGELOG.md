@@ -4,6 +4,14 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [4.18.1] - 2026-08-28
+
+### ⚡ Hiệu Năng Kết Nối Backend
+- **Warm-up định kỳ cho Backend Modal**: `background.ts` ping `/health` mỗi 4 phút (kèm lúc cài đặt/khởi động trình duyệt) để giữ container Modal serverless luôn "ấm", giảm thời gian chờ cold start khi người dùng mở popup.
+- **Timeout cho các request khởi tạo**: `checkHealth` và `pullExercises` giới hạn thời gian chờ 10s bằng `AbortController`, tránh treo UI vô thời hạn khi backend không phản hồi.
+
+---
+
 ## [4.18.0] - 2026-08-22
 
 ### 🎨 Giao Diện Mới (Tri-Color Modern Theme)

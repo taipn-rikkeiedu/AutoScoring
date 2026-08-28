@@ -142,6 +142,27 @@ export class FastApiClient {
   }
 
   /**
+   * Timeout mặc định cho các request gọi lúc khởi tạo popup (health check, tải đề bài),
+   * để tránh treo UI vô thời hạn khi backend Modal đang cold start hoặc mạng lỗi.
+   */
+  private static readonly INIT_REQUEST_TIMEOUT_MS = 10000;
+
+  private static async fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        throw new Error(`Hết thời gian chờ phản hồi từ Server (quá ${timeoutMs / 1000}s).`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
    * Kiểm tra trạng thái hoạt động của FastAPI Server
    */
   static async checkHealth(baseUrl?: string, apiKey?: string): Promise<FastApiHealthResponse> {
@@ -149,14 +170,14 @@ export class FastApiClient {
     const headers = this.buildHeaders(apiKey);
 
     try {
-      const res = await fetch(url, { headers });
+      const res = await this.fetchWithTimeout(url, { headers }, this.INIT_REQUEST_TIMEOUT_MS);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData?.error || errData?.detail || `FastAPI Server trả về lỗi (HTTP ${res.status})`);
       }
       return await res.json();
     } catch (err: any) {
-      if (err.message && (err.message.includes("FastAPI Server") || err.message.includes("HTTP"))) {
+      if (err.message && (err.message.includes("FastAPI Server") || err.message.includes("HTTP") || err.message.includes("Hết thời gian chờ"))) {
         throw err;
       }
       const host = normalizeBaseUrl(baseUrl);
@@ -309,7 +330,7 @@ export class FastApiClient {
     const url = FASTAPI_ENDPOINTS.exercises(baseUrl);
     const headers = this.buildHeaders(apiKey);
 
-    const res = await fetch(url, { headers });
+    const res = await this.fetchWithTimeout(url, { headers }, this.INIT_REQUEST_TIMEOUT_MS);
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData?.error || errData?.detail || `Lỗi tải ngân hàng đề bài (HTTP ${res.status})`);
