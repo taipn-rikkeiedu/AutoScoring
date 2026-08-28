@@ -65,7 +65,12 @@ export function useSettings() {
       );
       if (models && models.length > 0) {
         setProviderModels(models);
-        logger.info("SETTINGS", `Đã tự động tải ${models.length} model hợp lệ trực tiếp từ API của [${aiProvider}].`);
+        if ((models as any).authError) {
+          logger.warn("SETTINGS", `Backend từ chối xác thực khi tải danh sách model [${aiProvider}] (401). Đang dùng danh sách mặc định.`);
+          showToast("Backend từ chối xác thực (401). Kiểm tra lại Backend Secret Key trong Cài đặt.", "error", 6000);
+        } else {
+          logger.info("SETTINGS", `Đã tự động tải ${models.length} model hợp lệ trực tiếp từ API của [${aiProvider}].`);
+        }
         // Nếu model hiện tại chưa được chọn hoặc rỗng, tự động chọn model đầu tiên
         if (!aiModelName || !models.some(m => m.value === aiModelName)) {
           setAiModelName(models[0].value);

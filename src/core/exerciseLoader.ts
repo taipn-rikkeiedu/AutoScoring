@@ -1,10 +1,11 @@
-﻿import { SupabaseService } from '~/src/services/supabaseService';
+import { SupabaseService } from '~/src/services/supabaseService';
 import { AppConfig } from '~/src/types';
 import { UI_MESSAGES } from './constants';
+import { logger } from './logger';
 
-export async function loadExercises(config: AppConfig): Promise<{ templates: Record<string, Record<string, Record<string, { assignment: string; criteria: string }>>>; statusText: string }> {
+export async function loadExercises(config: AppConfig): Promise<{ templates: Record<string, Record<string, Record<string, { assignment: string; criteria: string }>>>; statusText: string; syncError?: string }> {
   const res = await fetch(chrome.runtime.getURL("exercises.json"));
-  if (!res.ok) throw new Error("KhÃ´ng tÃ¬m tháº¥y file exercises.json trong extension.");
+  if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
   const templates = await res.json();
 
   if (config.uploadedExercises) {
@@ -21,6 +22,7 @@ export async function loadExercises(config: AppConfig): Promise<{ templates: Rec
   }
 
   let statusText: string = UI_MESSAGES.statuses.supabaseInactive;
+  let syncError: string | undefined;
   if (SupabaseService.isEnabled(config)) {
     try {
       const cloudExercises = await SupabaseService.pullExercises(config);
@@ -38,10 +40,11 @@ export async function loadExercises(config: AppConfig): Promise<{ templates: Rec
           };
         });
       }
-    } catch (exErr) {
-      console.error("Lá»—i Ä‘á»“ng bá»™ Ä‘á» bÃ i tá»« Supabase:", exErr);
+    } catch (exErr: any) {
+      logger.error("EXERCISE_LOADER", "Lỗi đồng bộ đề bài từ Backend.", exErr.message || exErr);
       statusText = UI_MESSAGES.statuses.supabaseDbError;
+      syncError = exErr.message || String(exErr);
     }
   }
-  return { templates, statusText };
+  return { templates, statusText, syncError };
 }

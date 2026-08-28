@@ -2,7 +2,7 @@ import { API_BASE_URLS } from '../services/api/endpoints';
 
 export const APP_INFO = {
   name: "REduX",
-  version: "4.18.1",
+  version: "4.18.2",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 

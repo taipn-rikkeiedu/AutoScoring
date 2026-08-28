@@ -4,6 +4,14 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [4.18.2] - 2026-08-28
+
+### 🐛 Thông Báo Lỗi Xác Thực Backend
+- **Hiển thị Toast khi lỗi 401**: Trước đây lỗi xác thực (`x-api-key`/Bearer sai hoặc thiếu) khi tải danh sách đề bài, kiểm tra kết nối AI, hoặc tải danh sách model chỉ được log ra console — người dùng không biết vì sao dữ liệu không tải được. Giờ hiển thị Toast lỗi rõ ràng ngay trên popup, kèm gợi ý kiểm tra lại Backend Secret Key trong Cài đặt.
+- **Sửa lỗi nuốt exception ở tầng Service**: `SupabaseService.pullExercises` trước đây nuốt lỗi và trả về danh sách rỗng, khiến trạng thái đồng bộ hiển thị "Sẵn sàng" dù thực chất backend đã từ chối request; giờ lỗi được truyền đúng lên tầng gọi để hiển thị chính xác.
+
+---
+
 ## [4.18.1] - 2026-08-28
 
 ### ⚡ Hiệu Năng Kết Nối Backend

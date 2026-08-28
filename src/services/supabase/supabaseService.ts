@@ -116,7 +116,7 @@ export class SupabaseService {
       return await FastApiClient.pullExercises(url, key);
     } catch (e: any) {
       logger.error("SUPABASE", "Lỗi tải danh sách đề bài qua Backend API.", e.message || e);
-      return [];
+      throw e;
     }
   }
 

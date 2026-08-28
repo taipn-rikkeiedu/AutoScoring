@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AppConfig, Student, CareStudent, Submission } from '~/src/types';
 import { loadExercises } from '../exerciseLoader';
 import { testConnection } from '~/src/services/connectionTester';
 import { getClassStudents } from '../classStudentStorage';
 import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS, STORAGE_KEYS, UI_MESSAGES } from '../constants';
 import { logger } from '../logger';
+import { useToast } from '../ToastContext';
+
+const isAuthError = (message?: string): boolean =>
+  !!message && (message.includes("Khóa xác thực API") || message.includes("HTTP 401") || message.includes("(HTTP 401)"));
 
 const defaultIgnoreItems = [...GRADER_IGNORE_DEFAULTS];
 
@@ -30,6 +34,7 @@ export const defaultConfig: AppConfig = {
 };
 
 export function useAppInitializer() {
+  const { showToast } = useToast();
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
   const [exerciseTemplates, setExerciseTemplates] = useState<any>({});
   const [supabaseStatus, setSupabaseStatus] = useState<string>(UI_MESSAGES.statuses.supabaseInactive);
@@ -41,6 +46,15 @@ export function useAppInitializer() {
   const [activeStudentTransition, setActiveStudentTransition] = useState<any>(null);
   const [currentTabUrl, setCurrentTabUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Tránh spam nhiều Toast giống nhau khi reloadExercises() chạy lặp lại (đổi tab, đổi config...).
+  const lastAuthToastAtRef = useRef<number>(0);
+
+  const notifyAuthErrorOnce = (message: string) => {
+    const now = Date.now();
+    if (now - lastAuthToastAtRef.current < 15000) return;
+    lastAuthToastAtRef.current = now;
+    showToast(message, "error", 6000);
+  };
 
   useEffect(() => {
     // Clean expired cache (older than 24h)
@@ -172,19 +186,31 @@ export function useAppInitializer() {
     } catch (err: any) {
       setAiStatus("error");
       logger.error("AI_SERVICE", `Kết nối AI Provider [${cfg.aiProvider}] thất bại.`, err.message);
+      if (isAuthError(err.message)) {
+        notifyAuthErrorOnce("Backend từ chối xác thực (401). Kiểm tra lại Backend Secret Key trong Cài đặt.");
+      }
     }
   };
 
   const loadTemplates = async (cfg: AppConfig) => {
     logger.info("EXERCISE_LOADER", "Bắt đầu tải danh sách đề bài mẫu.");
     try {
-      const { templates, statusText } = await loadExercises(cfg);
+      const { templates, statusText, syncError } = await loadExercises(cfg);
       setExerciseTemplates(templates);
       setSupabaseStatus(statusText);
-      logger.success("EXERCISE_LOADER", `Tải danh sách đề bài thành công: ${statusText}`);
+      if (syncError) {
+        if (isAuthError(syncError)) {
+          notifyAuthErrorOnce("Backend từ chối xác thực (401). Kiểm tra lại Backend Secret Key trong Cài đặt.");
+        }
+      } else {
+        logger.success("EXERCISE_LOADER", `Tải danh sách đề bài thành công: ${statusText}`);
+      }
     } catch (err: any) {
       setSupabaseStatus(UI_MESSAGES.statuses.exerciseLoadError);
       logger.error("EXERCISE_LOADER", "Không thể tải danh sách đề bài.", err.message);
+      if (isAuthError(err.message)) {
+        notifyAuthErrorOnce("Backend từ chối xác thực (401). Kiểm tra lại Backend Secret Key trong Cài đặt.");
+      }
     }
   };
 
