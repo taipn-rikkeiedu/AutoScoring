@@ -24,10 +24,6 @@ export const SettingsTab: React.FC = () => {
     setAiApiKey,
     aiUrl,
     setAiUrl,
-    fastApiServerUrl,
-    setFastApiServerUrl,
-    fastApiSecretKey,
-    setFastApiSecretKey,
     aiModelName,
     setAiModelName,
     githubToken,
@@ -53,12 +49,32 @@ export const SettingsTab: React.FC = () => {
     handleDownloadLogsZip,
     cacheCount,
     handleClearCodeCache,
-    loadCacheStats
+    loadCacheStats,
+    supabaseSyncEnabled,
+    setSupabaseSyncEnabled,
+    supabaseUrl,
+    setSupabaseUrl,
+    supabaseAnonKey,
+    setSupabaseAnonKey,
+    exerciseSource,
+    setExerciseSource,
+    exerciseApiUrl,
+    setExerciseApiUrl,
+    exerciseApiToken,
+    setExerciseApiToken,
+    supabasePat,
+    setSupabasePat,
+    dbInitialized,
+    isMigrating,
+    handleMigrateDatabase,
+    verifyDatabaseSchema
   } = useSettings();
 
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('ai');
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
+  const [showAnonKey, setShowAnonKey] = useState(false);
+  const [showPat, setShowPat] = useState(false);
 
   useEffect(() => {
     if (activeSubTab === 'logs') {
@@ -153,7 +169,6 @@ export const SettingsTab: React.FC = () => {
                   onChange={handleProviderChange}
                   className="w-full text-xs font-semibold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer transition-all"
                 >
-                  <option value="fastapi_server">🚀 REduX AI Backend Server (Khuyên dùng - Client/Server)</option>
                   <option value="gemini">💎 Google Gemini (GenAI API Direct)</option>
                   <option value="claude">🧠 Anthropic Claude (Direct API)</option>
                   <option value="openai">⚡ OpenAI (GPT-4o, o1 Direct)</option>
@@ -164,43 +179,7 @@ export const SettingsTab: React.FC = () => {
                 </select>
               </div>
 
-              {/* Dynamic Connection Inputs */}
-              {aiProvider === 'fastapi_server' && (
-                <div className="grid grid-cols-2 gap-3 pt-0.5">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-600">Backend Server URL</label>
-                    <input
-                      type="text"
-                      value={fastApiServerUrl}
-                      onChange={(e) => setFastApiServerUrl(e.target.value)}
-                      placeholder="http://localhost:8000 hoặc https://...modal.run"
-                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-600">Secret Key (x-api-key)</label>
-                    <div className="relative">
-                      <input
-                        type={showApiKey ? "text" : "password"}
-                        value={fastApiSecretKey}
-                        onChange={(e) => setFastApiSecretKey(e.target.value)}
-                        placeholder="SERVER_SECRET_KEY..."
-                        className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 pl-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                        title={showApiKey ? "Ẩn mã bí mật" : "Hiện mã bí mật"}
-                      >
-                        {showApiKey ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {aiProvider !== 'fastapi_server' && aiProvider !== 'local' && (
+              {aiProvider !== 'local' && (
                 <div className="flex flex-col gap-1 pt-0.5">
                   <label className="text-[11px] font-semibold text-slate-600">API Key</label>
                   <div className="relative">
@@ -325,6 +304,112 @@ export const SettingsTab: React.FC = () => {
               </div>
             </div>
 
+            {/* Supabase Cloud Sync Card */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-800">Đồng bộ Cloud (Supabase)</h3>
+                  <p className="text-[10px] text-slate-500">Lưu điểm, ghi chú & đề bài lên Supabase của bạn (tùy chọn)</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSupabaseSyncEnabled(!supabaseSyncEnabled)}
+                  className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
+                    supabaseSyncEnabled ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-xs transition-transform ${
+                      supabaseSyncEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {supabaseSyncEnabled && (
+                <div className="grid grid-cols-2 gap-3 pt-0.5">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-slate-600">Supabase Project URL</label>
+                    <input
+                      type="text"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://xxxx.supabase.co"
+                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-slate-600">Anon Public Key</label>
+                    <div className="relative">
+                      <input
+                        type={showAnonKey ? "text" : "password"}
+                        value={supabaseAnonKey}
+                        onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                        placeholder="eyJhbGciOi..."
+                        className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 pl-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAnonKey(!showAnonKey)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                        title={showAnonKey ? "Ẩn Anon Key" : "Hiện Anon Key"}
+                      >
+                        {showAnonKey ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {supabaseSyncEnabled && (
+                <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-slate-100">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-semibold text-slate-600">Personal Access Token (Tùy chọn cho Zero Setup)</label>
+                    <div className="relative">
+                      <input
+                        type={showPat ? "text" : "password"}
+                        value={supabasePat}
+                        onChange={(e) => setSupabasePat(e.target.value)}
+                        placeholder="sbp_xxxxxxxxxxxx"
+                        className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 pl-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPat(!showPat)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                        title={showPat ? "Ẩn PAT" : "Hiện PAT"}
+                      >
+                        {showPat ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-2.5 rounded-lg mt-1">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-bold text-slate-700">Trạng thái Cơ sở dữ liệu:</span>
+                      <span className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${dbInitialized ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {dbInitialized === null ? (
+                          <><span>⏳</span> Đang kiểm tra...</>
+                        ) : dbInitialized ? (
+                          <><span>🟢</span> Đã khởi tạo bảng thành công</>
+                        ) : (
+                          <><span>🟡</span> Chưa tạo bảng (hoặc lỗi kết nối)</>
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleMigrateDatabase}
+                      disabled={isMigrating || dbInitialized === true}
+                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer border border-indigo-200 flex items-center gap-1.5"
+                    >
+                      {isMigrating && <RefreshIcon className="w-3.5 h-3.5 animate-spin" />}
+                      <span>{isMigrating ? "Đang tạo DB..." : dbInitialized ? "Đã Setup" : "Khởi tạo DB (Zero Setup)"}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Test Connection Action Button */}
             <div className="pt-1 flex justify-end">
               <button
@@ -343,6 +428,48 @@ export const SettingsTab: React.FC = () => {
         {/* ================= TAB 2: BAREM & QUY TẮC ================= */}
         {activeSubTab === 'rules' && (
           <div className="space-y-3 max-w-2xl mx-auto">
+            {/* Exercise Source Card */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3.5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span>Nguồn Ngân Hàng Bài Tập</span>
+                </label>
+                <select
+                  value={exerciseSource}
+                  onChange={(e) => setExerciseSource(e.target.value)}
+                  className="w-full text-xs font-semibold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer transition-all"
+                >
+                  <option value="local">📁 Local (Mặc định - exercises.json)</option>
+                  <option value="api">🌐 API Server (Tải từ máy chủ từ xa)</option>
+                </select>
+              </div>
+
+              {exerciseSource === 'api' && (
+                <>
+                  <div className="flex flex-col gap-1 pt-0.5">
+                    <label className="text-[11px] font-semibold text-slate-600">Exercise API URL</label>
+                    <input
+                      type="text"
+                      value={exerciseApiUrl}
+                      onChange={(e) => setExerciseApiUrl(e.target.value)}
+                      placeholder="https://api.example.com/exercises"
+                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 pt-0.5">
+                    <label className="text-[11px] font-semibold text-slate-600">API Token (Tùy chọn)</label>
+                    <input
+                      type="text"
+                      value={exerciseApiToken}
+                      onChange={(e) => setExerciseApiToken(e.target.value)}
+                      placeholder="Bearer token..."
+                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* .graderignore Chip/Tag Selector */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between">
