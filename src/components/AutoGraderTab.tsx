@@ -100,10 +100,12 @@ export const AutoGraderTab: React.FC = () => {
             {isCopied ? "✓ Đã chép" : `${sub.score || '--'} / 100`}
           </button>
           <button
-            onClick={() => (window as any).showReportModal?.({ 
-              title: `Báo cáo: ${sub.studentName} - ${sub.exerciseName}`, 
-              score: sub.score, 
-              report: sub.report || "" 
+            onClick={() => (window as any).showReportModal?.({
+              title: `Báo cáo: ${sub.studentName} - ${sub.exerciseName}`,
+              score: sub.score,
+              report: sub.report || "",
+              language: sub.language,
+              astMetrics: sub.astMetrics
             })}
             className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-pointer"
             title="Xem chi tiết toàn bộ báo cáo"

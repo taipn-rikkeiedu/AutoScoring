@@ -41,6 +41,8 @@ const AppContent: React.FC = () => {
     title: string;
     score: string | null;
     report: string;
+    language?: string;
+    astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics;
   }>({
     isOpen: false,
     title: "",
@@ -50,12 +52,14 @@ const AppContent: React.FC = () => {
 
   // Attach report modal trigger to window for legacy support from other contexts
   useEffect(() => {
-    (window as any).showReportModal = (data: { title: string; score: string | null; report: string }) => {
+    (window as any).showReportModal = (data: { title: string; score: string | null; report: string; language?: string; astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics }) => {
       setReportModalData({
         isOpen: true,
         title: data.title,
         score: data.score,
-        report: data.report
+        report: data.report,
+        language: data.language,
+        astMetrics: data.astMetrics
       });
     };
     return () => {
@@ -129,6 +133,8 @@ const AppContent: React.FC = () => {
         title={reportModalData.title}
         score={reportModalData.score}
         report={reportModalData.report}
+        language={reportModalData.language}
+        astMetrics={reportModalData.astMetrics}
       />
     </div>
   );

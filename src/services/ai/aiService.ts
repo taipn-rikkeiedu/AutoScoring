@@ -1,56 +1,66 @@
 import { GRADING_TEXT } from '~/src/core/constants';
 import { AppConfig } from '~/src/types';
-import { FastApiClient, AiClient, API_BASE_URLS } from '~/src/services/api';
+import { AiClient, API_BASE_URLS } from '~/src/services/api';
+import { analyzeCode, buildAstSummary } from '~/src/services/codeAnalysis';
+
+/** Nén code trước khi đưa vào prompt: gộp các dòng trắng liên tiếp thành 1 dòng. */
+export function compressCode(codeContent: string): string {
+  const lines = codeContent.split('\n');
+  const compressed: string[] = [];
+  let prevBlank = false;
+
+  for (const line of lines) {
+    const stripped = line.trim();
+    if (!stripped) {
+      if (!prevBlank) compressed.push("");
+      prevBlank = true;
+    } else {
+      prevBlank = false;
+      compressed.push(line.trimEnd());
+    }
+  }
+  return compressed.join('\n');
+}
+
+/** Build prompt chấm điểm dùng chung cho mọi luồng BYOK (single/bulk grading). */
+export function buildGradingPrompt(
+  systemPrompt: string,
+  assignment: string,
+  criteria: string,
+  codeContent: string
+): string {
+  const compressed = compressCode(codeContent);
+  const { language, metrics } = analyzeCode(compressed);
+  const astSummary = buildAstSummary(language, metrics);
+
+  const template = systemPrompt && systemPrompt.trim().length > 0
+    ? systemPrompt
+    : GRADING_TEXT.defaultSystemPrompt;
+
+  return template
+    .replace("{{assignment}}", assignment)
+    .replace("{{criteria}}", criteria)
+    .replace("{{ast_summary}}", astSummary)
+    .replace("{{code}}", compressed);
+}
 
 export class AIService {
   private provider: string;
   private apiKey: string;
   private apiUrl: string;
-  private fastApiServerUrl: string;
-  private fastApiSecretKey: string;
   private modelName: string;
   private systemPrompt: string;
-  private googleApiKey: string;
 
   constructor(config: AppConfig) {
     this.provider = config.aiProvider;
     this.apiKey = config.aiApiKey;
     this.apiUrl = config.aiApiUrl;
-    this.fastApiServerUrl = config.fastApiServerUrl || config.aiApiUrl;
-    this.fastApiSecretKey = config.fastApiSecretKey || config.aiApiKey;
     this.modelName = config.aiModelName;
     this.systemPrompt = config.systemPrompt;
-    this.googleApiKey = config.googleApiKey || "";
-  }
-
-  private compressCode(codeContent: string): string {
-    const lines = codeContent.split('\n');
-    const compressed: string[] = [];
-    let prevBlank = false;
-    
-    for (const line of lines) {
-      const stripped = line.trim();
-      if (!stripped) {
-        if (!prevBlank) compressed.push("");
-        prevBlank = true;
-      } else {
-        prevBlank = false;
-        compressed.push(line.trimEnd());
-      }
-    }
-    return compressed.join('\n');
   }
 
   private buildPrompt(assignment: string, criteria: string, codeContent: string): string {
-    const compressed = this.compressCode(codeContent);
-    const template = this.systemPrompt && this.systemPrompt.trim().length > 0
-      ? this.systemPrompt
-      : GRADING_TEXT.defaultSystemPrompt;
-
-    return template
-      .replace("{{assignment}}", assignment)
-      .replace("{{criteria}}", criteria)
-      .replace("{{code}}", compressed);
+    return buildGradingPrompt(this.systemPrompt, assignment, criteria, codeContent);
   }
 
   async generateGradingReport(
@@ -77,48 +87,6 @@ export class AIService {
           else if (this.provider === "openrouter") baseUrl = API_BASE_URLS.openRouter;
           
           return await AiClient.generateOpenAiCompatible(prompt, this.modelName, baseUrl, this.apiKey);
-        }
-
-        if (this.provider === "fastapi_server") {
-          let backendProvider = "gemini";
-          const lowerModel = (this.modelName || "").toLowerCase();
-          if (lowerModel.startsWith("gpt") || lowerModel.startsWith("o1") || lowerModel.startsWith("chatgpt")) {
-            backendProvider = "openai";
-          } else if (lowerModel.startsWith("deepseek")) {
-            backendProvider = "deepseek";
-          } else {
-            backendProvider = "gemini";
-          }
-
-          if (onStatusUpdate) onStatusUpdate("Đang gửi bài nộp tới REduX FastAPI Server để phân tích AST & chấm điểm...");
-
-          // Nếu chưa cấu hình system prompt riêng, dùng prompt ngắn gọn mặc định của
-          // extension thay vì để trống — để trống sẽ khiến backend rơi về prompt JSON
-          // chi tiết (DEFAULT_SYSTEM_PROMPT) vốn khiến Gemini mất nhiều thời gian suy luận hơn.
-          const effectiveSystemPrompt = this.systemPrompt && this.systemPrompt.trim().length > 0
-            ? this.systemPrompt
-            : GRADING_TEXT.defaultSystemPrompt;
-
-          const data = await FastApiClient.gradeSubmission({
-            assignment_name: assignment,
-            criteria: criteria,
-            code_content: codeContent,
-            system_prompt: effectiveSystemPrompt,
-            provider: backendProvider,
-            model_name: this.modelName || undefined,
-            api_key: this.googleApiKey ? this.googleApiKey.trim() : undefined
-          }, this.fastApiServerUrl, this.fastApiSecretKey);
-
-          if (data.raw_markdown) return data.raw_markdown;
-          if (data.summary_comment) {
-            let output = data.summary_comment;
-            if (data.criteria_details && data.criteria_details.length > 0) {
-              output += "\n\n### Tiêu chí chi tiết:\n" + data.criteria_details.map((c: any) => `- ${c.passed ? '✅' : '❌'} **${c.name}** (${c.score}/${c.max_score}đ): ${c.comment}`).join('\n');
-            }
-            output += `\n\nTổng điểm: ${data.total_score}/100`;
-            return output;
-          }
-          throw new Error("Phản hồi từ FastAPI Server rỗng.");
         }
 
         if (this.provider === "local") {

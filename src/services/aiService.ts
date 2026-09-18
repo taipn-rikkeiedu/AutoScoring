@@ -1,1 +1,1 @@
-export { AIService } from './ai/aiService';
+export { AIService, buildGradingPrompt, compressCode } from './ai/aiService';

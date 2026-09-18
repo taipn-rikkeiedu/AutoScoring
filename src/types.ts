@@ -15,8 +15,6 @@ export interface AppConfig {
   supabaseAnonKey: string;
   supabasePat: string;
   googleApiKey: string;
-  fastApiServerUrl?: string;
-  fastApiSecretKey?: string;
 }
 
 export interface Student {
@@ -57,6 +55,8 @@ export interface Submission {
   isGraderCompleted?: boolean;
   isGraderSuccess?: boolean;
   fileList?: string[];
+  language?: string;
+  astMetrics?: import('./services/codeAnalysis').ASTMetrics;
   checked?: boolean;
   matchedTemplate?: {
     chapter: string;

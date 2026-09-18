@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { useToast } from '~/src/core/ToastContext';
+import { AstMetricsPanel } from '~/src/components/AstMetricsPanel';
+import { ASTMetrics } from '~/src/services/codeAnalysis';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -9,9 +11,11 @@ interface ReportModalProps {
   title: string;
   score: string | null;
   report: string;
+  language?: string;
+  astMetrics?: ASTMetrics;
 }
 
-export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title, score, report }) => {
+export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title, score, report, language, astMetrics }) => {
   const [isCopied, setIsCopied] = useState(false);
   const { showToast } = useToast();
 
@@ -100,7 +104,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-4 overflow-y-auto bg-slate-50/50">
+        <div className="flex-1 p-4 overflow-y-auto bg-slate-50/50 flex flex-col gap-3">
+          <AstMetricsPanel language={language} metrics={astMetrics} />
           {report ? (
             <div
               className="prose prose-sm max-w-none text-slate-700 leading-relaxed text-xs 

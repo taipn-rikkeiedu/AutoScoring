@@ -8,7 +8,8 @@ import { getClassStudents, saveClassStudents } from '~/src/core/classStudentStor
 import { Submission } from '~/src/types';
 import { gradeSubmission } from '~/src/services/graderService';
 import { GitHubService } from '~/src/services/githubService';
-import { AIService } from '~/src/services/aiService';
+import { AIService, compressCode } from '~/src/services/aiService';
+import { analyzeCode } from '~/src/services/codeAnalysis';
 
 const BULK_GRADING_CONCURRENCY = 3;
 
@@ -183,7 +184,7 @@ export function useAutoGrader() {
       // Set state to 'success' with score and report
       setSubmissions(prev => {
         const next = [...prev];
-        next[index] = { ...next[index], status: 'success', score: result.score, report: result.report };
+        next[index] = { ...next[index], status: 'success', score: result.score, report: result.report, language: result.language, astMetrics: result.astMetrics };
         syncDetectedSubmissions(next);
         updateContentScriptCache(next);
         return next;
@@ -269,17 +270,13 @@ export function useAutoGrader() {
       });
 
       try {
-        // Download repo once via Backend API
-        const serverUrl = config.fastApiServerUrl || config.aiApiUrl || undefined;
-        const serverKey = config.fastApiSecretKey || config.aiApiKey || undefined;
+        // Download repo once client-side (JSZip), share across all items in this group
         const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
         const repoData = await github.getRepoContents(
-          url, 
+          url,
           (msg) => {
             setBulkProgressText(msg);
-          },
-          serverUrl,
-          serverKey
+          }
         );
 
         // Set status to 'grading' for all items
@@ -298,6 +295,8 @@ export function useAutoGrader() {
 
         setBulkProgressText(`Đang chấm ${items.length} bài tập (tối đa ${BULK_GRADING_CONCURRENCY} song song)...`);
         const ai = new AIService(config);
+        // Cùng repo cho cả nhóm nên chỉ cần phân tích AST một lần, dùng chung cho mọi bài trong nhóm.
+        const { language: repoLanguage, metrics: repoAstMetrics } = analyzeCode(compressCode(repoData.content));
 
         // Grade checked exercises for this repo with bounded concurrency to avoid
         // overwhelming the backend with many full-payload requests at once.
@@ -344,7 +343,9 @@ export function useAutoGrader() {
                 ...next[res.originalIndex],
                 status: 'success',
                 score: res.score,
-                report: res.report
+                report: res.report,
+                language: repoLanguage,
+                astMetrics: repoAstMetrics
               };
             });
             syncDetectedSubmissions(next);

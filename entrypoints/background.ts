@@ -1,38 +1,7 @@
-import { API_BASE_URLS, FASTAPI_ENDPOINTS } from '~/src/services/api/endpoints';
 import { BACKGROUND_FETCH_PROXY, STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
 
 export default defineBackground(() => {
   const allowedFetchHosts = new Set<string>(BACKGROUND_FETCH_PROXY.allowedHosts);
-
-  // --- Warm-up định kỳ cho FastAPI Backend (Modal serverless bị "ngủ" khi rảnh, cold start ~5-30s) ---
-  // Ping /health mỗi vài phút để giữ container luôn "ấm", tránh việc user phải chờ cold start
-  // ngay lúc mở popup. Alarm vẫn chạy được dù popup đang đóng vì service worker được đánh thức bởi alarm.
-  const BACKEND_WARMUP_ALARM = "redux-backend-warmup";
-  const WARMUP_INTERVAL_MINUTES = 4;
-
-  const warmUpBackend = async () => {
-    try {
-      const stored = await chrome.storage.local.get([STORAGE_KEYS.fastApiServerUrl, STORAGE_KEYS.fastApiSecretKey]) as Record<string, string | undefined>;
-      const baseUrl: string = stored[STORAGE_KEYS.fastApiServerUrl] || API_BASE_URLS.fastApi;
-      const secretKey = stored[STORAGE_KEYS.fastApiSecretKey];
-      const url = FASTAPI_ENDPOINTS.health(baseUrl);
-      const headers: Record<string, string> = {};
-      if (secretKey) headers["x-api-key"] = secretKey;
-      await fetch(url, { headers });
-    } catch {
-      // Bỏ qua lỗi warm-up: đây chỉ là ping nền, không cần báo lỗi cho user.
-    }
-  };
-
-  chrome.alarms.create(BACKEND_WARMUP_ALARM, { periodInMinutes: WARMUP_INTERVAL_MINUTES });
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === BACKEND_WARMUP_ALARM) warmUpBackend();
-  });
-
-  // Ping ngay khi extension được cài đặt/cập nhật hoặc trình duyệt khởi động,
-  // để backend đã "ấm" sẵn trước khi user kịp mở popup lần đầu.
-  chrome.runtime.onInstalled.addListener(() => warmUpBackend());
-  chrome.runtime.onStartup.addListener(() => warmUpBackend());
 
   // --- Chuyển đổi nhanh giữa dạng cửa sổ nổi (window) và dạng ghim cứng trên toolbar (popup) ---
   const FLOATING_WINDOW_SIZE = { width: 420, height: 720 };

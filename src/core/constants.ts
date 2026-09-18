@@ -1,29 +1,16 @@
-import { API_BASE_URLS } from '../services/api/endpoints';
-
 export const APP_INFO = {
   name: "REduX",
-  version: "4.18.3",
+  version: "4.18.5",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
 export const AI_DEFAULTS = {
-  provider: "fastapi_server",
+  provider: "gemini",
   geminiModel: "gemini-3.1-flash-lite",
   openAiModel: "gpt-4o-mini",
   deepSeekModel: "deepseek-chat",
   openRouterModel: "qwen/qwen3-coder:free",
-  localModel: "gemma-4-31b",
-  fastApiModel: "gemini-3.1-flash-lite"
-} as const;
-
-export const API_ENDPOINTS = {
-  geminiBase: API_BASE_URLS.gemini,
-  openAiBase: API_BASE_URLS.openAi,
-  deepSeekBase: API_BASE_URLS.deepSeek,
-  openRouterBase: API_BASE_URLS.openRouter,
-  fastApiBase: `${API_BASE_URLS.fastApi}${API_BASE_URLS.fastApiPrefix}`,
-  githubApiBase: API_BASE_URLS.githubApi,
-  githubCodeLoadBase: API_BASE_URLS.githubCodeLoad
+  localModel: "gemma-4-31b"
 } as const;
 
 export const BACKGROUND_FETCH_PROXY = {
@@ -37,8 +24,6 @@ export const STORAGE_KEYS = {
   aiApiKey: "aiApiKey",
   aiApiUrl: "aiApiUrl",
   aiModelName: "aiModelName",
-  fastApiServerUrl: "fastApiServerUrl",
-  fastApiSecretKey: "fastApiSecretKey",
   githubToken: "githubToken",
   systemPrompt: "systemPrompt",
   graderIgnoreItems: "graderIgnoreItems",
@@ -92,6 +77,9 @@ Tổng điểm: 85/100
 
 TIÊU CHÍ:
 {{criteria}}
+
+KẾT QUẢ PHÂN TÍCH TĨNH:
+{{ast_summary}}
 
 MÃ NGUỒN:
 {{code}}`

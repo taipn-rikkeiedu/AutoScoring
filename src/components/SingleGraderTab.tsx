@@ -2,6 +2,7 @@ import React from 'react';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { useSingleGrader } from '~/src/hooks/single-grader/useSingleGrader';
+import { AstMetricsPanel } from '~/src/components/AstMetricsPanel';
 
 export const SingleGraderTab: React.FC = () => {
   const {
@@ -171,7 +172,7 @@ export const SingleGraderTab: React.FC = () => {
 
           {results.fileList && results.fileList.length > 0 && (
             <div className="flex flex-col gap-1.5 bg-slate-50 p-2.5 rounded border border-slate-150">
-              <div 
+              <div
                 onClick={() => setIsFileTreeExpanded(!isFileTreeExpanded)}
                 className="flex items-center gap-1.5 font-bold text-[10px] text-slate-500 uppercase tracking-wide cursor-pointer select-none"
               >
@@ -185,6 +186,8 @@ export const SingleGraderTab: React.FC = () => {
               )}
             </div>
           )}
+
+          <AstMetricsPanel language={results.language} metrics={results.astMetrics} />
 
           <div 
             className="prose prose-sm max-w-none text-slate-750 leading-relaxed text-xs [&_h1]:text-xs [&_h1]:font-bold [&_h2]:text-[11px] [&_h2]:font-bold [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-slate-900"

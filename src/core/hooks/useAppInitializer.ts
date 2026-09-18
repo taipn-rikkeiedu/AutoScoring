@@ -1,14 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { AppConfig, Student, CareStudent, Submission } from '~/src/types';
 import { loadExercises } from '../exerciseLoader';
 import { testConnection } from '~/src/services/connectionTester';
 import { getClassStudents } from '../classStudentStorage';
 import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS, STORAGE_KEYS, UI_MESSAGES } from '../constants';
 import { logger } from '../logger';
-import { useToast } from '../ToastContext';
-
-const isAuthError = (message?: string): boolean =>
-  !!message && (message.includes("Khóa xác thực API") || message.includes("HTTP 401") || message.includes("(HTTP 401)"));
 
 const defaultIgnoreItems = [...GRADER_IGNORE_DEFAULTS];
 
@@ -28,13 +24,10 @@ export const defaultConfig: AppConfig = {
   supabaseUrl: "",
   supabaseAnonKey: "",
   supabasePat: "",
-  googleApiKey: "",
-  fastApiServerUrl: "http://localhost:8000",
-  fastApiSecretKey: ""
+  googleApiKey: ""
 };
 
 export function useAppInitializer() {
-  const { showToast } = useToast();
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
   const [exerciseTemplates, setExerciseTemplates] = useState<any>({});
   const [supabaseStatus, setSupabaseStatus] = useState<string>(UI_MESSAGES.statuses.supabaseInactive);
@@ -46,15 +39,6 @@ export function useAppInitializer() {
   const [activeStudentTransition, setActiveStudentTransition] = useState<any>(null);
   const [currentTabUrl, setCurrentTabUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  // Tránh spam nhiều Toast giống nhau khi reloadExercises() chạy lặp lại (đổi tab, đổi config...).
-  const lastAuthToastAtRef = useRef<number>(0);
-
-  const notifyAuthErrorOnce = (message: string) => {
-    const now = Date.now();
-    if (now - lastAuthToastAtRef.current < 15000) return;
-    lastAuthToastAtRef.current = now;
-    showToast(message, "error", 6000);
-  };
 
   useEffect(() => {
     // Clean expired cache (older than 24h)
@@ -80,7 +64,6 @@ export function useAppInitializer() {
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseSource, STORAGE_KEYS.exerciseApiUrl, STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.uploadedExercises,
       STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey,
-      STORAGE_KEYS.fastApiServerUrl, STORAGE_KEYS.fastApiSecretKey,
       STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
@@ -88,18 +71,6 @@ export function useAppInitializer() {
         systemPrompt = "";
         chrome.storage.local.set({ [STORAGE_KEYS.systemPrompt]: "" });
       }
-
-      // Tự động dọn dẹp các API Key nhạy cảm cũ trên Frontend khi dùng Backend Server
-      if (stored[STORAGE_KEYS.googleApiKey] || (stored[STORAGE_KEYS.aiProvider] === "fastapi_server" && stored[STORAGE_KEYS.aiApiKey])) {
-        chrome.storage.local.remove([
-          STORAGE_KEYS.googleApiKey,
-          STORAGE_KEYS.supabaseAnonKey,
-          STORAGE_KEYS.supabasePat,
-          STORAGE_KEYS.supabaseUrl
-        ]);
-      }
-
-      const resolvedServerUrl = stored[STORAGE_KEYS.fastApiServerUrl] || defaultConfig.fastApiServerUrl;
 
       const mergedConfig: AppConfig = {
         aiProvider: stored[STORAGE_KEYS.aiProvider] || defaultConfig.aiProvider,
@@ -113,13 +84,11 @@ export function useAppInitializer() {
         exerciseApiUrl: stored[STORAGE_KEYS.exerciseApiUrl] || defaultConfig.exerciseApiUrl,
         exerciseApiToken: stored[STORAGE_KEYS.exerciseApiToken] || defaultConfig.exerciseApiToken,
         uploadedExercises: stored[STORAGE_KEYS.uploadedExercises] || null,
-        supabaseSyncEnabled: true, // Mặc định bật đồng bộ qua Backend
-        supabaseUrl: "",
-        supabaseAnonKey: "",
-        supabasePat: "",
-        googleApiKey: "",
-        fastApiServerUrl: resolvedServerUrl,
-        fastApiSecretKey: stored[STORAGE_KEYS.fastApiSecretKey] || defaultConfig.fastApiSecretKey
+        supabaseSyncEnabled: stored[STORAGE_KEYS.supabaseSyncEnabled] ?? defaultConfig.supabaseSyncEnabled,
+        supabaseUrl: stored[STORAGE_KEYS.supabaseUrl] || defaultConfig.supabaseUrl,
+        supabaseAnonKey: stored[STORAGE_KEYS.supabaseAnonKey] || defaultConfig.supabaseAnonKey,
+        supabasePat: stored[STORAGE_KEYS.supabasePat] || defaultConfig.supabasePat,
+        googleApiKey: stored[STORAGE_KEYS.googleApiKey] || defaultConfig.googleApiKey
       };
 
       setConfig(mergedConfig);
@@ -181,9 +150,6 @@ export function useAppInitializer() {
     } catch (err: any) {
       setAiStatus("error");
       logger.error("AI_SERVICE", `Kết nối AI Provider [${cfg.aiProvider}] thất bại.`, err.message);
-      if (isAuthError(err.message)) {
-        notifyAuthErrorOnce("Backend từ chối xác thực (401). Kiểm tra lại Backend Secret Key trong Cài đặt.");
-      }
     }
   };
 
@@ -193,19 +159,12 @@ export function useAppInitializer() {
       const { templates, statusText, syncError } = await loadExercises(cfg);
       setExerciseTemplates(templates);
       setSupabaseStatus(statusText);
-      if (syncError) {
-        if (isAuthError(syncError)) {
-          notifyAuthErrorOnce("Backend từ chối xác thực (401). Kiểm tra lại Backend Secret Key trong Cài đặt.");
-        }
-      } else {
+      if (!syncError) {
         logger.success("EXERCISE_LOADER", `Tải danh sách đề bài thành công: ${statusText}`);
       }
     } catch (err: any) {
       setSupabaseStatus(UI_MESSAGES.statuses.exerciseLoadError);
       logger.error("EXERCISE_LOADER", "Không thể tải danh sách đề bài.", err.message);
-      if (isAuthError(err.message)) {
-        notifyAuthErrorOnce("Backend từ chối xác thực (401). Kiểm tra lại Backend Secret Key trong Cài đặt.");
-      }
     }
   };
 
@@ -231,7 +190,7 @@ export function useAppInitializer() {
 
     const exKeys = [
       STORAGE_KEYS.exerciseSource, STORAGE_KEYS.uploadedExercises, STORAGE_KEYS.exerciseApiUrl,
-      STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabasePat
+      STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabaseSyncEnabled
     ];
     const hasExChanges = exKeys.some(key => key in newConfig);
 

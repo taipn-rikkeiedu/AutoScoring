@@ -1,4 +1,4 @@
-import { GEMINI_ENDPOINTS, OPENAI_COMPATIBLE_ENDPOINTS, OLLAMA_ENDPOINTS, API_BASE_URLS, normalizeBaseUrl } from './endpoints';
+import { GEMINI_ENDPOINTS, OPENAI_COMPATIBLE_ENDPOINTS, OLLAMA_ENDPOINTS, API_BASE_URLS } from './endpoints';
 
 export class AiClient {
   /**
@@ -64,61 +64,16 @@ export class AiClient {
   static async fetchModelsForProvider(
     provider: string,
     apiKey?: string,
-    apiUrl?: string,
-    fastApiUrl?: string,
-    fastApiSecretKey?: string
-  ): Promise<{ label: string; value: string; description?: string }[] & { authError?: boolean }> {
+    apiUrl?: string
+  ): Promise<{ label: string; value: string; description?: string }[]> {
     const cleanProvider = (provider || "gemini").toLowerCase().trim();
 
-    // 1. Google Gemini / GenAI (Direct API nếu có key trực tiếp)
+    // 1. Google Gemini / GenAI (Direct API)
     if ((cleanProvider === "gemini" || cleanProvider === "google") && apiKey && apiKey.trim()) {
       return await this.fetchGenAiModels(apiKey.trim());
     }
 
-    // 2. FastAPI Server Mode (Backend tự động gọi trực tiếp Google API bằng Secrets)
-    if (cleanProvider === "fastapi_server" || cleanProvider === "gemini") {
-      let authError = false;
-      try {
-        const host = normalizeBaseUrl(fastApiUrl);
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json"
-        };
-        const token = (fastApiSecretKey || apiKey || "").trim();
-        if (token) {
-          headers["x-api-key"] = token;
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-        const res = await fetch(`${host}/api/v1/models?provider=gemini`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.models && data.models.length > 0) {
-            const list = data.models.map((m: any) => ({
-              label: m.display_name || m.id,
-              value: m.id,
-              description: m.description || ""
-            }));
-            return list;
-          }
-        } else {
-          console.warn(`Lỗi API /models (HTTP ${res.status}):`, await res.text().catch(() => ""));
-          authError = res.status === 401;
-        }
-      } catch (err) {
-        console.warn("Lỗi kết nối tới Backend /api/v1/models:", err);
-      }
-      const fallback: any = [
-        { label: "Google Gemini 3.1 Flash Lite (Khuyên dùng - Siêu nhanh & Tiết kiệm)", value: "gemini-3.1-flash-lite", description: "Tốc độ phản hồi tức thì, 1M context, hạn mức cao" },
-        { label: "Google Gemma 4 31B (Mã nguồn mở & Suy luận Code)", value: "gemma-4-31b", description: "Mô hình dense 31B đa năng, 256K context, thinking mode" },
-        { label: "Google Gemini 2.5 Flash", value: "gemini-2.5-flash", description: "Tốc độ nhanh, phản hồi chính xác" },
-        { label: "Google Gemini 2.5 Pro", value: "gemini-2.5-pro", description: "Mô hình suy luận chuyên sâu" },
-        { label: "OpenAI GPT-4o Mini", value: "gpt-4o-mini", description: "Mô hình nhanh của OpenAI" },
-        { label: "DeepSeek Chat (V3)", value: "deepseek-chat", description: "Mô hình DeepSeek" }
-      ];
-      fallback.authError = authError;
-      return fallback;
-    }
-
-    // 3. Anthropic Claude
+    // 2. Anthropic Claude
     if (cleanProvider === "claude" || cleanProvider === "anthropic") {
       if (!apiKey || !apiKey.trim()) return [];
       try {

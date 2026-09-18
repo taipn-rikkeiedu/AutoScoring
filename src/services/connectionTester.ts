@@ -1,6 +1,6 @@
 import { AppConfig } from '~/src/types';
 import { UI_MESSAGES } from '~/src/core/constants';
-import { FastApiClient, AiClient, API_BASE_URLS } from './api';
+import { AiClient, API_BASE_URLS } from './api';
 
 export async function testConnection(config: AppConfig): Promise<boolean> {
   const provider = config.aiProvider;
@@ -11,13 +11,6 @@ export async function testConnection(config: AppConfig): Promise<boolean> {
   if (provider === "gemini") {
     if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
     return await AiClient.testGemini(modelName, apiKey);
-  }
-
-  if (provider === "fastapi_server") {
-    const url = config.fastApiServerUrl || config.aiApiUrl;
-    const key = config.fastApiSecretKey || config.aiApiKey;
-    await FastApiClient.checkHealth(url, key);
-    return true;
   }
 
   if (provider === "openai") {

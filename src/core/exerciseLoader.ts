@@ -4,9 +4,29 @@ import { UI_MESSAGES } from './constants';
 import { logger } from './logger';
 
 export async function loadExercises(config: AppConfig): Promise<{ templates: Record<string, Record<string, Record<string, { assignment: string; criteria: string }>>>; statusText: string; syncError?: string }> {
-  const res = await fetch(chrome.runtime.getURL("exercises.json"));
-  if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
-  const templates = await res.json();
+  let templates: any = {};
+  
+  if (config.exerciseSource === 'api' && config.exerciseApiUrl && config.exerciseApiUrl.trim() !== '') {
+    try {
+      const headers: Record<string, string> = {};
+      if (config.exerciseApiToken && config.exerciseApiToken.trim() !== '') {
+        headers['Authorization'] = `Bearer ${config.exerciseApiToken.trim()}`;
+      }
+      const res = await fetch(config.exerciseApiUrl.trim(), { headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      templates = await res.json();
+      logger.info("EXERCISE_LOADER", `Đã tải đề bài từ API Server thành công.`);
+    } catch (err: any) {
+      logger.error("EXERCISE_LOADER", "Lỗi tải đề bài từ API Server, chuyển sang dùng Local.", err.message);
+      const res = await fetch(chrome.runtime.getURL("exercises.json"));
+      if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
+      templates = await res.json();
+    }
+  } else {
+    const res = await fetch(chrome.runtime.getURL("exercises.json"));
+    if (!res.ok) throw new Error("Không tìm thấy file exercises.json trong extension.");
+    templates = await res.json();
+  }
 
   if (config.uploadedExercises) {
     const localEdits = config.uploadedExercises;
