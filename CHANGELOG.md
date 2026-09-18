@@ -4,6 +4,25 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [4.19.0] - 2026-09-18
+
+### ✨ Giám sát chỉ số học tập
+- **Tab mới "Giám sát học tập"**: Quét snapshot bảng thống kê học tập từ trang `learning-statistics` của LMS (tỷ lệ nghỉ học, tỷ lệ thiếu bài tập, tiến độ E-learning, số bài chậm, Hackathon TN/TL, R-Points, trạng thái chốt điểm, điều kiện tham gia project), lưu cục bộ theo từng lớp + môn học, hiển thị bảng có thể sắp xếp/lọc theo mọi cột và xuất ra Excel.
+- Cảnh báo ngay trên giao diện khi LMS đổi cấu trúc cột khiến một vài chỉ số không quét được, thay vì âm thầm hiển thị thiếu dữ liệu.
+
+### 🎨 Cải thiện giao diện
+- **Thanh menu dọc thu gọn mặc định**: Sidebar điều hướng giờ mặc định chỉ hiện icon (48px thay vì 185px trước đây), giải phóng phần lớn không gian cho nội dung chính trên popup vốn đã nhỏ. Có nút mở rộng tạm thời khi cần đọc nhãn đầy đủ, trạng thái được ghi nhớ cho lần mở sau.
+
+### 🐛 Sửa lỗi
+- **Chấm hàng loạt mất bài khi nhiều bài chung 1 link GitHub**: Bước khử trùng lặp sau khi quét danh sách bài nộp trước đây chỉ dựa theo link GitHub, khiến trường hợp một học viên nộp chung 1 link cho nhiều bài tập (ví dụ 5 bài) chỉ giữ lại đúng 1 bài đầu tiên. Đã đổi sang khử trùng theo cặp (tên bài tập, link GitHub).
+- **Chế độ "Mở cửa sổ rời" không cào được dữ liệu trang LMS đang mở**: Khi bật cửa sổ nổi, mọi thao tác quét/chấm điểm/điều hướng vô tình lấy nhầm tab của chính cửa sổ nổi thay vì tab LMS ở cửa sổ trình duyệt chính, khiến tính năng hoạt động như một trang độc lập tách rời khỏi LMS. Đã sửa cách xác định tab đang làm việc để luôn quét đúng cửa sổ trình duyệt chính, hoạt động đúng ở cả chế độ popup thả xuống lẫn cửa sổ nổi.
+
+### 🔧 Cải tiến nội bộ
+- Dọn dẹp dead code và các import/biến không còn sử dụng còn sót lại sau đợt loại bỏ backend FastAPI.
+- Gộp logic chọn AI Provider base URL và cơ chế thử lại khi bị giới hạn tần suất (rate limit) — trước đây bị lặp lại y hệt ở 3 nơi khác nhau, giờ dùng chung 1 nguồn duy nhất.
+
+---
+
 ## [4.18.5] - 2026-09-15
 
 ### ✨ Khôi phục tính năng Supabase Zero Setup
