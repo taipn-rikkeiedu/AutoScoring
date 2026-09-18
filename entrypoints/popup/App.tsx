@@ -13,6 +13,7 @@ import { LmsApiTestTab } from '~/src/components/LmsApiTestTab';
 import { ReportModal } from '~/src/components/ReportModal';
 import { DriveScannerTab } from '~/src/components/DriveScannerTab';
 import { LearningStatsTab } from '~/src/components/LearningStatsTab';
+import { queryActiveLmsTab } from '~/src/core/utils';
 
 const UnsupportedPageWarning: React.FC = () => {
   return (
@@ -70,9 +71,9 @@ const AppContent: React.FC = () => {
 
   // Auto-route based on active browser URL on mount
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0]) {
-        const url = tabs[0].url || "";
+    queryActiveLmsTab((tab) => {
+      if (tab) {
+        const url = tab.url || "";
         setActiveTabUrl(url);
         let targetTab = "tab-auto";
 

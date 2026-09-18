@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '~/src/core/ToastContext';
 import { STORAGE_KEYS } from '~/src/core/constants';
-import { safeNavigate } from '~/src/core/utils';
+import { safeNavigate, queryActiveLmsTab } from '~/src/core/utils';
 
 export interface Shortcut {
   id: string;
@@ -34,10 +34,10 @@ export function useShortcuts() {
   };
 
   const fetchActiveTabInfo = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0]) {
-        const tabUrl = tabs[0].url || '';
-        const tabTitle = tabs[0].title || '';
+    queryActiveLmsTab((tab) => {
+      if (tab) {
+        const tabUrl = tab.url || '';
+        const tabTitle = tab.title || '';
         if (tabUrl.includes('rikkei.edu.vn') || tabUrl.startsWith('http')) {
           setActiveTabInfo({ title: tabTitle, url: tabUrl });
         }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
 import { SupabaseService } from '~/src/services/supabaseService';
-import { mergeScrapedFrameResults, DEFAULT_CRITERIA, extractCriteriaFromAssignment } from '~/src/core/utils';
+import { mergeScrapedFrameResults, DEFAULT_CRITERIA, extractCriteriaFromAssignment, queryActiveLmsTab } from '~/src/core/utils';
 import {
   exportSingleExerciseToMd,
   formatExerciseToMarkdown,
@@ -63,14 +63,14 @@ export function useExerciseManager() {
 
   const handleScrapeFromLms = () => {
     setIsScraping(true);
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs || !tabs[0]) {
+    queryActiveLmsTab((tab) => {
+      if (!tab) {
         showToast("Không tìm thấy tab trình duyệt hoạt động.", "error");
         setIsScraping(false);
         return;
       }
 
-      const activeTab = tabs[0];
+      const activeTab = tab;
       if (!activeTab.url?.startsWith("http")) {
         showToast("Vui lòng mở trang web LMS học viên để cào.", "warning");
         setIsScraping(false);

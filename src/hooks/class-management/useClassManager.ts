@@ -5,7 +5,7 @@ import { SupabaseService } from '~/src/services/supabaseService';
 import { clearClassStudents, getClassStudents, saveClassStudents } from '~/src/core/classStudentStorage';
 import { STORAGE_KEYS } from '~/src/core/constants';
 import { Student } from '~/src/types';
-import { safeNavigate } from '~/src/core/utils';
+import { safeNavigate, queryActiveLmsTab } from '~/src/core/utils';
 import { logger } from '~/src/core/logger';
 
 export function useClassManager(setActiveTab: (tab: string) => void) {
@@ -20,9 +20,9 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
   const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0, notCompleted: 0, graded: 0 });
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      if (tabs && tabs[0]) {
-        const url = tabs[0].url || "";
+    queryActiveLmsTab(async (tab) => {
+      if (tab) {
+        const url = tab.url || "";
         const match = url.match(/\/homework-checking\/(\d+)/);
         if (match) {
           const classId = match[1];
@@ -110,8 +110,8 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
     setStatusType('info');
     setIsScanning(true);
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs || !tabs[0]) {
+    queryActiveLmsTab((tab) => {
+      if (!tab) {
         setStatusText("❌ Lỗi: Không thể truy cập tab.");
         setStatusType('error');
         setIsScanning(false);
@@ -119,7 +119,7 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
         return;
       }
 
-      const activeTab = tabs[0];
+      const activeTab = tab;
       const match = (activeTab.url || "").match(/\/homework-checking\/(\d+)/);
       if (!match) {
         setStatusText("💡 Hãy mở trang danh sách bài nộp của lớp trên LMS để quét.");
@@ -183,9 +183,9 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
   };
 
   const handleStudentScroll = (st: Student) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0]) {
-        const tabId = tabs[0].id!;
+    queryActiveLmsTab((tab) => {
+      if (tab) {
+        const tabId = tab.id!;
         chrome.tabs.sendMessage(tabId, { action: 'scrollToStudent', studentId: st.studentId, studentName: st.studentName }, () => {
           if (chrome.runtime.lastError) {
             chrome.scripting.executeScript({ target: { tabId }, files: ['/content-scripts/content.js'] }, () => {

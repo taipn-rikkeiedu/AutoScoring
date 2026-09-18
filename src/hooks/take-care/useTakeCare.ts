@@ -5,6 +5,7 @@ import { SupabaseService } from '~/src/services/supabaseService';
 import { exportToExcel } from '~/src/core/excelExporter';
 import { STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
 import { CareStudent } from '~/src/types';
+import { queryActiveLmsTab } from '~/src/core/utils';
 
 export function useTakeCare() {
   const { config, activeClassId, setActiveClassId, careStudents, setCareStudents } = useApp();
@@ -15,9 +16,9 @@ export function useTakeCare() {
   const [statusType, setStatusType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      if (tabs && tabs[0]) {
-        const url = tabs[0].url || "";
+    queryActiveLmsTab(async (tab) => {
+      if (tab) {
+        const url = tab.url || "";
         const match = url.match(/\/class\/(\d+)\/take-care/);
         if (match) {
           const classId = match[1];
@@ -61,7 +62,7 @@ export function useTakeCare() {
 
             // Run a background scan of the current page to filter records of the currently visible date and subject
             chrome.scripting.executeScript({
-              target: { tabId: tabs[0].id! },
+              target: { tabId: tab.id! },
               files: ['/careScraper.js']
             }, (results) => {
               if (results && results[0]?.result) {
@@ -114,15 +115,15 @@ export function useTakeCare() {
     setStatusType('info');
     setIsScanning(true);
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs || !tabs[0]) {
+    queryActiveLmsTab((tab) => {
+      if (!tab) {
         setStatusText("❌ Lỗi: Không thể truy cập tab hiện tại.");
         setStatusType('error');
         setIsScanning(false);
         return;
       }
 
-      const activeTab = tabs[0];
+      const activeTab = tab;
       const match = (activeTab.url || "").match(/\/class\/(\d+)\/take-care/);
       if (!match) {
         setStatusText("💡 Hãy mở trang Chăm sóc học viên trên LMS để quét.");

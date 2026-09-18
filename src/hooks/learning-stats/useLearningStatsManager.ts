@@ -3,6 +3,7 @@ import { useToast } from '~/src/core/ToastContext';
 import { getAllSnapshots, saveSnapshot, deleteSnapshot, makeSnapshotKey } from '~/src/core/learningStatsStorage';
 import { LearningStatsSnapshot, LearningStatRow } from '~/src/types';
 import { logger } from '~/src/core/logger';
+import { queryActiveLmsTab } from '~/src/core/utils';
 
 export type SortColumn = keyof LearningStatRow;
 export type SortDirection = 'asc' | 'desc';
@@ -36,8 +37,8 @@ export function useLearningStatsManager() {
     setStatusText("🔍 Đang quét chỉ số học tập...");
     setStatusType('info');
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const activeTab = tabs && tabs[0];
+    queryActiveLmsTab((tab) => {
+      const activeTab = tab;
       if (!activeTab || !activeTab.url?.includes('/learning-statistics')) {
         setIsScanning(false);
         setStatusText("💡 Hãy mở trang Thống kê học tập (learning-statistics) trên LMS để quét.");

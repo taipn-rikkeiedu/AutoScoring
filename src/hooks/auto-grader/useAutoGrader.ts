@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
-import { findMatchingTemplate, matchStudent, parseScore } from '~/src/core/utils';
+import { findMatchingTemplate, matchStudent, parseScore, queryActiveLmsTab } from '~/src/core/utils';
 import { STORAGE_KEYS } from '~/src/core/constants';
 import { SupabaseService } from '~/src/services/supabaseService';
 import { getClassStudents, saveClassStudents } from '~/src/core/classStudentStorage';
@@ -55,9 +55,9 @@ export function useAutoGrader() {
   };
 
   const updateContentScriptCache = (updatedList: Submission[]) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0]?.id) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'updateGradingCache', submissions: updatedList }, () => {
+    queryActiveLmsTab((tab) => {
+      if (tab?.id) {
+        chrome.tabs.sendMessage(tab.id, { action: 'updateGradingCache', submissions: updatedList }, () => {
           if (chrome.runtime.lastError) { /* ignore */ }
         });
       }
@@ -120,9 +120,9 @@ export function useAutoGrader() {
   };
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs || !tabs[0]) return;
-      const activeTab = tabs[0];
+    queryActiveLmsTab((tab) => {
+      if (!tab) return;
+      const activeTab = tab;
       if (!activeTab.url?.startsWith("http")) {
         setScanStatus("💡 Hãy mở trang web bài tập để quét.");
         setScanStatusType('warning');
@@ -142,8 +142,8 @@ export function useAutoGrader() {
   }, [exerciseTemplates]);
 
   const handleRescan = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0]) runScraper(tabs[0], true);
+    queryActiveLmsTab((tab) => {
+      if (tab) runScraper(tab, true);
     });
   };
 

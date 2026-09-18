@@ -5,6 +5,7 @@ import { testConnection } from '~/src/services/connectionTester';
 import { getClassStudents } from '../classStudentStorage';
 import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS, STORAGE_KEYS, UI_MESSAGES } from '../constants';
 import { logger } from '../logger';
+import { queryActiveLmsTab } from '../utils';
 
 const defaultIgnoreItems = [...GRADER_IGNORE_DEFAULTS];
 
@@ -97,9 +98,9 @@ export function useAppInitializer() {
         setActiveStudentTransition(stored[STORAGE_KEYS.activeStudentTransition]);
       }
 
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs && tabs[0]) {
-          const url = tabs[0].url || "";
+      queryActiveLmsTab((tab) => {
+        if (tab) {
+          const url = tab.url || "";
           setCurrentTabUrl(url);
           const matchCare = url.match(/\/class\/(\d+)\/take-care/);
           const matchHome = url.match(/\/homework-checking\/(\d+)/);

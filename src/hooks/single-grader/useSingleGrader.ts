@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
-import { matchStudent } from '~/src/core/utils';
+import { matchStudent, queryActiveLmsTab } from '~/src/core/utils';
 import { STORAGE_KEYS } from '~/src/core/constants';
 import { SupabaseService } from '~/src/services/supabaseService';
 import { getClassStudents, saveClassStudents } from '~/src/core/classStudentStorage';
@@ -36,9 +36,9 @@ export function useSingleGrader() {
   }, []);
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs || !tabs[0]) return;
-      const activeTab = tabs[0];
+    queryActiveLmsTab((tab) => {
+      if (!tab) return;
+      const activeTab = tab;
       const url = activeTab.url || "";
       const isWebPage = url.startsWith("http");
       const normalizedTabUrl = url.split('?')[0].split('#')[0];
@@ -76,9 +76,9 @@ export function useSingleGrader() {
 
   useEffect(() => {
     const cacheData = { repoUrl, chapter: selectedChapter, session: selectedSession, assignmentName: selectedAssignment, score: results?.score || null, report: results?.report || null, fileList: results?.fileList || null };
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0]?.id) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'updateGradingCache', singleGrader: cacheData }, () => {
+    queryActiveLmsTab((tab) => {
+      if (tab?.id) {
+        chrome.tabs.sendMessage(tab.id, { action: 'updateGradingCache', singleGrader: cacheData }, () => {
           if (chrome.runtime.lastError) { /* ignore */ }
         });
       }
