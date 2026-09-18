@@ -2,6 +2,8 @@
 
 **REduX** (phiên bản v4.6.0) là một Chrome/Edge Extension thế hệ mới chuyên nghiệp được phát triển trên nền tảng **WXT Framework**, **React 19**, **TypeScript** và **Tailwind CSS v4**.
 
+> ⚠️ **Chú ý:** Dự án này hiện đang vận hành dưới quy trình **Hyper-Agile Scrum** (Chu kỳ Sprint 10 Phút). Bất kỳ thành viên hay Agent nào đóng góp mã nguồn BẮT BUỘC phải đọc tài liệu [AGILE_SCRUM.md](AGILE_SCRUM.md) và chẻ nhỏ tính năng (Nano-tasking) trong [BACKLOG.md](BACKLOG.md) trước khi thực hiện.
+
 Vượt trội hơn một công cụ chấm điểm thông thường, **REduX** hoạt động như một trợ lý ảo toàn diện đồng hành cùng giảng viên và trợ giảng. Hệ thống hợp nhất từ chấm bài tự động bằng AI (quét LMS, tải mã nguồn GitHub, lọc rác tối ưu token), quản lý lớp học cục bộ bảo mật (Local-First Class Management), theo dõi sát sao tiến độ và ghi chú chăm sóc học viên (Student Care), cho đến tự động điền điểm hai chiều (Bidirectional Sync) và đồng bộ đám mây trên Supabase.
 
 ---
