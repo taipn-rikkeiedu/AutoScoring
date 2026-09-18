@@ -1,1 +1,1 @@
-export { AIService, buildGradingPrompt, compressCode } from './ai/aiService';
+export { AIService, buildGradingPrompt, compressCode, callAiWithRateLimitRetry, resolveOpenAiCompatibleBaseUrl } from './ai/aiService';

@@ -1,6 +1,7 @@
 import { AppConfig } from '~/src/types';
 import { UI_MESSAGES } from '~/src/core/constants';
 import { AiClient, API_BASE_URLS } from './api';
+import { resolveOpenAiCompatibleBaseUrl } from './aiService';
 
 export async function testConnection(config: AppConfig): Promise<boolean> {
   const provider = config.aiProvider;
@@ -13,24 +14,13 @@ export async function testConnection(config: AppConfig): Promise<boolean> {
     return await AiClient.testGemini(modelName, apiKey);
   }
 
-  if (provider === "openai") {
-    if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
-    return await AiClient.testOpenAiCompatible(API_BASE_URLS.openAi, apiKey);
-  }
-
-  if (provider === "deepseek") {
-    if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
-    return await AiClient.testOpenAiCompatible(API_BASE_URLS.deepSeek, apiKey);
-  }
-
-  if (provider === "openrouter") {
-    if (!apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
-    return await AiClient.testOpenAiCompatible(API_BASE_URLS.openRouter, apiKey);
-  }
-
-  if (provider === "custom") {
-    if (!apiUrl) throw new Error(UI_MESSAGES.common.missingBaseUrl);
-    return await AiClient.testOpenAiCompatible(apiUrl, apiKey);
+  if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "custom") {
+    if (provider === "custom") {
+      if (!apiUrl) throw new Error(UI_MESSAGES.common.missingBaseUrl);
+    } else if (!apiKey) {
+      throw new Error(UI_MESSAGES.common.missingApiKey);
+    }
+    return await AiClient.testOpenAiCompatible(resolveOpenAiCompatibleBaseUrl(provider, apiUrl), apiKey);
   }
 
   if (provider === "local") {

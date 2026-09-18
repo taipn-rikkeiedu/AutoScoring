@@ -44,18 +44,80 @@ export function buildGradingPrompt(
     .replace("{{code}}", compressed);
 }
 
+export interface AiCredentials {
+  provider: string;
+  modelName: string;
+  apiKey: string;
+  apiUrl: string;
+}
+
+/** Resolve base URL của các provider tương thích OpenAI (openai/deepseek/openrouter dùng URL cố định, custom dùng URL người dùng nhập). */
+export function resolveOpenAiCompatibleBaseUrl(provider: string, configuredUrl: string): string {
+  if (provider === "openai") return API_BASE_URLS.openAi;
+  if (provider === "deepseek") return API_BASE_URLS.deepSeek;
+  if (provider === "openrouter") return API_BASE_URLS.openRouter;
+  return configuredUrl;
+}
+
+function isRateLimitError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return message === "RATE_LIMIT" || lower.includes("quota") || lower.includes("rate limit") || lower.includes("429") || lower.includes("exhausted");
+}
+
+/** Gọi thẳng AI Provider (BYOK) theo config.aiProvider, không retry. Dùng chung cho mọi luồng chấm điểm. */
+async function callAiProvider(prompt: string, { provider, modelName, apiKey, apiUrl }: AiCredentials): Promise<string> {
+  if (provider === "gemini") {
+    return await AiClient.generateGemini(prompt, modelName, apiKey);
+  }
+  if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "custom") {
+    const baseUrl = resolveOpenAiCompatibleBaseUrl(provider, apiUrl);
+    return await AiClient.generateOpenAiCompatible(prompt, modelName, baseUrl, apiKey);
+  }
+  if (provider === "local") {
+    const url = apiUrl && apiUrl.trim() ? apiUrl.trim() : API_BASE_URLS.ollama;
+    return await AiClient.generateOllama(prompt, modelName, url);
+  }
+  throw new Error("Không hỗ trợ AI Provider đã chọn.");
+}
+
+/** Gọi AI Provider với retry tự động khi bị rate limit (exponential backoff). Dùng chung cho single/bulk grading. */
+export async function callAiWithRateLimitRetry(
+  prompt: string,
+  credentials: AiCredentials,
+  onStatusUpdate: ((status: string) => void) | null = null,
+  maxRetries = 3,
+  initialDelayMs = 6000
+): Promise<string> {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      return await callAiProvider(prompt, credentials);
+    } catch (err: any) {
+      if (!isRateLimitError(err.message || "")) throw err;
+
+      attempt++;
+      if (attempt > maxRetries) {
+        throw new Error(`Bị giới hạn lưu lượng (Rate Limit) và đã thử lại ${maxRetries} lần thất bại. Vui lòng đợi và thử lại.`);
+      }
+      const delay = initialDelayMs * Math.pow(2, attempt - 1);
+      onStatusUpdate?.(`Đợi ${Math.round(delay / 1000)}s do hết hạn mức AI (${attempt}/${maxRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error("Không thể tạo báo cáo chấm điểm.");
+}
+
 export class AIService {
-  private provider: string;
-  private apiKey: string;
-  private apiUrl: string;
-  private modelName: string;
-  private systemPrompt: string;
+  private readonly credentials: AiCredentials;
+  private readonly systemPrompt: string;
 
   constructor(config: AppConfig) {
-    this.provider = config.aiProvider;
-    this.apiKey = config.aiApiKey;
-    this.apiUrl = config.aiApiUrl;
-    this.modelName = config.aiModelName;
+    this.credentials = {
+      provider: config.aiProvider,
+      modelName: config.aiModelName,
+      apiKey: config.aiApiKey,
+      apiUrl: config.aiApiUrl
+    };
     this.systemPrompt = config.systemPrompt;
   }
 
@@ -64,59 +126,14 @@ export class AIService {
   }
 
   async generateGradingReport(
-    assignment: string, 
-    criteria: string, 
-    codeContent: string, 
-    onStatusUpdate: ((status: string) => void) | null = null, 
-    maxRetries = 3, 
+    assignment: string,
+    criteria: string,
+    codeContent: string,
+    onStatusUpdate: ((status: string) => void) | null = null,
+    maxRetries = 3,
     initialDelayMs = 6000
   ): Promise<string> {
     const prompt = this.buildPrompt(assignment, criteria, codeContent);
-    let attempt = 0;
-
-    while (attempt <= maxRetries) {
-      try {
-        if (this.provider === "gemini") {
-          return await AiClient.generateGemini(prompt, this.modelName, this.apiKey);
-        }
-        
-        if (this.provider === "openai" || this.provider === "deepseek" || this.provider === "openrouter" || this.provider === "custom") {
-          let baseUrl = this.apiUrl;
-          if (this.provider === "openai") baseUrl = API_BASE_URLS.openAi;
-          else if (this.provider === "deepseek") baseUrl = API_BASE_URLS.deepSeek;
-          else if (this.provider === "openrouter") baseUrl = API_BASE_URLS.openRouter;
-          
-          return await AiClient.generateOpenAiCompatible(prompt, this.modelName, baseUrl, this.apiKey);
-        }
-
-        if (this.provider === "local") {
-          const url = this.apiUrl && this.apiUrl.trim() ? this.apiUrl.trim() : API_BASE_URLS.ollama;
-          return await AiClient.generateOllama(prompt, this.modelName, url);
-        }
-
-        throw new Error("Không hỗ trợ AI Provider đã chọn.");
-      } catch (err: any) {
-        const isRateLimit = err.message === "RATE_LIMIT" || 
-                            err.message.toLowerCase().includes("quota") || 
-                            err.message.toLowerCase().includes("rate limit") || 
-                            err.message.toLowerCase().includes("429") ||
-                            err.message.toLowerCase().includes("exhausted");
-
-        if (isRateLimit) {
-          attempt++;
-          if (attempt > maxRetries) {
-            throw new Error(`Bị giới hạn lưu lượng (Rate Limit) và đã thử lại ${maxRetries} lần thất bại. Vui lòng đợi và thử lại.`);
-          }
-          const delay = initialDelayMs * Math.pow(2, attempt - 1);
-          if (onStatusUpdate) {
-            onStatusUpdate(`Đợi ${Math.round(delay / 1000)}s do hết hạn mức AI (${attempt}/${maxRetries})...`);
-          }
-          await new Promise(resolve => setTimeout(resolve, delay));
-        } else {
-          throw err;
-        }
-      }
-    }
-    throw new Error("Không thể tạo báo cáo chấm điểm.");
+    return callAiWithRateLimitRetry(prompt, this.credentials, onStatusUpdate, maxRetries, initialDelayMs);
   }
 }
