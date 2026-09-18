@@ -66,8 +66,7 @@ export const SettingsTab: React.FC = () => {
     setSupabasePat,
     dbInitialized,
     isMigrating,
-    handleMigrateDatabase,
-    verifyDatabaseSchema
+    handleMigrateDatabase
   } = useSettings();
 
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('ai');

@@ -186,7 +186,7 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs[0]) {
         const tabId = tabs[0].id!;
-        chrome.tabs.sendMessage(tabId, { action: 'scrollToStudent', studentId: st.studentId, studentName: st.studentName }, (response) => {
+        chrome.tabs.sendMessage(tabId, { action: 'scrollToStudent', studentId: st.studentId, studentName: st.studentName }, () => {
           if (chrome.runtime.lastError) {
             chrome.scripting.executeScript({ target: { tabId }, files: ['/content-scripts/content.js'] }, () => {
               setTimeout(() => {

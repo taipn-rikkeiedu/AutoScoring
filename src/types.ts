@@ -52,8 +52,6 @@ export interface Submission {
   score?: string | null;
   report?: string;
   status?: string;
-  isGraderCompleted?: boolean;
-  isGraderSuccess?: boolean;
   fileList?: string[];
   language?: string;
   astMetrics?: import('./services/codeAnalysis').ASTMetrics;

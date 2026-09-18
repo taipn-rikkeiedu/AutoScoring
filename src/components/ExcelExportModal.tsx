@@ -1,6 +1,6 @@
 import React from 'react';
 import { Student } from '~/src/types';
-import { useExcelExporter, FIELDS, COLUMN_LABELS, StatusFilter } from '~/src/hooks/class-management/useExcelExporter';
+import { useExcelExporter, FIELDS, StatusFilter } from '~/src/hooks/class-management/useExcelExporter';
 
 const STATUS_FILTERS: { value: StatusFilter; label: string; icon: string; activeCls: string }[] = [
   { value: 'all',          label: 'Tất cả học viên',   icon: '👥', activeCls: 'bg-slate-100 border-slate-400 text-slate-800' },

@@ -46,7 +46,6 @@ export function useSettings() {
   const [isMigrating, setIsMigrating] = useState(false);
 
   const [aiReady, setAiReady] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   const [providerModels, setProviderModels] = useState<{ label: string; value: string; description?: string }[]>([]);

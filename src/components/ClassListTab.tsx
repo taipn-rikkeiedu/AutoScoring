@@ -19,8 +19,6 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
     classStudents,
     handleScanClass,
     handleStudentScroll,
-    handleGradeStudent,
-    handleDeleteStudent,
     handleClearClass,
     handleOpenExportModal
   } = useClassManager(setActiveTab);

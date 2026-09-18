@@ -82,7 +82,7 @@ export default defineContentScript({
     }
 
     // Listener for messages from extension popup/sidepanel
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       try {
         if (message.action === 'scrollToStudent') {
           const { studentId, studentName } = message;
@@ -173,7 +173,6 @@ export default defineContentScript({
   }
 });
 
-let lastProcessedUrl = '';
 let lastStudentId = '';
 let lastStudentName = '';
 let lastFilledScore = '';
@@ -259,7 +258,6 @@ function updateLmsPageInputs(score: string, comment: string): boolean {
 }
 
 function autoDetectStudentAndNotify() {
-  const currentUrl = window.location.href;
   const isLmsPage = window.location.hostname.includes('rikkei.edu.vn');
   if (!isLmsPage) return;
 
@@ -284,7 +282,6 @@ function autoDetectStudentAndNotify() {
   if (studentId && (studentId !== lastStudentId || studentName !== lastStudentName)) {
     lastStudentId = studentId;
     lastStudentName = studentName;
-    lastProcessedUrl = currentUrl;
 
     const transitionData = {
       studentId: studentId,

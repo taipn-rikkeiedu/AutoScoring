@@ -1,5 +1,5 @@
 import React from 'react';
-import { useShortcuts, Shortcut } from '~/src/hooks/shortcuts/useShortcuts';
+import { useShortcuts } from '~/src/hooks/shortcuts/useShortcuts';
 import { PinIcon, TrashIcon } from '~/src/components/Icons';
 
 export const ShortcutsTab: React.FC = () => {
