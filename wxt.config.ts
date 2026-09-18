@@ -10,6 +10,7 @@ export default defineConfig({
     version: APP_INFO.version,
     permissions: [
       "activeTab",
+      "tabs",
       "storage",
       "scripting",
       "unlimitedStorage"

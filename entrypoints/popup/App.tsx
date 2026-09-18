@@ -83,6 +83,8 @@ const AppContent: React.FC = () => {
           targetTab = "tab-class-list";
         } else if (url.includes("/type/elMajor/") && url.includes("/view/")) {
           targetTab = "tab-exercises";
+        } else if (url.includes("/learning-statistics")) {
+          targetTab = "tab-learning-stats";
         }
         
         setActiveTab(targetTab);
