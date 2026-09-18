@@ -1,6 +1,6 @@
 import React from 'react';
 import { useExerciseManager } from '~/src/hooks/exercise-manager/useExerciseManager';
-import { TrashIcon, DownloadIcon, CopyIcon, DocumentTextIcon } from '~/src/components/Icons';
+import { TrashIcon, DownloadIcon, CopyIcon, DocumentTextIcon, PlusIcon } from '~/src/components/Icons';
 import { MarkdownExportModal } from '~/src/components/MarkdownExportModal';
 
 export const ExercisesTab: React.FC = () => {
@@ -35,6 +35,7 @@ export const ExercisesTab: React.FC = () => {
     handleChapterChange,
     handleSessionChange,
     handleAssignmentChange,
+    handleOpenAddExerciseModal,
     handleScrapeFromLms,
     handleDeleteExercise,
     handleSaveDetail,
@@ -42,13 +43,22 @@ export const ExercisesTab: React.FC = () => {
     isLocalDeletable,
     handleExportCurrentMd,
     handleCopyCurrentMd,
-    showToast
+    showToast,
+    scrapeSessionSuggestions
   } = useExerciseManager();
 
   return (
     <div className="flex flex-col flex-1 p-3.5 gap-3 overflow-y-auto">
       {/* Action Row */}
       <div className="flex gap-2">
+        <button
+          onClick={handleOpenAddExerciseModal}
+          className="flex-1 py-1.5 px-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 flex items-center justify-center gap-1.5"
+        >
+          <PlusIcon className="w-3.5 h-3.5" />
+          <span>Thêm đề bài mới</span>
+        </button>
+
         <button
           onClick={handleScrapeFromLms}
           disabled={isScraping}
@@ -198,10 +208,10 @@ export const ExercisesTab: React.FC = () => {
           <div className="w-full max-w-sm bg-white rounded-lg shadow-xl border border-slate-200 flex flex-col overflow-hidden p-4 gap-3">
             <div className="flex justify-between items-center border-b border-slate-200 pb-2">
               <span className="text-xs font-bold text-slate-800">
-                Thêm đề bài từ LMS
+                Thêm đề bài mới
               </span>
-              <button 
-                onClick={() => setIsScrapeModalOpen(false)} 
+              <button
+                onClick={() => setIsScrapeModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 font-bold text-base cursor-pointer"
               >
                 &times;
@@ -213,20 +223,30 @@ export const ExercisesTab: React.FC = () => {
                 <label className="text-[10px] font-semibold text-slate-500 uppercase">Chương (Khóa học):</label>
                 <input
                   type="text"
+                  list="exercise-chapter-suggestions"
                   value={scrapeChapter}
                   onChange={(e) => setScrapeChapter(e.target.value)}
+                  placeholder="Chọn chương có sẵn hoặc gõ tên chương mới"
                   className="w-full text-xs text-slate-700 border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none"
                 />
+                <datalist id="exercise-chapter-suggestions">
+                  {chapters.map(c => <option key={c} value={c} />)}
+                </datalist>
               </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-semibold text-slate-500 uppercase">Session:</label>
                 <input
                   type="text"
+                  list="exercise-session-suggestions"
                   value={scrapeSession}
                   onChange={(e) => setScrapeSession(e.target.value)}
+                  placeholder="Chọn session có sẵn hoặc gõ tên session mới"
                   className="w-full text-xs text-slate-700 border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none"
                 />
+                <datalist id="exercise-session-suggestions">
+                  {scrapeSessionSuggestions.map(s => <option key={s} value={s} />)}
+                </datalist>
               </div>
 
               <div className="flex flex-col gap-1">

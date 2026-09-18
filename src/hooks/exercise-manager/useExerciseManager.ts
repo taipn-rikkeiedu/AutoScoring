@@ -33,6 +33,10 @@ export function useExerciseManager() {
   const sessions = selectedChapter && exerciseTemplates[selectedChapter] ? Object.keys(exerciseTemplates[selectedChapter]).sort() : [];
   const assignments = selectedChapter && selectedSession && exerciseTemplates[selectedChapter][selectedSession] ? Object.keys(exerciseTemplates[selectedChapter][selectedSession]).sort() : [];
 
+  const scrapeSessionSuggestions = scrapeChapter && exerciseTemplates[scrapeChapter]
+    ? Object.keys(exerciseTemplates[scrapeChapter]).sort()
+    : [];
+
   useEffect(() => {
     if (selectedChapter && selectedSession && selectedAssignment && exerciseTemplates[selectedChapter]?.[selectedSession]?.[selectedAssignment]) {
       const ex = exerciseTemplates[selectedChapter][selectedSession][selectedAssignment];
@@ -59,6 +63,15 @@ export function useExerciseManager() {
 
   const handleAssignmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedAssignment(e.target.value);
+  };
+
+  const handleOpenAddExerciseModal = () => {
+    setScrapeChapter(selectedChapter || "");
+    setScrapeSession(selectedChapter === scrapeChapter ? selectedSession : "");
+    setScrapeAssignmentName("");
+    setScrapeAssignmentText("");
+    setScrapeCriteriaText(DEFAULT_CRITERIA);
+    setIsScrapeModalOpen(true);
   };
 
   const handleScrapeFromLms = () => {
@@ -150,11 +163,16 @@ export function useExerciseManager() {
       return;
     }
 
-    const localEdits = config.uploadedExercises || {};
     const chap = scrapeChapter.trim();
     const sess = scrapeSession.trim();
     const name = scrapeAssignmentName.trim();
 
+    const isExistingAssignment = !!exerciseTemplates[chap]?.[sess]?.[name];
+    if (isExistingAssignment && !window.confirm(`Bài tập "${name}" đã tồn tại trong ${chap} / ${sess}. Bạn có muốn ghi đè nội dung cũ không?`)) {
+      return;
+    }
+
+    const localEdits = config.uploadedExercises || {};
     if (!localEdits[chap]) localEdits[chap] = {};
     if (!localEdits[chap][sess]) localEdits[chap][sess] = {};
     localEdits[chap][sess][name] = { assignment: scrapeAssignmentText, criteria: scrapeCriteriaText };
@@ -242,10 +260,12 @@ export function useExerciseManager() {
     chapters,
     sessions,
     assignments,
+    scrapeSessionSuggestions,
     exerciseTemplates,
     handleChapterChange,
     handleSessionChange,
     handleAssignmentChange,
+    handleOpenAddExerciseModal,
     handleScrapeFromLms,
     handleDeleteExercise,
     handleSaveDetail,
