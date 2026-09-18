@@ -4,6 +4,24 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [4.18.5] - 2026-09-15
+
+### ✨ Khôi phục tính năng Supabase Zero Setup
+- **Tự động khởi tạo Cơ sở dữ liệu**: Khôi phục lại logic lưu trữ và giao diện hỗ trợ khởi tạo bảng Supabase tự động từ phiên bản 4.8.0. Người dùng giờ đây có thể nhập **Personal Access Token (PAT)** vào phần Cài đặt Supabase, sau đó ấn "Khởi tạo DB (Zero Setup)" để tự động tạo toàn bộ bảng (`submissions`, `care_notes`, `exercises`) và thiết lập Row Level Security (RLS) mà không cần cấu hình thủ công qua giao diện Supabase.
+- Giữ lại các UI mới hiện đại (Tri-color Theme) của bản hiện tại nhưng được bổ sung thêm nút tạo cơ sở dữ liệu.
+
+---
+
+## [4.18.4] - 2026-09-15
+
+### 🐛 Sửa Lỗi Ngân Hàng Bài Tập (Exercise Bank API)
+- **Khôi phục tính năng tải đề bài từ API Server**: Trong các phiên bản trước, tính năng chọn nguồn dữ liệu bài tập (Local vs API Server) vô tình bị loại bỏ khỏi giao diện cấu hình và hook trạng thái, khiến tiện ích chỉ tải đề bài cục bộ từ `exercises.json` và không thể kết nối tới server ngân hàng đề. Phiên bản này đã phục hồi:
+  - Giao diện chọn Nguồn Dữ Liệu Bài Tập (Local / API Server) trong thẻ Barem & Quy tắc.
+  - Các ô nhập `Exercise API URL` và `API Token`.
+  - Logic tải đề bài (`loadExercises`) ưu tiên tải từ API khi người dùng cấu hình.
+
+---
+
 ## [4.18.3] - 2026-08-28
 
 ### 🔧 Mặc Định Backend Chuyển Về Local
