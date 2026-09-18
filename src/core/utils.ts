@@ -195,16 +195,25 @@ export function matchStudent(
 
 /**
  * Lấy tab đang active mà người dùng thực sự làm việc (trang LMS).
- * Dùng `lastFocusedWindow` thay vì `currentWindow`: khi extension chạy ở dạng
+ *
+ * Không dùng `currentWindow`/`lastFocusedWindow`: khi extension chạy ở dạng
  * cửa sổ nổi (floating window, xem OPEN_FLOATING_WINDOW trong background.ts),
- * `currentWindow` sẽ trỏ vào chính cửa sổ nổi đó (tức trang popup.html của
- * extension) thay vì cửa sổ trình duyệt chứa trang LMS, khiến mọi thao tác
- * quét/điều hướng nhắm nhầm tab. `lastFocusedWindow` luôn trỏ đúng cửa sổ
- * trình duyệt chính mà người dùng vừa tương tác, đúng trong cả 2 chế độ.
+ * cửa sổ nổi đó (window.type = "popup") đang là cửa sổ có focus tại thời
+ * điểm gọi API, nên cả `currentWindow` lẫn `lastFocusedWindow` đều trỏ
+ * ngược vào chính nó (tức trang popup.html của extension) thay vì cửa sổ
+ * trình duyệt chính chứa trang LMS phía sau, khiến mọi thao tác quét/điều
+ * hướng nhắm nhầm tab.
+ *
+ * Cách đáng tin cậy: liệt kê tất cả cửa sổ có `windowTypes: ['normal']`
+ * (loại trừ hẳn cửa sổ popup của chính extension, dù nó có focus hay
+ * không), rồi lấy tab active trong cửa sổ normal đang focus gần nhất
+ * (fallback cửa sổ normal đầu tiên nếu không cửa sổ nào đang focus).
  */
 export function queryActiveLmsTab(callback: (tab: chrome.tabs.Tab | undefined) => void): void {
-  chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
-    callback(tabs && tabs[0]);
+  chrome.windows.getAll({ windowTypes: ['normal'], populate: true }, (windows) => {
+    const targetWindow = windows.find(w => w.focused) || windows[0];
+    const activeTab = targetWindow?.tabs?.find(t => t.active);
+    callback(activeTab);
   });
 }
 
