@@ -43,6 +43,7 @@ export const STORAGE_KEYS = {
   detectedSubmissions: "detectedSubmissions",
   customShortcuts: "customShortcuts",
   uiWindowMode: "uiWindowMode",
+  uiSidebarCollapsed: "uiSidebarCollapsed",
   learningStatsSnapshots: "learningStatsSnapshots"
 } as const;
 
