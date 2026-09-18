@@ -87,3 +87,35 @@ export interface LmsSession {
   mindmap: string | null;
   homework: LmsHomework[];
 }
+
+export interface LearningStatRow {
+  no: number;
+  studentName: string;
+  studentEmail: string;
+  absentRatio: number | null;
+  missingHomeworkRatio: number | null;
+  elearningStatus: string;
+  lateAssignmentsText: string;
+  hackathonTN: number | null;
+  hackathonTL: number | null;
+  rPoints: string;
+  autoRPoints: number | null;
+  scoreLockStatus: string;
+  projectEligibility: string;
+}
+
+export interface LearningStatsSnapshot {
+  className: string;
+  subjectName: string;
+  scannedAt: string;
+  missingColumns: string[];
+  summary: {
+    absentOverTenPercentRatio: number | null;
+    absentOverTenPercentText: string;
+    homeworkViolationRatio: number | null;
+    homeworkViolationText: string;
+    unpreparedViolationRatio: number | null;
+    unpreparedViolationText: string;
+  };
+  rows: LearningStatRow[];
+}

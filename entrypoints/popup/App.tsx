@@ -12,6 +12,7 @@ import { ShortcutsTab } from '~/src/components/ShortcutsTab';
 import { LmsApiTestTab } from '~/src/components/LmsApiTestTab';
 import { ReportModal } from '~/src/components/ReportModal';
 import { DriveScannerTab } from '~/src/components/DriveScannerTab';
+import { LearningStatsTab } from '~/src/components/LearningStatsTab';
 
 const UnsupportedPageWarning: React.FC = () => {
   return (
@@ -109,7 +110,7 @@ const AppContent: React.FC = () => {
         <Header activeTab={activeTab} />
         
         <main className="flex-1 overflow-hidden flex flex-col bg-slate-50">
-          {!isLmsPage && ["tab-auto", "tab-class-list", "tab-care", "tab-exercises", "tab-lms-api"].includes(activeTab) ? (
+          {!isLmsPage && ["tab-auto", "tab-class-list", "tab-care", "tab-exercises", "tab-lms-api", "tab-learning-stats"].includes(activeTab) ? (
             <UnsupportedPageWarning />
           ) : (
             <>
@@ -117,6 +118,7 @@ const AppContent: React.FC = () => {
               {activeTab === "tab-class-list" && <ClassListTab setActiveTab={setActiveTab} />}
               {activeTab === "tab-care" && <CareTab />}
               {activeTab === "tab-exercises" && <ExercisesTab />}
+              {activeTab === "tab-learning-stats" && <LearningStatsTab />}
               {activeTab === "tab-shortcuts" && <ShortcutsTab />}
               {activeTab === "tab-lms-api" && <LmsApiTestTab />}
               {activeTab === "tab-drive-scanner" && <DriveScannerTab />}

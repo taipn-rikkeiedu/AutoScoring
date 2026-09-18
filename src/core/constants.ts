@@ -42,7 +42,8 @@ export const STORAGE_KEYS = {
   legacyClassStudentList: "classStudentList",
   detectedSubmissions: "detectedSubmissions",
   customShortcuts: "customShortcuts",
-  uiWindowMode: "uiWindowMode"
+  uiWindowMode: "uiWindowMode",
+  learningStatsSnapshots: "learningStatsSnapshots"
 } as const;
 
 export const GRADER_IGNORE_DEFAULTS = [

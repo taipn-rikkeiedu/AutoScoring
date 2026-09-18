@@ -11,6 +11,7 @@ import {
   TerminalIcon,
   SettingsIcon,
   WindowIcon,
+  TableCellsIcon,
 } from '~/src/components/Icons';
 
 interface NavigationSidebarProps {
@@ -66,6 +67,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
         { id: "tab-class-list", label: "Danh sách lớp", icon: UsersIcon },
         { id: "tab-care", label: "Chăm sóc học viên", icon: PhoneIcon },
         { id: "tab-exercises", label: "Kho đề bài", icon: BookOpenIcon },
+        { id: "tab-learning-stats", label: "Giám sát học tập", icon: TableCellsIcon },
       ],
     },
     {
