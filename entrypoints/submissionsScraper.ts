@@ -163,10 +163,11 @@ export default defineUnlistedScript(() => {
   }
   
   const uniqueSubmissions: any[] = [];
-  const urls = new Set<string>();
+  const seenKeys = new Set<string>();
   submissions.forEach(sub => {
-    if (!urls.has(sub.githubUrl)) {
-      urls.add(sub.githubUrl);
+    const key = `${sub.exerciseName}||${sub.githubUrl}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
       uniqueSubmissions.push(sub);
     }
   });
