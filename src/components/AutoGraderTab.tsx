@@ -105,7 +105,9 @@ export const AutoGraderTab: React.FC = () => {
               score: sub.score,
               report: sub.report || "",
               language: sub.language,
-              astMetrics: sub.astMetrics
+              astMetrics: sub.astMetrics,
+              imagesAttached: sub.imagesAttached,
+              imagesSkipped: sub.imagesSkipped
             })}
             className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors cursor-pointer"
             title="Xem chi tiết toàn bộ báo cáo"

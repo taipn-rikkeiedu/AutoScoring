@@ -1,7 +1,10 @@
 import { GRADING_TEXT } from '~/src/core/constants';
 import { AppConfig } from '~/src/types';
 import { AiClient, API_BASE_URLS } from '~/src/services/api';
+import type { ImageAttachment } from '~/src/services/api';
 import { analyzeCode, buildAstSummary } from '~/src/services/codeAnalysis';
+
+export type { ImageAttachment } from '~/src/services/api';
 
 /** Nén code trước khi đưa vào prompt: gộp các dòng trắng liên tiếp thành 1 dòng. */
 export function compressCode(codeContent: string): string {
@@ -27,7 +30,8 @@ export function buildGradingPrompt(
   systemPrompt: string,
   assignment: string,
   criteria: string,
-  codeContent: string
+  codeContent: string,
+  imageCount: number = 0
 ): string {
   const compressed = compressCode(codeContent);
   const { language, metrics } = analyzeCode(compressed);
@@ -37,11 +41,17 @@ export function buildGradingPrompt(
     ? systemPrompt
     : GRADING_TEXT.defaultSystemPrompt;
 
-  return template
+  let prompt = template
     .replace("{{assignment}}", assignment)
     .replace("{{criteria}}", criteria)
     .replace("{{ast_summary}}", astSummary)
     .replace("{{code}}", compressed);
+
+  if (imageCount > 0) {
+    prompt += `\n\nLưu ý: bài nộp có đính kèm ${imageCount} ảnh sơ đồ (trích từ file .docx, có thể là sơ đồ UML/ERD/kiến trúc vẽ bằng draw.io) — hãy phân tích các ảnh này khi đánh giá phần thiết kế/sơ đồ nếu tiêu chí có yêu cầu.`;
+  }
+
+  return prompt;
 }
 
 export interface AiCredentials {
@@ -65,17 +75,17 @@ function isRateLimitError(message: string): boolean {
 }
 
 /** Gọi thẳng AI Provider (BYOK) theo config.aiProvider, không retry. Dùng chung cho mọi luồng chấm điểm. */
-async function callAiProvider(prompt: string, { provider, modelName, apiKey, apiUrl }: AiCredentials): Promise<string> {
+async function callAiProvider(prompt: string, { provider, modelName, apiKey, apiUrl }: AiCredentials, images?: ImageAttachment[]): Promise<string> {
   if (provider === "gemini") {
-    return await AiClient.generateGemini(prompt, modelName, apiKey);
+    return await AiClient.generateGemini(prompt, modelName, apiKey, 0.0, images);
   }
   if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "custom") {
     const baseUrl = resolveOpenAiCompatibleBaseUrl(provider, apiUrl);
-    return await AiClient.generateOpenAiCompatible(prompt, modelName, baseUrl, apiKey);
+    return await AiClient.generateOpenAiCompatible(prompt, modelName, baseUrl, apiKey, 0.0, images);
   }
   if (provider === "local") {
     const url = apiUrl && apiUrl.trim() ? apiUrl.trim() : API_BASE_URLS.ollama;
-    return await AiClient.generateOllama(prompt, modelName, url);
+    return await AiClient.generateOllama(prompt, modelName, url, 0.0, images);
   }
   throw new Error("Không hỗ trợ AI Provider đã chọn.");
 }
@@ -86,12 +96,13 @@ export async function callAiWithRateLimitRetry(
   credentials: AiCredentials,
   onStatusUpdate: ((status: string) => void) | null = null,
   maxRetries = 3,
-  initialDelayMs = 6000
+  initialDelayMs = 6000,
+  images?: ImageAttachment[]
 ): Promise<string> {
   let attempt = 0;
   while (attempt <= maxRetries) {
     try {
-      return await callAiProvider(prompt, credentials);
+      return await callAiProvider(prompt, credentials, images);
     } catch (err: any) {
       if (!isRateLimitError(err.message || "")) throw err;
 
@@ -121,8 +132,8 @@ export class AIService {
     this.systemPrompt = config.systemPrompt;
   }
 
-  private buildPrompt(assignment: string, criteria: string, codeContent: string): string {
-    return buildGradingPrompt(this.systemPrompt, assignment, criteria, codeContent);
+  private buildPrompt(assignment: string, criteria: string, codeContent: string, imageCount: number): string {
+    return buildGradingPrompt(this.systemPrompt, assignment, criteria, codeContent, imageCount);
   }
 
   async generateGradingReport(
@@ -131,9 +142,10 @@ export class AIService {
     codeContent: string,
     onStatusUpdate: ((status: string) => void) | null = null,
     maxRetries = 3,
-    initialDelayMs = 6000
+    initialDelayMs = 6000,
+    images?: ImageAttachment[]
   ): Promise<string> {
-    const prompt = this.buildPrompt(assignment, criteria, codeContent);
-    return callAiWithRateLimitRetry(prompt, this.credentials, onStatusUpdate, maxRetries, initialDelayMs);
+    const prompt = this.buildPrompt(assignment, criteria, codeContent, images?.length || 0);
+    return callAiWithRateLimitRetry(prompt, this.credentials, onStatusUpdate, maxRetries, initialDelayMs, images);
   }
 }

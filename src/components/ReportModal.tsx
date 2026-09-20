@@ -13,9 +13,11 @@ interface ReportModalProps {
   report: string;
   language?: string;
   astMetrics?: ASTMetrics;
+  imagesAttached?: number;
+  imagesSkipped?: number;
 }
 
-export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title, score, report, language, astMetrics }) => {
+export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title, score, report, language, astMetrics, imagesAttached, imagesSkipped }) => {
   const [isCopied, setIsCopied] = useState(false);
   const { showToast } = useToast();
 
@@ -106,6 +108,16 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
         {/* Content */}
         <div className="flex-1 p-4 overflow-y-auto bg-slate-50/50 flex flex-col gap-3">
           <AstMetricsPanel language={language} metrics={astMetrics} />
+          {(!!imagesAttached || !!imagesSkipped) && (
+            <div className="flex flex-col gap-1 text-[10.5px] font-medium">
+              {!!imagesAttached && (
+                <span className="text-sky-700">📎 Đã gửi kèm {imagesAttached} ảnh sơ đồ (trích từ .docx) cho AI</span>
+              )}
+              {!!imagesSkipped && (
+                <span className="text-amber-700">⚠️ Bỏ qua {imagesSkipped} ảnh (định dạng không hỗ trợ hoặc vượt giới hạn dung lượng)</span>
+              )}
+            </div>
+          )}
           {report ? (
             <div
               className="prose prose-sm max-w-none text-slate-700 leading-relaxed text-xs 

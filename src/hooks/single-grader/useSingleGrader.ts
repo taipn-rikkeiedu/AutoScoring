@@ -21,7 +21,7 @@ export function useSingleGrader() {
   const [detectedSubIndex, setDetectedSubIndex] = useState("");
   const [isGrading, setIsGrading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
-  const [results, setResults] = useState<{ score: string; report: string; fileList?: string[]; language?: string; astMetrics?: ASTMetrics } | null>(null);
+  const [results, setResults] = useState<{ score: string; report: string; fileList?: string[]; language?: string; astMetrics?: ASTMetrics; imagesAttached?: number; imagesSkipped?: number } | null>(null);
   const [isFileTreeExpanded, setIsFileTreeExpanded] = useState(false);
   const [detectedSubmissions, setDetectedSubmissions] = useState<any[]>([]);
 
@@ -150,7 +150,7 @@ export function useSingleGrader() {
         setStatusMessage
       );
 
-      setResults({ score: result.score, report: result.report, fileList: result.fileList, language: result.language, astMetrics: result.astMetrics });
+      setResults({ score: result.score, report: result.report, fileList: result.fileList, language: result.language, astMetrics: result.astMetrics, imagesAttached: result.imagesAttached, imagesSkipped: result.imagesSkipped });
       logger.success("SINGLE_GRADER", `Chấm điểm thành công bằng AI. Điểm số: ${result.score}/100.`);
       if (activeStudent) await saveResolvedStudentResult(result.score, result.report);
     } catch (err: any) {

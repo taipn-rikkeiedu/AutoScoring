@@ -45,6 +45,8 @@ const AppContent: React.FC = () => {
     report: string;
     language?: string;
     astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics;
+    imagesAttached?: number;
+    imagesSkipped?: number;
   }>({
     isOpen: false,
     title: "",
@@ -54,14 +56,16 @@ const AppContent: React.FC = () => {
 
   // Attach report modal trigger to window for legacy support from other contexts
   useEffect(() => {
-    (window as any).showReportModal = (data: { title: string; score: string | null; report: string; language?: string; astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics }) => {
+    (window as any).showReportModal = (data: { title: string; score: string | null; report: string; language?: string; astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics; imagesAttached?: number; imagesSkipped?: number }) => {
       setReportModalData({
         isOpen: true,
         title: data.title,
         score: data.score,
         report: data.report,
         language: data.language,
-        astMetrics: data.astMetrics
+        astMetrics: data.astMetrics,
+        imagesAttached: data.imagesAttached,
+        imagesSkipped: data.imagesSkipped
       });
     };
     return () => {
@@ -140,6 +144,8 @@ const AppContent: React.FC = () => {
         report={reportModalData.report}
         language={reportModalData.language}
         astMetrics={reportModalData.astMetrics}
+        imagesAttached={reportModalData.imagesAttached}
+        imagesSkipped={reportModalData.imagesSkipped}
       />
     </div>
   );

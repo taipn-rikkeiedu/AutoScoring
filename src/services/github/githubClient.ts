@@ -1,8 +1,15 @@
 import JSZip from 'jszip';
 import { GITHUB_ENDPOINTS } from '~/src/services/api/endpoints';
 import { UI_MESSAGES } from '~/src/core/constants';
-import { ZipExtractor } from './zipExtractor';
+import { ZipExtractor, ExtractedImage } from './zipExtractor';
 import { proxyFetchJson, proxyFetchBinary } from './backgroundFetch';
+
+const MAX_TOTAL_IMAGES = 6;
+const MAX_TOTAL_IMAGE_BYTES = 6 * 1024 * 1024;
+
+function estimateBase64Bytes(base64: string): number {
+  return Math.floor((base64.length * 3) / 4);
+}
 
 const DEFAULT_IGNORE_ITEMS = [
   "build/", "dist/", "target/", "out/", ".vscode/", ".idea/", "env/", "venv/",
@@ -101,15 +108,46 @@ export class GitHubService {
     }
   }
 
+  private static formatFileSection(relativePath: string, text: string): string {
+    const separator = "=".repeat(50);
+    return `\n\n${separator}\nTỆP TIN: ${relativePath}\n${separator}\n${text}`;
+  }
+
+  /** Đọc riêng file .docx: text -> payload như file thường, ảnh -> gom vào accumulator có cap tổng (nhiều .docx dùng chung 1 cap). */
+  private static async readDocxEntry(
+    entry: any,
+    imageAccumulator: { images: ExtractedImage[]; skippedImageCount: number; totalImageBytes: number }
+  ): Promise<string | null> {
+    const bytes: Uint8Array = await entry.async("uint8array");
+    const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer]);
+    const { text, images: docxImages, skippedCount } = await ZipExtractor.parseDocxFull(blob);
+
+    imageAccumulator.skippedImageCount += skippedCount;
+    for (const img of docxImages) {
+      const imgBytes = estimateBase64Bytes(img.base64);
+      const overCap = imageAccumulator.images.length >= MAX_TOTAL_IMAGES ||
+        imageAccumulator.totalImageBytes + imgBytes > MAX_TOTAL_IMAGE_BYTES;
+      if (overCap) {
+        imageAccumulator.skippedImageCount++;
+        continue;
+      }
+      imageAccumulator.images.push(img);
+      imageAccumulator.totalImageBytes += imgBytes;
+    }
+
+    return text.trim() ? text : null;
+  }
+
   private async extractZipContents(
     zipBuffer: ArrayBuffer,
     onProgress: (msg: string) => void
-  ): Promise<{ fileList: string[]; payloadParts: string[] }> {
+  ): Promise<{ fileList: string[]; payloadParts: string[]; images: ExtractedImage[]; skippedImageCount: number }> {
     onProgress(UI_MESSAGES.github.extractingZip);
     const zip = await JSZip.loadAsync(zipBuffer);
 
     const fileList: string[] = [];
     const payloadParts: string[] = [];
+    const imageAccumulator = { images: [] as ExtractedImage[], skippedImageCount: 0, totalImageBytes: 0 };
     let processedFiles = 0;
     let totalChars = 0;
 
@@ -129,20 +167,21 @@ export class GitHubService {
       if (processedFiles >= MAX_FILES || totalChars >= MAX_CHARS) continue;
 
       try {
-        const bytes: Uint8Array = await entry.async("uint8array");
-        const fileText = GitHubService.decodeFileText(bytes);
-        if (fileText.trim()) {
-          const separator = "=".repeat(50);
-          payloadParts.push(`\n\n${separator}\nTỆP TIN: ${relativePath}\n${separator}\n${fileText}`);
+        const text = filename.toLowerCase().endsWith('.docx')
+          ? await GitHubService.readDocxEntry(entry, imageAccumulator)
+          : GitHubService.decodeFileText(await entry.async("uint8array")).trim() || null;
+
+        if (text) {
+          payloadParts.push(GitHubService.formatFileSection(relativePath, text));
           processedFiles++;
-          totalChars += fileText.length;
+          totalChars += text.length;
         }
       } catch {
         // Bỏ qua file không đọc được, vẫn giữ trong fileList để hiển thị.
       }
     }
 
-    return { fileList, payloadParts };
+    return { fileList, payloadParts, images: imageAccumulator.images, skippedImageCount: imageAccumulator.skippedImageCount };
   }
 
   /**
@@ -152,7 +191,7 @@ export class GitHubService {
   async getRepoContents(
     repoUrl: string,
     onProgress: (msg: string) => void = () => {}
-  ): Promise<{ content: string; totalFiles: number; fileList: string[] }> {
+  ): Promise<{ content: string; totalFiles: number; fileList: string[]; images: ExtractedImage[]; skippedImageCount: number }> {
     const { owner, repo } = GitHubService.parseGithubUrl(repoUrl);
 
     onProgress(UI_MESSAGES.github.findingDefaultBranch);
@@ -161,7 +200,7 @@ export class GitHubService {
     onProgress(UI_MESSAGES.github.downloadingZip);
     const zipBuffer = await this.downloadZipArchive(owner, repo, branch);
 
-    const { fileList, payloadParts } = await this.extractZipContents(zipBuffer, onProgress);
+    const { fileList, payloadParts, images, skippedImageCount } = await this.extractZipContents(zipBuffer, onProgress);
     if (fileList.length === 0) throw new Error(UI_MESSAGES.github.noValidSource);
 
     const tree = ZipExtractor.buildDirectoryTree(fileList);
@@ -169,6 +208,6 @@ export class GitHubService {
       `[CẤU TRÚC THƯ MỤC DỰ ÁN]\n${tree}\n\n` +
       `[NỘI DUNG CHI TIẾT CÁC TỆP TIN NGUỒN]` + payloadParts.join('');
 
-    return { content, totalFiles: fileList.length, fileList };
+    return { content, totalFiles: fileList.length, fileList, images, skippedImageCount };
   }
 }

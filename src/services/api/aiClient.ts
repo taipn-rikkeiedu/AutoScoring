@@ -1,5 +1,10 @@
 import { GEMINI_ENDPOINTS, OPENAI_COMPATIBLE_ENDPOINTS, OLLAMA_ENDPOINTS, API_BASE_URLS } from './endpoints';
 
+export interface ImageAttachment {
+  mimeType: string;
+  base64: string;
+}
+
 export class AiClient {
   /**
    * Tự động truy vấn danh sách tất cả các Model hợp lệ từ Google GenAI API
@@ -166,13 +171,18 @@ export class AiClient {
   /**
    * Gọi Google Gemini API để chấm điểm
    */
-  static async generateGemini(prompt: string, model: string, apiKey: string, temperature: number = 0.0): Promise<string> {
+  static async generateGemini(prompt: string, model: string, apiKey: string, temperature: number = 0.0, images?: ImageAttachment[]): Promise<string> {
     const url = GEMINI_ENDPOINTS.generateContent(model, apiKey);
+    const parts: any[] = [{ text: prompt }];
+    if (images && images.length > 0) {
+      images.forEach(img => parts.push({ inline_data: { mime_type: img.mimeType, data: img.base64 } }));
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts }],
         generationConfig: { temperature }
       })
     });
@@ -213,22 +223,30 @@ export class AiClient {
    * Gọi OpenAI Compatible API (OpenAI, DeepSeek, OpenRouter, Custom)
    */
   static async generateOpenAiCompatible(
-    prompt: string, 
-    model: string, 
-    baseUrl: string, 
-    apiKey?: string, 
-    temperature: number = 0.0
+    prompt: string,
+    model: string,
+    baseUrl: string,
+    apiKey?: string,
+    temperature: number = 0.0,
+    images?: ImageAttachment[]
   ): Promise<string> {
     const url = OPENAI_COMPATIBLE_ENDPOINTS.chatCompletions(baseUrl);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+    const content: any = images && images.length > 0
+      ? [
+          { type: 'text', text: prompt },
+          ...images.map(img => ({ type: 'image_url', image_url: { url: `data:${img.mimeType};base64,${img.base64}` } }))
+        ]
+      : prompt;
 
     const response = await fetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content }],
         temperature
       })
     });
@@ -266,21 +284,27 @@ export class AiClient {
    * Gọi Ollama Local Model
    */
   static async generateOllama(
-    prompt: string, 
-    model: string, 
-    baseUrl: string = API_BASE_URLS.ollama, 
-    temperature: number = 0.0
+    prompt: string,
+    model: string,
+    baseUrl: string = API_BASE_URLS.ollama,
+    temperature: number = 0.0,
+    images?: ImageAttachment[]
   ): Promise<string> {
     const url = OLLAMA_ENDPOINTS.generate(baseUrl);
+    const body: any = {
+      model,
+      prompt,
+      stream: false,
+      options: { temperature }
+    };
+    if (images && images.length > 0) {
+      body.images = images.map(img => img.base64);
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        prompt,
-        stream: false,
-        options: { temperature }
-      })
+      body: JSON.stringify(body)
     });
 
     if (response.status === 429) throw new Error("RATE_LIMIT");

@@ -189,6 +189,17 @@ export const SingleGraderTab: React.FC = () => {
 
           <AstMetricsPanel language={results.language} metrics={results.astMetrics} />
 
+          {(!!results.imagesAttached || !!results.imagesSkipped) && (
+            <div className="flex flex-col gap-1 text-[10.5px] font-medium">
+              {!!results.imagesAttached && (
+                <span className="text-sky-700">📎 Đã gửi kèm {results.imagesAttached} ảnh sơ đồ (trích từ .docx) cho AI</span>
+              )}
+              {!!results.imagesSkipped && (
+                <span className="text-amber-700">⚠️ Bỏ qua {results.imagesSkipped} ảnh (định dạng không hỗ trợ hoặc vượt giới hạn dung lượng)</span>
+              )}
+            </div>
+          )}
+
           <div 
             className="prose prose-sm max-w-none text-slate-750 leading-relaxed text-xs [&_h1]:text-xs [&_h1]:font-bold [&_h2]:text-[11px] [&_h2]:font-bold [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-slate-900"
             dangerouslySetInnerHTML={{ __html: parsedMarkdown }}

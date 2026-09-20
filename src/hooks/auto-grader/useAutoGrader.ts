@@ -310,7 +310,10 @@ export function useAutoGrader() {
             template.assignment,
             template.criteria || "",
             repoData.content,
-            null
+            null,
+            3,
+            6000,
+            repoData.images
           );
 
           const score = parseScore(report);
@@ -345,7 +348,9 @@ export function useAutoGrader() {
                 score: res.score,
                 report: res.report,
                 language: repoLanguage,
-                astMetrics: repoAstMetrics
+                astMetrics: repoAstMetrics,
+                imagesAttached: repoData.images.length,
+                imagesSkipped: repoData.skippedImageCount
               };
             });
             syncDetectedSubmissions(next);

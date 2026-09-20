@@ -10,6 +10,8 @@ export interface GradingResult {
   fileList: string[];
   language?: string;
   astMetrics?: ASTMetrics;
+  imagesAttached?: number;
+  imagesSkipped?: number;
 }
 
 /**
@@ -37,7 +39,8 @@ export async function gradeSubmission(
     config.systemPrompt,
     assignmentText,
     criteriaText || DEFAULT_CRITERIA,
-    repoData.content
+    repoData.content,
+    repoData.images.length
   );
   const credentials = {
     provider: config.aiProvider,
@@ -45,7 +48,7 @@ export async function gradeSubmission(
     apiKey: config.aiApiKey,
     apiUrl: config.aiApiUrl
   };
-  const report = await callAiWithRateLimitRetry(prompt, credentials, onStatusUpdate);
+  const report = await callAiWithRateLimitRetry(prompt, credentials, onStatusUpdate, 3, 6000, repoData.images);
 
   const scoreStr = parseScore(report) || "0";
   const { language, metrics } = analyzeCode(compressCode(repoData.content));
@@ -55,6 +58,8 @@ export async function gradeSubmission(
     report,
     fileList: repoData.fileList,
     language,
-    astMetrics: metrics
+    astMetrics: metrics,
+    imagesAttached: repoData.images.length,
+    imagesSkipped: repoData.skippedImageCount
   };
 }

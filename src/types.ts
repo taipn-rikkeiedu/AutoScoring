@@ -55,6 +55,8 @@ export interface Submission {
   fileList?: string[];
   language?: string;
   astMetrics?: import('./services/codeAnalysis').ASTMetrics;
+  imagesAttached?: number;
+  imagesSkipped?: number;
   checked?: boolean;
   matchedTemplate?: {
     chapter: string;
