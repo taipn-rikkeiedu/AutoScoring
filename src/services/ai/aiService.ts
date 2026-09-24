@@ -81,9 +81,13 @@ const FALLBACK_MODELS: Record<string, string[]> = {
   openrouter: ["google/gemini-1.5-flash", "openai/gpt-4o-mini", "anthropic/claude-3-haiku"]
 };
 
+// Cấu hình dự phòng riêng biệt cho từng model cụ thể
+const SPECIFIC_FALLBACK_MAP: Record<string, string[]> = {
+  "gemini-3.5-flash-lite": ["gemini-3.1-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"],
+};
+
 function getNextFallbackModel(provider: string, currentModel: string, attempt: number): string | null {
-  const fallbacks = FALLBACK_MODELS[provider];
-  if (!fallbacks || fallbacks.length === 0) return null;
+  const fallbacks = SPECIFIC_FALLBACK_MAP[currentModel] || FALLBACK_MODELS[provider] || [];
   const availableFallbacks = fallbacks.filter(m => m !== currentModel);
   if (attempt - 1 < availableFallbacks.length) {
     return availableFallbacks[attempt - 1];
