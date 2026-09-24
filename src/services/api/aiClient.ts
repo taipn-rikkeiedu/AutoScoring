@@ -6,6 +6,19 @@ export interface ImageAttachment {
 }
 
 export class AiClient {
+  private static dispatchRateLimitInfo(res: Response) {
+    const req = res.headers.get('x-ratelimit-remaining-requests');
+    const tokens = res.headers.get('x-ratelimit-remaining-tokens');
+    if (req !== null || tokens !== null) {
+      window.dispatchEvent(new CustomEvent('aiRateLimit', { 
+        detail: { 
+          req: req || 'N/A', 
+          tokens: tokens || 'N/A' 
+        } 
+      }));
+    }
+  }
+
   /**
    * Tự động truy vấn danh sách tất cả các Model hợp lệ từ Google GenAI API
    */
@@ -186,6 +199,8 @@ export class AiClient {
         generationConfig: { temperature }
       })
     });
+    
+    this.dispatchRateLimitInfo(response);
 
     if (response.status === 429) throw new Error("RATE_LIMIT");
     if (!response.ok) {
@@ -250,6 +265,8 @@ export class AiClient {
         temperature
       })
     });
+
+    this.dispatchRateLimitInfo(response);
 
     if (response.status === 429) throw new Error("RATE_LIMIT");
     if (!response.ok) {
