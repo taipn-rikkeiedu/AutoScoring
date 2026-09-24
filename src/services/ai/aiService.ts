@@ -71,7 +71,24 @@ export function resolveOpenAiCompatibleBaseUrl(provider: string, configuredUrl: 
 
 function isRateLimitError(message: string): boolean {
   const lower = message.toLowerCase();
-  return message === "RATE_LIMIT" || lower.includes("quota") || lower.includes("rate limit") || lower.includes("429") || lower.includes("exhausted");
+  return message === "RATE_LIMIT" || lower.includes("quota") || lower.includes("rate limit") || lower.includes("429") || lower.includes("exhausted") || lower.includes("too many requests");
+}
+
+const FALLBACK_MODELS: Record<string, string[]> = {
+  gemini: ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash-8b"],
+  openai: ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4o"],
+  deepseek: ["deepseek-chat", "deepseek-coder"],
+  openrouter: ["google/gemini-1.5-flash", "openai/gpt-4o-mini", "anthropic/claude-3-haiku"]
+};
+
+function getNextFallbackModel(provider: string, currentModel: string, attempt: number): string | null {
+  const fallbacks = FALLBACK_MODELS[provider];
+  if (!fallbacks || fallbacks.length === 0) return null;
+  const availableFallbacks = fallbacks.filter(m => m !== currentModel);
+  if (attempt - 1 < availableFallbacks.length) {
+    return availableFallbacks[attempt - 1];
+  }
+  return null;
 }
 
 /** Gọi thẳng AI Provider (BYOK) theo config.aiProvider, không retry. Dùng chung cho mọi luồng chấm điểm. */
@@ -100,9 +117,11 @@ export async function callAiWithRateLimitRetry(
   images?: ImageAttachment[]
 ): Promise<string> {
   let attempt = 0;
+  const currentCredentials = { ...credentials };
+
   while (attempt <= maxRetries) {
     try {
-      return await callAiProvider(prompt, credentials, images);
+      return await callAiProvider(prompt, currentCredentials, images);
     } catch (err: any) {
       if (!isRateLimitError(err.message || "")) throw err;
 
@@ -110,9 +129,19 @@ export async function callAiWithRateLimitRetry(
       if (attempt > maxRetries) {
         throw new Error(`Bị giới hạn lưu lượng (Rate Limit) và đã thử lại ${maxRetries} lần thất bại. Vui lòng đợi và thử lại.`);
       }
-      const delay = initialDelayMs * Math.pow(2, attempt - 1);
-      onStatusUpdate?.(`Đợi ${Math.round(delay / 1000)}s do hết hạn mức AI (${attempt}/${maxRetries})...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+
+      // Thử đổi sang model dự phòng (fallback)
+      const fallbackModel = getNextFallbackModel(currentCredentials.provider, credentials.modelName, attempt);
+      if (fallbackModel) {
+        currentCredentials.modelName = fallbackModel;
+        onStatusUpdate?.(`Bị giới hạn lưu lượng. Tự động chuyển sang model dự phòng: ${fallbackModel} (${attempt}/${maxRetries})...`);
+        // Đợi 1 chút để tránh spam API
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        const delay = initialDelayMs * Math.pow(2, attempt - 1);
+        onStatusUpdate?.(`Đợi ${Math.round(delay / 1000)}s do hết hạn mức AI (${attempt}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
   }
   throw new Error("Không thể tạo báo cáo chấm điểm.");
