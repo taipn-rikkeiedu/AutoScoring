@@ -72,7 +72,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
           <div className="flex flex-col pr-6">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Báo cáo chấm bài</span>
+            <span className="text-[12.5px] font-bold text-slate-400 uppercase tracking-wider">Báo cáo chấm bài</span>
             <h3 className="text-sm font-bold text-slate-800 line-clamp-1">{title}</h3>
           </div>
           <button
@@ -87,7 +87,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
         <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-white">
           <button
             onClick={handleCopy}
-            className={`flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded transition-all duration-150 border active:scale-95 ${
+            className={`flex items-center gap-1 text-[12.5px] font-bold px-3 py-1.5 rounded transition-all duration-150 border active:scale-95 ${
               isCopied
                 ? "bg-green-50 border-green-500 text-green-700"
                 : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
@@ -98,7 +98,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
 
           <button
             onClick={handleCopy}
-            className={`text-[11px] font-bold py-1 px-2.5 rounded-full shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all ${scoreBadgeClass}`}
+            className={`text-[12.5px] font-bold py-1 px-2.5 rounded-full shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all ${scoreBadgeClass}`}
             title="Nhấp để sao chép báo cáo"
           >
             {score !== null ? `${score} / 100` : '-- / 100'}
@@ -109,9 +109,9 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
         <div className="flex-1 p-4 overflow-y-auto bg-slate-50/50 flex flex-col gap-3">
           <AstMetricsPanel language={language} metrics={astMetrics} />
           {(!!imagesAttached || !!imagesSkipped) && (
-            <div className="flex flex-col gap-1 text-[10.5px] font-medium">
+            <div className="flex flex-col gap-1 text-[12px] font-medium">
               {!!imagesAttached && (
-                <span className="text-sky-700">📎 Đã gửi kèm {imagesAttached} ảnh sơ đồ (trích từ .docx) cho AI</span>
+                <span className="text-sky-700">📎 Đã gửi kèm {imagesAttached} ảnh sơ đồ cho AI</span>
               )}
               {!!imagesSkipped && (
                 <span className="text-amber-700">⚠️ Bỏ qua {imagesSkipped} ảnh (định dạng không hỗ trợ hoặc vượt giới hạn dung lượng)</span>

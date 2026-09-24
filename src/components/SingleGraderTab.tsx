@@ -52,7 +52,7 @@ export const SingleGraderTab: React.FC = () => {
 
       {detectedSubmissions.length > 0 && (
         <div className="flex flex-col gap-1 select-none">
-          <label className="text-[11px] font-bold text-slate-500">Bài nộp phát hiện trên trang:</label>
+          <label className="text-[12.5px] font-bold text-slate-500">Bài nộp phát hiện trên trang:</label>
           <select
             value={detectedSubIndex}
             onChange={handleDetectedSubmissionChange}
@@ -67,7 +67,7 @@ export const SingleGraderTab: React.FC = () => {
       )}
 
       <div className="flex flex-col gap-1">
-        <label className="text-[11px] font-bold text-slate-500">GitHub Repository URL:</label>
+        <label className="text-[12.5px] font-bold text-slate-500">GitHub Repository URL:</label>
         <input
           type="text"
           value={repoUrl}
@@ -79,7 +79,7 @@ export const SingleGraderTab: React.FC = () => {
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-slate-500">Chọn Chương:</label>
+          <label className="text-[12.5px] font-bold text-slate-500">Chọn Chương:</label>
           <select
             value={selectedChapter}
             onChange={(e) => setSelectedChapter(e.target.value)}
@@ -92,7 +92,7 @@ export const SingleGraderTab: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500">Chọn Session:</label>
+            <label className="text-[12.5px] font-bold text-slate-500">Chọn Session:</label>
             <select
               value={selectedSession}
               onChange={(e) => setSelectedSession(e.target.value)}
@@ -105,7 +105,7 @@ export const SingleGraderTab: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-slate-500">Chọn Bài tập:</label>
+            <label className="text-[12.5px] font-bold text-slate-500">Chọn Bài tập:</label>
             <select
               value={selectedAssignment}
               onChange={(e) => setSelectedAssignment(e.target.value)}
@@ -131,7 +131,7 @@ export const SingleGraderTab: React.FC = () => {
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2.5 px-3 py-2.5 border border-sky-200 rounded-lg bg-sky-50 shadow-sm select-none">
             <div className="animate-spin rounded-full h-3 w-3 border-2 border-sky-600 border-t-transparent"></div>
-            <span className="text-[11px] font-bold text-sky-800 animate-pulse">{statusMessage}</span>
+            <span className="text-[12.5px] font-bold text-sky-800 animate-pulse">{statusMessage}</span>
           </div>
 
           {/* Premium Skeleton Card Loader */}
@@ -158,7 +158,7 @@ export const SingleGraderTab: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={onCopy}
-                className={`text-[10px] font-bold py-1 px-2.5 rounded transition-all duration-150 border active:scale-95 cursor-pointer ${
+                className={`text-[11.5px] font-bold py-1 px-2.5 rounded transition-all duration-150 border active:scale-95 cursor-pointer ${
                   isCopied
                     ? "bg-green-50 border-green-500 text-green-700 font-bold"
                     : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600"
@@ -166,7 +166,7 @@ export const SingleGraderTab: React.FC = () => {
               >
                 {isCopied ? "✓ Đã sao chép" : "📋 Sao chép"}
               </button>
-              <span className={`text-[10px] font-bold py-1 px-2.5 rounded-full ${scoreBadgeClass}`}>{results.score} / 100</span>
+              <span className={`text-[11.5px] font-bold py-1 px-2.5 rounded-full ${scoreBadgeClass}`}>{results.score} / 100</span>
             </div>
           </div>
 
@@ -174,13 +174,13 @@ export const SingleGraderTab: React.FC = () => {
             <div className="flex flex-col gap-1.5 bg-slate-50 p-2.5 rounded border border-slate-150">
               <div
                 onClick={() => setIsFileTreeExpanded(!isFileTreeExpanded)}
-                className="flex items-center gap-1.5 font-bold text-[10px] text-slate-500 uppercase tracking-wide cursor-pointer select-none"
+                className="flex items-center gap-1.5 font-bold text-[11.5px] text-slate-500 uppercase tracking-wide cursor-pointer select-none"
               >
                 <span>{isFileTreeExpanded ? '▼' : '▶'}</span>
                 <span>📂 Xem tệp đã chấm ({results.fileList.length} file)</span>
               </div>
               {isFileTreeExpanded && (
-                <ul className="flex flex-col max-h-[140px] overflow-y-auto pl-4 list-none text-slate-500 text-[10.5px] font-medium gap-1 font-mono">
+                <ul className="flex flex-col max-h-[140px] overflow-y-auto pl-4 list-none text-slate-500 text-[12px] font-medium gap-1 font-mono">
                   {results.fileList.map((file, idx) => <li key={idx}>📄 {file}</li>)}
                 </ul>
               )}
@@ -190,9 +190,9 @@ export const SingleGraderTab: React.FC = () => {
           <AstMetricsPanel language={results.language} metrics={results.astMetrics} />
 
           {(!!results.imagesAttached || !!results.imagesSkipped) && (
-            <div className="flex flex-col gap-1 text-[10.5px] font-medium">
+            <div className="flex flex-col gap-1 text-[12px] font-medium">
               {!!results.imagesAttached && (
-                <span className="text-sky-700">📎 Đã gửi kèm {results.imagesAttached} ảnh sơ đồ (trích từ .docx) cho AI</span>
+                <span className="text-sky-700">📎 Đã gửi kèm {results.imagesAttached} ảnh sơ đồ cho AI</span>
               )}
               {!!results.imagesSkipped && (
                 <span className="text-amber-700">⚠️ Bỏ qua {results.imagesSkipped} ảnh (định dạng không hỗ trợ hoặc vượt giới hạn dung lượng)</span>
@@ -201,7 +201,7 @@ export const SingleGraderTab: React.FC = () => {
           )}
 
           <div 
-            className="prose prose-sm max-w-none text-slate-750 leading-relaxed text-xs [&_h1]:text-xs [&_h1]:font-bold [&_h2]:text-[11px] [&_h2]:font-bold [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-slate-900"
+            className="prose prose-sm max-w-none text-slate-750 leading-relaxed text-xs [&_h1]:text-xs [&_h1]:font-bold [&_h2]:text-[12.5px] [&_h2]:font-bold [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-slate-900"
             dangerouslySetInnerHTML={{ __html: parsedMarkdown }}
           />
         </div>

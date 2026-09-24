@@ -48,7 +48,7 @@ export function buildGradingPrompt(
     .replace("{{code}}", compressed);
 
   if (imageCount > 0) {
-    prompt += `\n\nLưu ý: bài nộp có đính kèm ${imageCount} ảnh sơ đồ (trích từ file .docx, có thể là sơ đồ UML/ERD/kiến trúc vẽ bằng draw.io) — hãy phân tích các ảnh này khi đánh giá phần thiết kế/sơ đồ nếu tiêu chí có yêu cầu.`;
+    prompt += `\n\nLưu ý: bài nộp có đính kèm ${imageCount} ảnh sơ đồ (có thể là ảnh nộp trực tiếp hoặc trích từ file .docx, bao gồm sơ đồ UML/ERD/kiến trúc) — hãy phân tích các ảnh này khi đánh giá phần thiết kế/sơ đồ nếu tiêu chí có yêu cầu.`;
   }
 
   return prompt;

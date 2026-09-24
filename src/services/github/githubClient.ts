@@ -21,7 +21,7 @@ const ALLOWED_EXTENSIONS = [
   '.html', '.htm', '.css', '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.c', '.cpp', '.h', '.hpp',
   '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.sql', '.sh', '.json', '.xml', '.yaml', '.yml',
   '.md', '.txt', '.vue', '.svelte', '.dart', '.r', '.scala', '.m', '.mm', '.pl', '.pm', '.dockerfile',
-  '.docx'
+  '.docx', '.png', '.jpg', '.jpeg', '.gif', '.webp'
 ];
 
 const KNOWN_EXTENSIONLESS_FILES = new Set(["readme", "makefile", "dockerfile", "license"]);
@@ -138,6 +138,33 @@ export class GitHubService {
     return text.trim() ? text : null;
   }
 
+  /** Đọc file ảnh trực tiếp (.png, .jpg, ...) và gom vào accumulator */
+  private static async readRawImageEntry(
+    entry: any,
+    filename: string,
+    imageAccumulator: { images: ExtractedImage[]; skippedImageCount: number; totalImageBytes: number }
+  ): Promise<void> {
+    const extMatch = filename.match(/\.([a-zA-Z0-9]+)$/);
+    if (!extMatch) return;
+    const ext = extMatch[1].toLowerCase();
+    
+    let mimeType = 'image/png';
+    if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+    else if (ext === 'gif') mimeType = 'image/gif';
+    else if (ext === 'webp') mimeType = 'image/webp';
+
+    const base64 = await entry.async("base64");
+    const imgBytes = estimateBase64Bytes(base64);
+    const overCap = imageAccumulator.images.length >= MAX_TOTAL_IMAGES ||
+      imageAccumulator.totalImageBytes + imgBytes > MAX_TOTAL_IMAGE_BYTES;
+    if (overCap) {
+      imageAccumulator.skippedImageCount++;
+      return;
+    }
+    imageAccumulator.images.push({ filename, mimeType, base64 });
+    imageAccumulator.totalImageBytes += imgBytes;
+  }
+
   private async extractZipContents(
     zipBuffer: ArrayBuffer,
     onProgress: (msg: string) => void
@@ -167,9 +194,16 @@ export class GitHubService {
       if (processedFiles >= MAX_FILES || totalChars >= MAX_CHARS) continue;
 
       try {
-        const text = filename.toLowerCase().endsWith('.docx')
-          ? await GitHubService.readDocxEntry(entry, imageAccumulator)
-          : GitHubService.decodeFileText(await entry.async("uint8array")).trim() || null;
+        const lowerFilename = filename.toLowerCase();
+        let text: string | null = null;
+
+        if (lowerFilename.endsWith('.docx')) {
+          text = await GitHubService.readDocxEntry(entry, imageAccumulator);
+        } else if (lowerFilename.match(/\.(png|jpg|jpeg|gif|webp)$/)) {
+          await GitHubService.readRawImageEntry(entry, filename, imageAccumulator);
+        } else {
+          text = GitHubService.decodeFileText(await entry.async("uint8array")).trim() || null;
+        }
 
         if (text) {
           payloadParts.push(GitHubService.formatFileSection(relativePath, text));
