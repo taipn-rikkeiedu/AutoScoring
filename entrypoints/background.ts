@@ -4,7 +4,7 @@ export default defineBackground(() => {
   const allowedFetchHosts = new Set<string>(BACKGROUND_FETCH_PROXY.allowedHosts);
 
   // --- Chuyển đổi nhanh giữa dạng cửa sổ nổi (window) và dạng ghim cứng trên toolbar (popup) ---
-  const FLOATING_WINDOW_SIZE = { width: 420, height: 720 };
+  const FLOATING_WINDOW_SIZE = { width: 1024, height: 720 };
   let defaultPopupPath = "";
   let floatingWindowId: number | null = null;
 

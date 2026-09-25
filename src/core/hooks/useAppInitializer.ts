@@ -65,7 +65,7 @@ export function useAppInitializer() {
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseSource, STORAGE_KEYS.exerciseApiUrl, STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.uploadedExercises,
       STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey,
-      STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents
+      STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedTemplates, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
       if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>"))) {
@@ -93,6 +93,16 @@ export function useAppInitializer() {
       };
 
       setConfig(mergedConfig);
+      
+      if (stored[STORAGE_KEYS.cachedTemplates]) {
+        setExerciseTemplates(stored[STORAGE_KEYS.cachedTemplates]);
+      }
+      if (stored[STORAGE_KEYS.cachedAiStatus]) {
+        setAiStatus(stored[STORAGE_KEYS.cachedAiStatus]);
+      }
+      if (stored[STORAGE_KEYS.cachedSupabaseStatus]) {
+        setSupabaseStatus(stored[STORAGE_KEYS.cachedSupabaseStatus]);
+      }
       
       if (stored[STORAGE_KEYS.activeStudentTransition]) {
         setActiveStudentTransition(stored[STORAGE_KEYS.activeStudentTransition]);
@@ -141,15 +151,17 @@ export function useAppInitializer() {
     getClassStudents(activeClassId).then(setClassStudents);
   }, [activeClassId]);
 
-  const testAiConnection = async (cfg: AppConfig) => {
-    setAiStatus("testing");
+  const testAiConnection = async (cfg: AppConfig, silent = false) => {
+    if (!silent) setAiStatus("testing");
     logger.info("AI_SERVICE", `Bắt đầu kiểm tra kết nối tới AI Provider: ${cfg.aiProvider}`);
     try {
       await testConnection(cfg);
       setAiStatus("success");
+      chrome.storage.local.set({ [STORAGE_KEYS.cachedAiStatus]: "success" });
       logger.success("AI_SERVICE", `Kết nối AI Provider [${cfg.aiProvider}] thành công.`);
     } catch (err: any) {
       setAiStatus("error");
+      chrome.storage.local.set({ [STORAGE_KEYS.cachedAiStatus]: "error" });
       logger.error("AI_SERVICE", `Kết nối AI Provider [${cfg.aiProvider}] thất bại.`, err.message);
     }
   };
@@ -160,11 +172,16 @@ export function useAppInitializer() {
       const { templates, statusText, syncError } = await loadExercises(cfg);
       setExerciseTemplates(templates);
       setSupabaseStatus(statusText);
+      chrome.storage.local.set({
+        [STORAGE_KEYS.cachedTemplates]: templates,
+        [STORAGE_KEYS.cachedSupabaseStatus]: statusText
+      });
       if (!syncError) {
         logger.success("EXERCISE_LOADER", `Tải danh sách đề bài thành công: ${statusText}`);
       }
     } catch (err: any) {
       setSupabaseStatus(UI_MESSAGES.statuses.exerciseLoadError);
+      chrome.storage.local.set({ [STORAGE_KEYS.cachedSupabaseStatus]: UI_MESSAGES.statuses.exerciseLoadError });
       logger.error("EXERCISE_LOADER", "Không thể tải danh sách đề bài.", err.message);
     }
   };
@@ -175,7 +192,17 @@ export function useAppInitializer() {
   };
 
   useEffect(() => {
-    if (!isLoading) reloadExercises();
+    if (!isLoading) {
+      chrome.storage.local.get([STORAGE_KEYS.cachedTemplates], (stored) => {
+        if (!stored[STORAGE_KEYS.cachedTemplates]) {
+          reloadExercises();
+        } else {
+          // Perform silent background sync without blocking UI
+          testAiConnection(config, true);
+          loadTemplates(config);
+        }
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
