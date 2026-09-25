@@ -81,7 +81,7 @@ export const ExercisesTab: React.FC = () => {
           disabled={!isLocalDeletable()}
           className="px-3 py-1.5 bg-white hover:bg-slate-50 text-rose-600 border border-slate-200 rounded-md text-xs font-semibold transition-colors disabled:opacity-40 cursor-pointer flex items-center gap-1 shadow-xs"
         >
-          <TrashIcon className="w-3.5 h-3.5 text-rose-500" />
+          <TrashIcon className="w-3.5 h-3.5 text-rose-600" />
           <span>Xóa đề</span>
         </button>
       </div>
@@ -89,7 +89,7 @@ export const ExercisesTab: React.FC = () => {
       {/* Selectors Card */}
       <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-col gap-2.5">
         <div className="flex flex-col gap-1">
-          <label className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Chương trình / Khóa học:</label>
+          <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Chương trình / Khóa học:</label>
           <select
             value={selectedChapter}
             onChange={handleChapterChange}
@@ -102,7 +102,7 @@ export const ExercisesTab: React.FC = () => {
 
         <div className="grid grid-cols-2 gap-2.5">
           <div className="flex flex-col gap-1">
-            <label className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Session:</label>
+            <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Session:</label>
             <select
               value={selectedSession}
               onChange={handleSessionChange}
@@ -115,7 +115,7 @@ export const ExercisesTab: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider">Bài tập:</label>
+            <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Bài tập:</label>
             <select
               value={selectedAssignment}
               onChange={handleAssignmentChange}
@@ -133,7 +133,7 @@ export const ExercisesTab: React.FC = () => {
       {showDetail ? (
         <div className="flex flex-col gap-3 bg-white border border-slate-200 rounded-lg p-3">
           <div className="flex flex-col gap-1">
-            <label className="text-[10.5px] font-semibold text-slate-600 uppercase tracking-wider">Đề bài (Mô tả):</label>
+            <label className="text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Đề bài (Mô tả):</label>
             <textarea
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
@@ -143,7 +143,7 @@ export const ExercisesTab: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10.5px] font-semibold text-slate-600 uppercase tracking-wider">Tiêu chí chấm điểm (Rubric):</label>
+            <label className="text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Tiêu chí chấm điểm (Rubric):</label>
             <textarea
               value={criteriaText}
               onChange={(e) => setCriteriaText(e.target.value)}
@@ -184,7 +184,7 @@ export const ExercisesTab: React.FC = () => {
       ) : (
         <div className="flex-1 flex flex-col justify-center items-center py-12 border border-slate-200 border-dashed rounded-lg bg-white text-slate-400 select-none">
           <span className="text-xs font-semibold text-slate-600">Chọn đề bài để xem chi tiết hoặc chỉnh sửa</span>
-          <span className="text-[10px] text-slate-400 mt-0.5">Sử dụng bộ chọn phía trên hoặc bấm lấy đề bài từ LMS</span>
+          <span className="text-[11.5px] text-slate-400 mt-0.5">Sử dụng bộ chọn phía trên hoặc bấm lấy đề bài từ LMS</span>
         </div>
       )}
 
@@ -220,7 +220,7 @@ export const ExercisesTab: React.FC = () => {
 
             <div className="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-500 uppercase">Chương (Khóa học):</label>
+                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Chương (Khóa học):</label>
                 <input
                   type="text"
                   list="exercise-chapter-suggestions"
@@ -235,7 +235,7 @@ export const ExercisesTab: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-500 uppercase">Session:</label>
+                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Session:</label>
                 <input
                   type="text"
                   list="exercise-session-suggestions"
@@ -250,7 +250,7 @@ export const ExercisesTab: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-500 uppercase">Tên bài tập:</label>
+                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Tên bài tập:</label>
                 <input
                   type="text"
                   value={scrapeAssignmentName}
@@ -260,7 +260,7 @@ export const ExercisesTab: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-500 uppercase">Đề bài:</label>
+                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Đề bài:</label>
                 <textarea
                   value={scrapeAssignmentText}
                   onChange={(e) => setScrapeAssignmentText(e.target.value)}
@@ -269,7 +269,7 @@ export const ExercisesTab: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-slate-500 uppercase">Rubric chấm:</label>
+                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Rubric chấm:</label>
                 <textarea
                   value={scrapeCriteriaText}
                   onChange={(e) => setScrapeCriteriaText(e.target.value)}

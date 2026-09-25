@@ -154,11 +154,9 @@ export function useSettings() {
   };
 
   const handleClearLogs = async () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ nhật ký hệ thống không?")) {
-      await logger.clearLogs();
-      setSystemLogs([]);
-      showToast("Đã xóa toàn bộ nhật ký hệ thống.", "success");
-    }
+    await logger.clearLogs();
+    setSystemLogs([]);
+    showToast("Đã xóa toàn bộ nhật ký hệ thống.", "success");
   };
 
   const handleDownloadLogsZip = async () => {
@@ -250,20 +248,18 @@ export function useSettings() {
   }, []);
 
   const handleClearCodeCache = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm mã nguồn không?")) {
-      chrome.storage.local.get(null, (allData) => {
-        const keysToRemove = Object.keys(allData).filter(k => k.startsWith('code_cache:'));
-        if (keysToRemove.length === 0) {
-          showToast("Không có bộ nhớ đệm mã nguồn nào để xóa.", "info");
-          return;
-        }
-        chrome.storage.local.remove(keysToRemove, () => {
-          setCacheCount(0);
-          showToast("Đã xóa toàn bộ bộ nhớ đệm mã nguồn!", "success");
-          logger.success("SYSTEM", `Đã xóa sạch bộ nhớ đệm mã nguồn (${keysToRemove.length} bài).`);
-        });
+    chrome.storage.local.get(null, (allData) => {
+      const keysToRemove = Object.keys(allData).filter(k => k.startsWith('code_cache:'));
+      if (keysToRemove.length === 0) {
+        showToast("Không có bộ nhớ đệm mã nguồn nào để xóa.", "info");
+        return;
+      }
+      chrome.storage.local.remove(keysToRemove, () => {
+        setCacheCount(0);
+        showToast("Đã xóa toàn bộ bộ nhớ đệm mã nguồn!", "success");
+        logger.success("SYSTEM", `Đã xóa sạch bộ nhớ đệm mã nguồn (${keysToRemove.length} bài).`);
       });
-    }
+    });
   };
 
   const toggleSection = (section: string) => {
@@ -389,14 +385,12 @@ export function useSettings() {
   };
 
   const handleResetPrompt = () => {
-    if (window.confirm("Bạn có chắc chắn muốn khôi phục system prompt về mặc định không?")) {
-      setSystemPrompt(DEFAULT_SYSTEM_PROMPT);
-      updateConfig({
-        systemPrompt: DEFAULT_SYSTEM_PROMPT
-      }).then(() => {
-        showToast("Đã khôi phục System Prompt mặc định!", "success");
-      });
-    }
+    setSystemPrompt(DEFAULT_SYSTEM_PROMPT);
+    updateConfig({
+      systemPrompt: DEFAULT_SYSTEM_PROMPT
+    }).then(() => {
+      showToast("Đã khôi phục System Prompt mặc định!", "success");
+    });
   };
 
   return {

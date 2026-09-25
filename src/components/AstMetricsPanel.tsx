@@ -24,17 +24,17 @@ export const AstMetricsPanel: React.FC<AstMetricsPanelProps> = ({ language, metr
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between cursor-pointer select-none"
       >
-        <div className="flex items-center gap-1.5 font-bold text-[10px] text-slate-500 uppercase tracking-wide">
+        <div className="flex items-center gap-1.5 font-bold text-[11.5px] text-slate-500 uppercase tracking-wide">
           <span>{isExpanded ? '▼' : '▶'}</span>
           <span>📊 Độ phức tạp mã nguồn{language ? ` (${language.toUpperCase()})` : ''}</span>
         </div>
-        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${rankBadgeClass(metrics.complexityRank)}`}>
+        <span className={`text-[11.5px] font-bold px-1.5 py-0.2 rounded border ${rankBadgeClass(metrics.complexityRank)}`}>
           CC {metrics.cyclomaticComplexity} · {metrics.complexityRank.charAt(0)}
         </span>
       </div>
 
       {isExpanded && (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10.5px] font-mono text-slate-600 pl-4 pt-1">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px] font-mono text-slate-600 pl-4 pt-1">
           <span>Tổng dòng: <b className="text-slate-800">{metrics.totalLines}</b></span>
           <span>Dòng code: <b className="text-slate-800">{metrics.codeLines}</b></span>
           <span>Dòng comment: <b className="text-slate-800">{metrics.commentLines}</b></span>

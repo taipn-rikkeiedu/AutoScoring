@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '~/src/hooks/settings/useSettings';
 import { GRADER_IGNORE_DEFAULTS } from '~/src/core/constants';
+import { ConfirmModal } from '~/src/components/ConfirmModal';
 import { 
   RefreshIcon, 
   TrashIcon, 
@@ -75,6 +76,28 @@ export const SettingsTab: React.FC = () => {
   const [showAnonKey, setShowAnonKey] = useState(false);
   const [showPat, setShowPat] = useState(false);
 
+  const [confirmModalState, setConfirmModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isDanger: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    isDanger: false
+  });
+
+  const openConfirmModal = (title: string, message: string, onConfirm: () => void, isDanger = false) => {
+    setConfirmModalState({ isOpen: true, title, message, onConfirm, isDanger });
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModalState(prev => ({ ...prev, isOpen: false }));
+  };
+
   useEffect(() => {
     if (activeSubTab === 'logs') {
       loadSystemLogs();
@@ -129,7 +152,7 @@ export const SettingsTab: React.FC = () => {
         </div>
 
         {/* Auto-save Status Indicator */}
-        <div className="flex items-center gap-1.5 text-[11px] font-medium">
+        <div className="flex items-center gap-1.5 text-[12.5px] font-medium">
           {isTesting ? (
             <span className="text-amber-600 flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -155,7 +178,7 @@ export const SettingsTab: React.FC = () => {
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                   <span>Nhà cung cấp AI (Provider)</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${
+                  <span className={`text-[11.5px] px-2 py-0.5 rounded-full font-semibold border ${
                     aiReady 
                       ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
                       : 'bg-amber-50 text-amber-600 border-amber-200'
@@ -180,7 +203,7 @@ export const SettingsTab: React.FC = () => {
 
               {aiProvider !== 'local' && (
                 <div className="flex flex-col gap-1 pt-0.5">
-                  <label className="text-[11px] font-semibold text-slate-600">API Key</label>
+                  <label className="text-[12.5px] font-semibold text-slate-600">API Key</label>
                   <div className="relative">
                     <input
                       type={showApiKey ? "text" : "password"}
@@ -209,7 +232,7 @@ export const SettingsTab: React.FC = () => {
 
               {(aiProvider === 'custom' || aiProvider === 'local') && (
                 <div className="flex flex-col gap-1 pt-0.5">
-                  <label className="text-[11px] font-semibold text-slate-600">
+                  <label className="text-[12.5px] font-semibold text-slate-600">
                     {aiProvider === 'local' ? "Ollama Endpoint URL" : "Base URL (OpenAI-compatible)"}
                   </label>
                   <input
@@ -225,10 +248,10 @@ export const SettingsTab: React.FC = () => {
               {/* Model Selection & Auto-fetch */}
               <div className="flex flex-col gap-1 pt-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold text-slate-600 flex items-center gap-1.5">
+                  <label className="text-[12.5px] font-semibold text-slate-600 flex items-center gap-1.5">
                     <span>Mô hình AI (Model)</span>
                     {providerModels && providerModels.length > 0 && (
-                      <span className="text-[10px] bg-sky-50 text-sky-700 font-semibold border border-sky-200 px-1.5 py-0.2 rounded">
+                      <span className="text-[11.5px] bg-sky-50 text-sky-700 font-semibold border border-sky-200 px-1.5 py-0.2 rounded">
                         {providerModels.length} models từ API
                       </span>
                     )}
@@ -237,7 +260,7 @@ export const SettingsTab: React.FC = () => {
                     type="button"
                     onClick={refreshModels}
                     disabled={isLoadingModels}
-                    className="text-[11px] text-sky-600 hover:text-sky-800 flex items-center gap-1 font-semibold cursor-pointer disabled:opacity-50"
+                    className="text-[12.5px] text-sky-600 hover:text-sky-800 flex items-center gap-1 font-semibold cursor-pointer disabled:opacity-50"
                     title="Truy vấn danh sách model mới nhất từ API"
                   >
                     <RefreshIcon className={`w-3 h-3 ${isLoadingModels ? 'animate-spin' : ''}`} />
@@ -280,7 +303,7 @@ export const SettingsTab: React.FC = () => {
             {/* GitHub Token Card */}
             <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs flex items-center justify-between gap-3">
               <div className="flex-1">
-                <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                <label className="text-[12.5px] font-semibold text-slate-700 block mb-1">
                   GitHub Personal Access Token (PAT)
                 </label>
                 <div className="relative">
@@ -308,7 +331,7 @@ export const SettingsTab: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-bold text-slate-800">Đồng bộ Cloud (Supabase)</h3>
-                  <p className="text-[10px] text-slate-500">Lưu điểm, ghi chú & đề bài lên Supabase của bạn (tùy chọn)</p>
+                  <p className="text-[11.5px] text-slate-500">Lưu điểm, ghi chú & đề bài lên Supabase của bạn (tùy chọn)</p>
                 </div>
                 <button
                   type="button"
@@ -328,7 +351,7 @@ export const SettingsTab: React.FC = () => {
               {supabaseSyncEnabled && (
                 <div className="grid grid-cols-2 gap-3 pt-0.5">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-600">Supabase Project URL</label>
+                    <label className="text-[12.5px] font-semibold text-slate-600">Supabase Project URL</label>
                     <input
                       type="text"
                       value={supabaseUrl}
@@ -338,7 +361,7 @@ export const SettingsTab: React.FC = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-600">Anon Public Key</label>
+                    <label className="text-[12.5px] font-semibold text-slate-600">Anon Public Key</label>
                     <div className="relative">
                       <input
                         type={showAnonKey ? "text" : "password"}
@@ -363,7 +386,7 @@ export const SettingsTab: React.FC = () => {
               {supabaseSyncEnabled && (
                 <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-slate-100">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[11px] font-semibold text-slate-600">Personal Access Token (Tùy chọn cho Zero Setup)</label>
+                    <label className="text-[12.5px] font-semibold text-slate-600">Personal Access Token (Tùy chọn cho Zero Setup)</label>
                     <div className="relative">
                       <input
                         type={showPat ? "text" : "password"}
@@ -384,8 +407,8 @@ export const SettingsTab: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-2.5 rounded-lg mt-1">
                     <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-slate-700">Trạng thái Cơ sở dữ liệu:</span>
-                      <span className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${dbInitialized ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      <span className="text-[12.5px] font-bold text-slate-700">Trạng thái Cơ sở dữ liệu:</span>
+                      <span className={`text-[11.5px] font-semibold mt-0.5 flex items-center gap-1 ${dbInitialized ? 'text-emerald-600' : 'text-amber-600'}`}>
                         {dbInitialized === null ? (
                           <><span>⏳</span> Đang kiểm tra...</>
                         ) : dbInitialized ? (
@@ -399,7 +422,7 @@ export const SettingsTab: React.FC = () => {
                       type="button"
                       onClick={handleMigrateDatabase}
                       disabled={isMigrating || dbInitialized === true}
-                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer border border-indigo-200 flex items-center gap-1.5"
+                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer border border-indigo-200 flex items-center gap-1.5"
                     >
                       {isMigrating && <RefreshIcon className="w-3.5 h-3.5 animate-spin" />}
                       <span>{isMigrating ? "Đang tạo DB..." : dbInitialized ? "Đã Setup" : "Khởi tạo DB (Zero Setup)"}</span>
@@ -446,7 +469,7 @@ export const SettingsTab: React.FC = () => {
               {exerciseSource === 'api' && (
                 <>
                   <div className="flex flex-col gap-1 pt-0.5">
-                    <label className="text-[11px] font-semibold text-slate-600">Exercise API URL</label>
+                    <label className="text-[12.5px] font-semibold text-slate-600">Exercise API URL</label>
                     <input
                       type="text"
                       value={exerciseApiUrl}
@@ -456,7 +479,7 @@ export const SettingsTab: React.FC = () => {
                     />
                   </div>
                   <div className="flex flex-col gap-1 pt-0.5">
-                    <label className="text-[11px] font-semibold text-slate-600">API Token (Tùy chọn)</label>
+                    <label className="text-[12.5px] font-semibold text-slate-600">API Token (Tùy chọn)</label>
                     <input
                       type="text"
                       value={exerciseApiToken}
@@ -474,17 +497,17 @@ export const SettingsTab: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-bold text-slate-800">Danh Sách Bỏ Qua (.graderignore)</h3>
-                  <p className="text-[10px] text-slate-500">Bấm vào thẻ để bật/tắt tệp và thư mục gửi cho AI</p>
+                  <p className="text-[11.5px] text-slate-500">Bấm vào thẻ để bật/tắt tệp và thư mục gửi cho AI</p>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[11px] font-semibold text-slate-600">
+                  <span className="text-[12.5px] font-semibold text-slate-600">
                     {graderIgnoreItems.length}/{defaultGraderIgnoreOptions.length} đã chọn
                   </span>
                   <span className="text-slate-300">|</span>
                   <button
                     type="button"
                     onClick={handleSelectAllIgnore}
-                    className="text-[11px] text-sky-600 hover:text-sky-800 font-semibold cursor-pointer"
+                    className="text-[12.5px] text-sky-600 hover:text-sky-800 font-semibold cursor-pointer"
                   >
                     Chọn tất cả
                   </button>
@@ -492,7 +515,7 @@ export const SettingsTab: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleDeselectAllIgnore}
-                    className="text-[11px] text-slate-500 hover:text-slate-700 cursor-pointer"
+                    className="text-[12.5px] text-slate-500 hover:text-slate-700 cursor-pointer"
                   >
                     Bỏ chọn
                   </button>
@@ -508,7 +531,7 @@ export const SettingsTab: React.FC = () => {
                       key={item}
                       type="button"
                       onClick={() => toggleIgnoreItem(item)}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all flex items-center gap-1 cursor-pointer border select-none ${
+                      className={`px-2.5 py-1 rounded-md text-[12.5px] font-mono transition-all flex items-center gap-1 cursor-pointer border select-none ${
                         isChecked
                           ? 'bg-sky-500 text-white font-medium border-sky-600 shadow-xs'
                           : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -527,12 +550,12 @@ export const SettingsTab: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-bold text-slate-800">Mẫu Câu Lệnh (System Prompt)</h3>
-                  <p className="text-[10px] text-slate-500">Tùy chỉnh hướng dẫn chấm bài cho AI</p>
+                  <p className="text-[11.5px] text-slate-500">Tùy chỉnh hướng dẫn chấm bài cho AI</p>
                 </div>
                 <button
                   type="button"
-                  onClick={handleResetPrompt}
-                  className="text-[11px] text-sky-600 hover:text-sky-800 font-semibold cursor-pointer"
+                  onClick={() => openConfirmModal("Khôi phục System Prompt?", "Bạn có chắc chắn muốn khôi phục system prompt về mặc định không?", handleResetPrompt)}
+                  className="text-[12.5px] text-sky-600 hover:text-sky-800 font-semibold cursor-pointer"
                 >
                   Khôi phục mặc định
                 </button>
@@ -543,7 +566,7 @@ export const SettingsTab: React.FC = () => {
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 rows={6}
                 placeholder="Nhập prompt tùy chỉnh cho AI..."
-                className="w-full text-xs font-mono text-slate-800 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 leading-relaxed text-[11px]"
+                className="w-full text-xs font-mono text-slate-800 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 leading-relaxed text-[12.5px]"
               />
             </div>
           </div>
@@ -556,13 +579,13 @@ export const SettingsTab: React.FC = () => {
             <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-bold text-slate-800">Bộ nhớ đệm mã nguồn (Cache)</h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">
+                <p className="text-[12.5px] text-slate-500 mt-0.5">
                   Đã lưu trữ: <span className="font-bold text-sky-600">{cacheCount} repositories</span> (Tự động xóa sau 24h)
                 </p>
               </div>
               <button
                 type="button"
-                onClick={handleClearCodeCache}
+                onClick={() => openConfirmModal("Xóa Cache?", "Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm mã nguồn không?", handleClearCodeCache, true)}
                 className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <TrashIcon className="w-3.5 h-3.5" />
@@ -575,7 +598,7 @@ export const SettingsTab: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs font-bold text-slate-800">Nhật ký hoạt động</h4>
-                  <span className="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
+                  <span className="text-[11.5px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
                     {systemLogs.length} dòng
                   </span>
                 </div>
@@ -591,7 +614,7 @@ export const SettingsTab: React.FC = () => {
                   <span className="text-slate-300">|</span>
                   <button
                     type="button"
-                    onClick={handleClearLogs}
+                    onClick={() => openConfirmModal("Xóa nhật ký?", "Bạn có chắc chắn muốn xóa toàn bộ nhật ký hệ thống không?", handleClearLogs, true)}
                     className="text-xs text-slate-500 hover:text-rose-600 cursor-pointer"
                   >
                     Xóa nhật ký
@@ -600,7 +623,7 @@ export const SettingsTab: React.FC = () => {
               </div>
 
               {/* Monospaced Log Console */}
-              <div className="bg-slate-900 text-slate-200 rounded-lg p-3 max-h-52 overflow-y-auto font-mono text-[10.5px] space-y-1 select-text border border-slate-800">
+              <div className="bg-slate-900 text-slate-200 rounded-lg p-3 max-h-52 overflow-y-auto font-mono text-[12px] space-y-1 select-text border border-slate-800">
                 {systemLogs.length === 0 ? (
                   <div className="text-slate-500 text-center py-6">Chưa có nhật ký hoạt động nào.</div>
                 ) : (
@@ -629,6 +652,14 @@ export const SettingsTab: React.FC = () => {
           </div>
         )}
       </div>
+      <ConfirmModal
+        isOpen={confirmModalState.isOpen}
+        title={confirmModalState.title}
+        message={confirmModalState.message}
+        onConfirm={confirmModalState.onConfirm}
+        onCancel={closeConfirmModal}
+        isDanger={confirmModalState.isDanger}
+      />
     </div>
   );
 };

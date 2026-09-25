@@ -163,7 +163,7 @@ export const MarkdownExportModal: React.FC<Props> = ({
             </div>
             <div>
               <h2 className="text-xs font-bold leading-tight">Xuất Đề Bài Sang Markdown (.md)</h2>
-              <p className="text-[10px] text-blue-100 font-medium">Lưu trữ trên máy tính cá nhân hoặc dán vào Notion / Obsidian</p>
+              <p className="text-[11.5px] text-blue-100 font-medium">Lưu trữ trên máy tính cá nhân hoặc dán vào Notion / Obsidian</p>
             </div>
           </div>
           <button
@@ -206,7 +206,7 @@ export const MarkdownExportModal: React.FC<Props> = ({
             <>
               {/* Scope Selection */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+                <label className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">
                   Phạm vi xuất đề bài:
                 </label>
                 <div className="grid grid-cols-1 gap-2">
@@ -229,11 +229,11 @@ export const MarkdownExportModal: React.FC<Props> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-bold text-slate-800">1. Đề bài đang chọn</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
+                        <span className="text-[11.5px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
                           File .md
                         </span>
                       </div>
-                      <p className="text-[10.5px] text-slate-500 mt-0.5 truncate">
+                      <p className="text-[12px] text-slate-500 mt-0.5 truncate">
                         {selectedAssignment ? selectedAssignment : '(Chưa chọn bài tập)'}
                       </p>
                     </div>
@@ -258,11 +258,11 @@ export const MarkdownExportModal: React.FC<Props> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-bold text-slate-800">2. Toàn bộ Session này</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-semibold">
+                        <span className="text-[11.5px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-semibold">
                           File .zip ({sessionExerciseCount} bài)
                         </span>
                       </div>
-                      <p className="text-[10.5px] text-slate-500 mt-0.5 truncate">
+                      <p className="text-[12px] text-slate-500 mt-0.5 truncate">
                         {selectedSession ? `${selectedChapter} > ${selectedSession}` : '(Chưa chọn Session)'}
                       </p>
                     </div>
@@ -286,11 +286,11 @@ export const MarkdownExportModal: React.FC<Props> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-bold text-slate-800">3. Toàn bộ Kho đề bài</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                        <span className="text-[11.5px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
                           Gói .zip ({totalAllExercises} bài)
                         </span>
                       </div>
-                      <p className="text-[10.5px] text-slate-500 mt-0.5">
+                      <p className="text-[12px] text-slate-500 mt-0.5">
                         Bao gồm {totalChapters} khóa học, tạo cấu trúc thư mục và README mục lục.
                       </p>
                     </div>
@@ -300,7 +300,7 @@ export const MarkdownExportModal: React.FC<Props> = ({
 
               {/* Formatting Options */}
               <div className="flex flex-col gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <label className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+                <label className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">
                   Cài đặt định dạng:
                 </label>
                 <div className="flex flex-col gap-2">
@@ -330,14 +330,14 @@ export const MarkdownExportModal: React.FC<Props> = ({
             /* Preview Area */
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider">
+                <span className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">
                   Xem trước nội dung Markdown:
                 </span>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[11.5px] text-slate-400">
                   {currentMarkdown.length} ký tự
                 </span>
               </div>
-              <pre className="text-[11px] font-mono p-3 bg-slate-900 text-slate-100 rounded-lg max-h-[220px] overflow-y-auto leading-relaxed whitespace-pre-wrap select-text">
+              <pre className="text-[12.5px] font-mono p-3 bg-slate-900 text-slate-100 rounded-lg max-h-[220px] overflow-y-auto leading-relaxed whitespace-pre-wrap select-text">
                 {currentMarkdown}
               </pre>
             </div>

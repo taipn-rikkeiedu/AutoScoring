@@ -4,6 +4,19 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [4.20.0] - 2026-09-20
+
+### 🎨 Tối ưu Trải nghiệm người dùng (UI/UX)
+- **Tối ưu Thanh Tiến trình (Nielsen 3.1 & 3.3)**: Thanh tiến trình khi chấm điểm tự động giờ đây có màu sắc phân biệt trạng thái (đang chạy: xanh, thành công: xanh ngọc, lỗi: đỏ) kèm theo hiệu ứng nhấp nháy (\`animate-pulse\`). Đặc biệt, đã bổ sung thêm nút "Hủy" cho phép người dùng dừng luồng chấm bài hàng loạt (Bulk Grading) bất kỳ lúc nào.
+- **Thay thế hộp thoại xác nhận gốc (Nielsen 3.5)**: Hộp thoại \`window.confirm\` xấu xí, thô cứng của trình duyệt đã được thay thế bằng component \`ConfirmModal\` tùy chỉnh đồng bộ với giao diện hiện đại của hệ thống (áp dụng cho chức năng Xóa Nhật ký và Xóa Cache).
+- **Tối ưu ComboBox (Định luật Hick 4.2)**: Ô chọn "Đề bài liên kết" trên màn hình chấm điểm đã được nâng cấp từ thẻ \`<select>\` cơ bản thành \`SearchableSelect\` (ComboBox) cho phép gõ từ khóa để tìm kiếm nhanh, giúp thao tác chọn đề mượt mà hơn khi danh sách quá dài.
+- **Tăng diện tích tương tác (Định luật Fitts 4.1)**: Các nút bấm icon (QuickAccessBar, NavigationSidebar) được tăng kích thước vùng click (hitbox) bằng cách thêm padding, giúp thao tác nhấp chuột chính xác và dễ chịu hơn.
+- **Đồng bộ màu sắc nút nguy hiểm (Gestalt 4.3)**: Đã thống nhất toàn bộ các nút chức năng mang tính chất phá hủy (như Xóa, Hủy) về một dải màu chuẩn \`rose-600\` để tăng tính đồng bộ.
+- **Chuẩn hóa thông báo lỗi (Nielsen 3.9)**: Tái cấu trúc lại thông báo lỗi trả về từ hệ thống; thay thế những lỗi thô ráp mang tính kỹ thuật (\`err.message\`) bằng ngôn từ thân thiện, dễ hiểu, kèm theo chỉ dẫn cách khắc phục.
+- **Nâng cấp Accessibility (WCAG 2.2)**: Bổ sung Focus Ring (\`focus:ring-2\`) rõ ràng hơn cho hầu hết các biểu tượng dạng nút, hỗ trợ tốt hơn cho việc thao tác bằng bàn phím.
+
+---
+
 ## [4.19.0] - 2026-09-18
 
 ### ✨ Giám sát chỉ số học tập

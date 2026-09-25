@@ -80,8 +80,14 @@ export function useClassManager(setActiveTab: (tab: string) => void) {
 
     classStudents.forEach(st => {
       const statusText = st.lmsStatus ? st.lmsStatus.trim().toUpperCase() : '';
-      const isCompleted = statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA');
-      const isPending = statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA');
+      let isCompleted = statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA');
+      let isPending = statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ') || statusText.includes('KIỂM TRA');
+
+      const submitted = st.submittedCount || 0;
+      if (submitted === 0) {
+        isCompleted = false;
+        isPending = false;
+      }
 
       if (isCompleted) completed++;
       else if (isPending) pending++;

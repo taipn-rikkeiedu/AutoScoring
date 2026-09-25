@@ -76,7 +76,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
       title: "Chấm điểm",
       items: [
         { id: "tab-auto", label: "Chấm hàng loạt", icon: SparklesIcon, badge: "AI" },
-        { id: "tab-drive-scanner", label: "Quét Google Drive", icon: FolderIcon },
       ],
     },
     {
@@ -91,17 +90,15 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
     {
       title: "Hệ thống",
       items: [
-        { id: "tab-shortcuts", label: "Lối tắt nhanh", icon: PinIcon },
-        { id: "tab-lms-api", label: "LMS API Test", icon: TerminalIcon },
         { id: "tab-settings", label: "Cài đặt", icon: SettingsIcon },
       ],
     },
   ];
 
   return (
-    <aside className={`${isCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH} h-full flex-shrink-0 bg-sky-50/60 text-slate-700 flex flex-col justify-between border-r border-sky-200 select-none transition-[width] duration-150`}>
+    <aside className={`${isCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH} h-full flex-shrink-0 bg-[var(--bg-subtle)] text-[var(--text-main)] flex flex-col justify-between border-r border-[var(--border-color)] select-none transition-[width] duration-150`}>
       {/* Brand Header */}
-      <div className={`px-2 py-3 border-b border-sky-200 bg-white flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3.5"}`}>
+      <div className={`px-2 py-3 border-b border-[var(--border-color)] bg-[var(--bg-card)] flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3.5"}`}>
         {isCollapsed ? (
           <div className="w-6 h-6 rounded-md bg-amber-400 flex items-center justify-center text-slate-950 font-extrabold text-xs tracking-wider shadow-xs" title={`REduX AutoScoring v${version}`}>
             RE
@@ -114,10 +111,10 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
               </div>
               <div className="flex flex-col">
                 <span className="font-extrabold text-slate-900 text-xs tracking-tight">REduX</span>
-                <span className="text-[9px] text-sky-700 leading-none font-bold">AutoScoring</span>
+                <span className="text-[10.5px] text-sky-700 leading-none font-bold">AutoScoring</span>
               </div>
             </div>
-            <span className="text-[9px] font-mono text-sky-800 px-1.5 py-0.5 rounded bg-sky-100 border border-sky-300 font-semibold">
+            <span className="text-[10.5px] font-mono text-[var(--accent-blue)] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-card)] font-semibold">
               v{version}
             </span>
           </>
@@ -128,11 +125,11 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
       <button
         type="button"
         onClick={handleToggleCollapsed}
-        className={`flex items-center gap-1.5 py-1.5 border-b border-sky-200 bg-white hover:bg-sky-50 text-sky-700 transition-colors cursor-pointer ${isCollapsed ? "justify-center px-2" : "justify-start px-3"}`}
+        className={`flex items-center gap-1.5 py-1.5 border-b border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] focus:ring-inset ${isCollapsed ? "justify-center px-2" : "justify-start px-3"}`}
         title={isCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
       >
         <ChevronDownIcon className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${isCollapsed ? "-rotate-90" : "rotate-90"}`} />
-        {!isCollapsed && <span className="text-[10.5px] font-semibold">Thu gọn</span>}
+        {!isCollapsed && <span className="text-[12px] font-semibold">Thu gọn</span>}
       </button>
 
       {/* Navigation List */}
@@ -140,7 +137,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
         {menuGroups.map((group) => (
           <div key={group.title} className="flex flex-col gap-0.5">
             {!isCollapsed && (
-              <div className="px-2 py-1 text-[9.5px] font-bold uppercase tracking-wider text-sky-900/80">
+              <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {group.title}
               </div>
             )}
@@ -152,16 +149,16 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   title={isCollapsed ? item.label : undefined}
-                  className={`w-full flex items-center rounded-md text-xs transition-colors cursor-pointer text-left ${
+                  className={`w-full flex items-center rounded-md text-xs transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] focus:ring-inset ${
                     isCollapsed ? "justify-center px-2 py-2" : "justify-between px-2.5 py-1.5"
                   } ${
                     isActive
-                      ? "bg-sky-500 text-white font-bold shadow-xs"
-                      : "text-slate-700 hover:bg-sky-100 hover:text-sky-900 font-medium"
+                      ? "bg-[var(--accent-blue)] text-white font-bold shadow-sm"
+                      : "text-[var(--text-main)] hover:bg-[var(--bg-subtle)] hover:text-[var(--accent-blue)] font-medium"
                   }`}
                 >
                   <div className={`flex items-center gap-2 truncate ${isCollapsed ? "relative" : ""}`}>
-                    <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-white" : "text-sky-600"}`} />
+                    <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-white" : "text-[var(--text-muted)]"}`} />
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
                     {isCollapsed && item.badge && (
                       <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
@@ -169,7 +166,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
                   </div>
                   {!isCollapsed && item.badge && (
                     <span
-                      className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded flex-shrink-0 ${
+                      className={`text-[10.5px] font-extrabold px-1.5 py-0.2 rounded flex-shrink-0 ${
                         isActive ? "bg-amber-400 text-slate-950" : "bg-amber-100 text-amber-900 border border-amber-300"
                       }`}
                     >
@@ -184,7 +181,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
       </div>
 
       {/* Footer Status & Actions */}
-      <div className={`p-2 border-t border-sky-200 bg-white flex flex-col gap-2 ${isCollapsed ? "items-center" : ""}`}>
+      <div className={`p-2 border-t border-[var(--border-color)] bg-[var(--bg-card)] flex flex-col gap-2 ${isCollapsed ? "items-center" : ""}`}>
         {/* Status Indicators */}
         {isCollapsed ? (
           <div className="flex flex-col items-center gap-2">
@@ -202,7 +199,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
             />
           </div>
         ) : (
-          <div className="flex items-center justify-between text-[10px] font-semibold px-1 text-slate-600">
+          <div className="flex items-center justify-between text-[11.5px] font-semibold px-1 text-slate-600">
             <button
               type="button"
               onClick={() => setActiveTab("tab-settings")}
@@ -230,11 +227,11 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
           type="button"
           onClick={handleToggleWindowMode}
           title={isWindowMode ? "Chuyển về dạng popup" : "Mở dạng cửa sổ riêng biệt"}
-          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-semibold bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 transition-colors cursor-pointer ${
+          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[12.5px] font-semibold bg-[var(--bg-subtle)] hover:bg-[var(--border-color)] text-[var(--text-main)] border border-[var(--border-card)] transition-colors cursor-pointer ${
             isCollapsed ? "w-8 px-0" : "w-full px-2"
           }`}
         >
-          <WindowIcon className="w-3.5 h-3.5 text-sky-700 flex-shrink-0" />
+          <WindowIcon className="w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0" />
           {!isCollapsed && <span>{isWindowMode ? "Ghim tiện ích" : "Mở cửa sổ rời"}</span>}
         </button>
       </div>

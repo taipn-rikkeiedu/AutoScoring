@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
 import { findMatchingTemplate, matchStudent, parseScore, queryActiveLmsTab } from '~/src/core/utils';
@@ -49,6 +49,14 @@ export function useAutoGrader() {
   const [isBulkGrading, setIsBulkGrading] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
   const [bulkProgressText, setBulkProgressText] = useState("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleCancelBulkGrading = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setBulkProgressText("Đang dừng hệ thống...");
+    }
+  };
 
   const syncDetectedSubmissions = (subs: Submission[]) => {
     chrome.storage.local.set({ [STORAGE_KEYS.detectedSubmissions]: subs });
@@ -208,7 +216,7 @@ export function useAutoGrader() {
             try {
               await SupabaseService.upsertSubmission(config, classId, matched.studentId, matched.studentName, chapter, session, assignmentName, sub.githubUrl, result.score, result.report);
             } catch (err: any) {
-              showToast("Cloud sync failed: " + err.message, "warning");
+              showToast("Đồng bộ lên Cloud thất bại. Vui lòng kiểm tra lại kết nối mạng hoặc cấu hình Supabase.", "warning");
             }
           }
         }
@@ -232,6 +240,8 @@ export function useAutoGrader() {
     setIsBulkGrading(true);
     setBulkProgress(0);
     setBulkProgressText("Đang chuẩn bị...");
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
     
     // Group checked submissions by githubUrl to download once and grade in parallel
     const groups: Record<string, Array<{ sub: Submission; originalIndex: number }>> = {};
@@ -248,6 +258,10 @@ export function useAutoGrader() {
     let failed = 0;
 
     for (let u = 0; u < urls.length; u++) {
+      if (signal.aborted) {
+        setBulkProgressText("Đã hủy chấm điểm hàng loạt.");
+        break;
+      }
       const url = urls[u];
       const items = groups[url];
       
@@ -302,6 +316,7 @@ export function useAutoGrader() {
         // overwhelming the backend with many full-payload requests at once.
         let gradedSoFar = 0;
         const settledResults = await runWithConcurrencyLimit(items, BULK_GRADING_CONCURRENCY, async (item) => {
+          if (signal.aborted) throw new Error("CancelledByUser");
           const { chapter, session, assignmentName } = item.sub.matchedTemplate!;
           const template = exerciseTemplates?.[chapter]?.[session]?.[assignmentName];
           if (!template?.assignment) throw new Error("Thiếu đề bài.");
@@ -422,6 +437,7 @@ export function useAutoGrader() {
         success += gradedResults.length;
         failed += itemFailures.length;
       } catch (err: any) {
+        if (err.message === "CancelledByUser") break;
         console.error("Lỗi chấm hàng loạt:", err);
         failed += items.length;
         setSubmissions(prev => {
@@ -443,6 +459,7 @@ export function useAutoGrader() {
     }
 
     setIsBulkGrading(false);
+    abortControllerRef.current = null;
     showToast(`Chấm hoàn tất! Thành công: ${success}, Thất bại: ${failed}`, "success");
   };
 
@@ -455,7 +472,7 @@ export function useAutoGrader() {
     navigator.clipboard.writeText(text).then(() => {
       showToast(`Đã sao chép link & đề: ${sub.studentName || sub.exerciseName}`, "success");
     }).catch(err => {
-      showToast("Lỗi sao chép: " + err.message, "error");
+      showToast("Không thể sao chép. Vui lòng kiểm tra quyền truy cập Clipboard của tiện ích.", "error");
     });
   };
 
@@ -521,7 +538,7 @@ export function useAutoGrader() {
       };
       showToast(`Đã sao chép ${targetSubs.length} bài (${formatNames[format]}) vào Clipboard!`, "success");
     }).catch(err => {
-      showToast("Lỗi sao chép vào bộ nhớ tạm: " + err.message, "error");
+      showToast("Không thể sao chép. Vui lòng kiểm tra quyền truy cập Clipboard của tiện ích.", "error");
     });
   };
 
@@ -560,8 +577,8 @@ export function useAutoGrader() {
     toggleRowExpansion: (index: number) => setExpandedRows(prev => ({ ...prev, [index]: !prev[index] })),
     handleGradeSingleRow,
     handleBulkGrading,
+    handleCancelBulkGrading,
     handleCopySingleSubmission,
     handleCopyReport
   };
 }
-

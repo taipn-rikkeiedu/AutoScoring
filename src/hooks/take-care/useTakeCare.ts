@@ -56,7 +56,7 @@ export function useTakeCare() {
                   chrome.storage.local.set({ [STORAGE_KEYS.careStudents]: allCareStudents });
                 }
               } catch (err: any) {
-                showToast("Đồng bộ ghi chú từ Cloud thất bại: " + err.message, "warning");
+                showToast("Không thể tải danh sách ghi chú từ Cloud. Vui lòng kiểm tra lại kết nối mạng hoặc cấu hình Supabase.", "warning");
               }
             }
 
@@ -250,7 +250,7 @@ export function useTakeCare() {
           try {
             await SupabaseService.upsertCareNote(config, activeClassId, studentId, studentName, subjectName || "", studyDate || "", noteValue);
           } catch (syncErr: any) {
-            showToast("Đồng bộ ghi chú lên Cloud thất bại: " + syncErr.message, "warning");
+            showToast("Đồng bộ ghi chú lên Cloud thất bại. Vui lòng kiểm tra lại mạng hoặc khóa API.", "warning");
           }
         }
       });
@@ -287,7 +287,7 @@ export function useTakeCare() {
     try {
       await exportToExcel(data, "Cham_soc_sinh_vien", fileName, columnWidths);
     } catch (err: any) {
-      showToast(UI_MESSAGES.common.excelExportFailed + err.message, "error");
+      showToast("Xuất file Excel thất bại. Vui lòng thử lại hoặc tải lại trang.", "error");
     }
   };
 
@@ -301,7 +301,7 @@ export function useTakeCare() {
     navigator.clipboard.writeText(reportText).then(() => {
       showToast("Đã sao chép báo cáo vào Clipboard!", "success");
     }).catch(err => {
-      showToast("Lỗi sao chép: " + err.message, "error");
+      showToast("Không thể sao chép. Vui lòng kiểm tra quyền truy cập Clipboard của tiện ích.", "error");
     });
   };
 

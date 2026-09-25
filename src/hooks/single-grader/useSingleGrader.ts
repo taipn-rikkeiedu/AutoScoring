@@ -123,7 +123,7 @@ export function useSingleGrader() {
         await SupabaseService.upsertSubmission(config, classId, student.studentId, student.studentName, selectedChapter, selectedSession, selectedAssignment, repoUrl, score, report);
         logger.success("SINGLE_GRADER", `Đồng bộ điểm học viên ${student.studentName} lên Supabase Cloud thành công.`);
       } catch (syncErr: any) {
-        showToast("Đồng bộ lên Cloud thất bại: " + syncErr.message, "warning");
+        showToast("Đồng bộ lên Cloud thất bại. Vui lòng kiểm tra kết nối mạng hoặc cấu hình Supabase.", "warning");
         logger.error("SINGLE_GRADER", `Đồng bộ điểm học viên ${student.studentName} lên Supabase thất bại.`, syncErr.message);
       }
     }
@@ -154,7 +154,7 @@ export function useSingleGrader() {
       logger.success("SINGLE_GRADER", `Chấm điểm thành công bằng AI. Điểm số: ${result.score}/100.`);
       if (activeStudent) await saveResolvedStudentResult(result.score, result.report);
     } catch (err: any) {
-      showToast(`Lỗi: ${err.message}`, "error");
+      showToast("Quá trình chấm bài thất bại. Vui lòng kiểm tra lại cấu hình AI hoặc kết nối mạng.", "error");
       logger.error("SINGLE_GRADER", `Quá trình chấm bài đơn thất bại: ${err.message}`, err);
     } finally {
       setIsGrading(false);

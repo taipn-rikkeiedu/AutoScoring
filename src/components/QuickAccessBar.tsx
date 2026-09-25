@@ -38,7 +38,7 @@ export const QuickAccessBar: React.FC = () => {
 
   return (
     <div className="flex items-center gap-1.5 pt-2 mt-1.5 border-t border-slate-100 overflow-x-auto scrollbar-none select-none">
-      <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap flex items-center gap-1">
+      <span className="text-[11.5px] font-semibold text-slate-400 whitespace-nowrap flex items-center gap-1">
         <PinIcon className="w-3 h-3 text-slate-400" />
         <span>Ghim:</span>
       </span>
@@ -48,7 +48,7 @@ export const QuickAccessBar: React.FC = () => {
             key={item.id}
             onClick={() => handleNavigate(item.url)}
             title={`Mở: ${item.url}`}
-            className="px-2 py-0.5 bg-sky-50 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 text-[10px] font-medium text-sky-800 rounded border border-sky-200 transition-colors whitespace-nowrap max-w-[130px] truncate cursor-pointer"
+            className="px-2.5 py-1 bg-sky-50 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 text-[12px] font-medium text-sky-800 rounded-md border border-sky-200 transition-colors whitespace-nowrap max-w-[130px] truncate cursor-pointer"
           >
             {item.name}
           </button>

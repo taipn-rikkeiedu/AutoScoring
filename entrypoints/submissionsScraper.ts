@@ -45,13 +45,15 @@ export default defineUnlistedScript(() => {
     
     headers.forEach((header, index) => {
       const text = header.textContent?.trim().toLowerCase() || '';
-      if (text.includes('bài tập') || text.includes('đề bài') || text.includes('tên bài')) {
+      if (exerciseColIndex === -1 && (text.includes('bài tập') || text.includes('đề bài') || text.includes('tên bài') || text.includes('session'))) {
         exerciseColIndex = index;
       }
-      if (text.includes('link') || text.includes('github') || text.includes('liên kết')) {
-        linkColIndex = index;
+      if (linkColIndex === -1 && (text.includes('link') || text.includes('github') || text.includes('liên kết'))) {
+        if (!text.includes('báo cáo')) {
+          linkColIndex = index;
+        }
       }
-      if (text.includes('tên') || text.includes('học viên') || text.includes('sinh viên') || text.includes('họ tên')) {
+      if (nameColIndex === -1 && (text.includes('tên') || text.includes('học viên') || text.includes('sinh viên') || text.includes('họ tên'))) {
         if (!text.includes('bài tập') && !text.includes('đề bài')) {
           nameColIndex = index;
         }
@@ -73,10 +75,23 @@ export default defineUnlistedScript(() => {
         
         if (nameColIndex !== -1 && cells[nameColIndex]) {
           const lines = cells[nameColIndex].textContent?.trim().split('\n').map(l => l.trim()).filter(Boolean) || [];
+          let extractedName = '';
           if (lines.length > 1 && lines[1] && lines[1] !== 'N/A') {
-            studentName = `${lines[0]} (${lines[1]})`;
+            extractedName = `${lines[0]} (${lines[1]})`;
           } else if (lines.length > 0) {
-            studentName = lines[0];
+            extractedName = lines[0];
+          }
+          
+          // Try to append MSSV if it's available in the previous cell (like on practice-result)
+          if (extractedName && !extractedName.includes('(') && nameColIndex > 0 && cells[nameColIndex - 1]) {
+            const prevCellText = cells[nameColIndex - 1].textContent?.trim() || '';
+            if (prevCellText.match(/^[a-zA-Z0-9_\-]+$/) && prevCellText.length >= 6) {
+              studentName = `${extractedName} (${prevCellText})`;
+            } else {
+              studentName = extractedName;
+            }
+          } else {
+            studentName = extractedName;
           }
         }
         

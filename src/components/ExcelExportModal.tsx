@@ -49,7 +49,7 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-gradient-to-r from-green-600 to-emerald-600">
           <div>
             <h2 className="text-white font-bold text-sm tracking-wide">📊 Xuất Báo Cáo Excel</h2>
-            <p className="text-green-100 text-[10px] mt-0.5">Chọn trường và lọc học viên trước khi xuất</p>
+            <p className="text-green-100 text-[11.5px] mt-0.5">Chọn trường và lọc học viên trước khi xuất</p>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white text-base leading-none p-1.5">&times;</button>
         </div>
@@ -57,10 +57,10 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-600 uppercase">📋 Chọn trường xuất</span>
+              <span className="text-[12.5px] font-bold text-slate-600 uppercase">📋 Chọn trường xuất</span>
               <div className="flex gap-1.5">
-                <button onClick={selectAll} className="text-[10px] px-2 py-0.5 rounded border border-blue-300 text-blue-600 bg-blue-50">Chọn tất cả</button>
-                <button onClick={selectNone} className="text-[10px] px-2 py-0.5 rounded border border-slate-300 text-slate-500 bg-slate-50">Bỏ chọn</button>
+                <button onClick={selectAll} className="text-[11.5px] px-2 py-0.5 rounded border border-blue-300 text-blue-600 bg-blue-50">Chọn tất cả</button>
+                <button onClick={selectNone} className="text-[11.5px] px-2 py-0.5 rounded border border-slate-300 text-slate-500 bg-slate-50">Bỏ chọn</button>
               </div>
             </div>
 
@@ -76,7 +76,7 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
                     onChange={() => toggleField(f.key)}
                     className="accent-green-600 w-3.5 h-3.5"
                   />
-                  <span className="text-[11px] font-semibold">{f.label}</span>
+                  <span className="text-[12.5px] font-semibold">{f.label}</span>
                 </label>
               ))}
             </div>
@@ -85,7 +85,7 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
           <div className="border-t border-dashed border-slate-200" />
 
           <div>
-            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-2">🔍 Lọc theo trạng thái</span>
+            <span className="text-[12.5px] font-bold text-slate-600 uppercase tracking-wider block mb-2">🔍 Lọc theo trạng thái</span>
             <div className="flex flex-col gap-1.5">
               {STATUS_FILTERS.map(sf => {
                 const count = countFor(sf.value);
@@ -104,8 +104,8 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
                       className="accent-green-600 w-3.5 h-3.5"
                     />
                     <span className="text-sm">{sf.icon}</span>
-                    <span className="text-[11px] font-semibold flex-1">{sf.label}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{count}</span>
+                    <span className="text-[12.5px] font-semibold flex-1">{sf.label}</span>
+                    <span className="text-[11.5px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{count}</span>
                   </label>
                 );
               })}
@@ -114,7 +114,7 @@ export const ExcelExportModal: React.FC<Props> = ({ students, onClose, onExport 
         </div>
 
         <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200 bg-slate-50">
-          <div className="text-[10px] text-slate-500 font-medium">
+          <div className="text-[11.5px] text-slate-500 font-medium">
             <span className="font-bold text-slate-700">{filteredStudents.length}</span> học viên
           </div>
           <div className="flex gap-1.5">

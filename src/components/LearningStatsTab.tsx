@@ -76,7 +76,7 @@ export const LearningStatsTab: React.FC = () => {
               <button
                 key={key}
                 onClick={() => handleSwitchSnapshot(key)}
-                className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md text-[11px] font-semibold transition-colors cursor-pointer border ${
+                className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md text-[12.5px] font-semibold transition-colors cursor-pointer border ${
                   isActive
                     ? "bg-sky-500 text-white border-sky-500"
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
@@ -99,17 +99,17 @@ export const LearningStatsTab: React.FC = () => {
       {/* Summary cards */}
       {activeSnapshot ? (
         <div className="grid grid-cols-3 gap-2 select-none">
-          <div className="bg-rose-50/60 border border-rose-200 rounded-lg p-2 flex flex-col">
-            <span className="text-[10px] font-semibold text-rose-700 uppercase">Nghỉ học &gt;10%</span>
-            <span className="text-sm font-bold text-rose-700">{activeSnapshot.summary.absentOverTenPercentText || '—'}</span>
+          <div className="bg-[var(--bg-card)] border border-[var(--primary-red)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
+            <span className="text-[11.5px] font-semibold text-[var(--primary-red)] uppercase">Nghỉ học &gt;10%</span>
+            <span className="text-sm font-bold text-[var(--primary-red)]">{activeSnapshot.summary.absentOverTenPercentText || '—'}</span>
           </div>
-          <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-2 flex flex-col">
-            <span className="text-[10px] font-semibold text-amber-700 uppercase">Vi phạm bài tập &gt;10%</span>
-            <span className="text-sm font-bold text-amber-700">{activeSnapshot.summary.homeworkViolationText || '—'}</span>
+          <div className="bg-[var(--bg-card)] border border-[var(--accent-gold)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
+            <span className="text-[11.5px] font-semibold text-[var(--accent-gold)] uppercase">Vi phạm bài tập &gt;10%</span>
+            <span className="text-sm font-bold text-[var(--accent-gold)]">{activeSnapshot.summary.homeworkViolationText || '—'}</span>
           </div>
-          <div className="bg-orange-50/60 border border-orange-200 rounded-lg p-2 flex flex-col">
-            <span className="text-[10px] font-semibold text-orange-700 uppercase">Vi phạm không chuẩn bị bài</span>
-            <span className="text-sm font-bold text-orange-700">{activeSnapshot.summary.unpreparedViolationText || '—'}</span>
+          <div className="bg-[var(--bg-card)] border border-orange-400 rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
+            <span className="text-[11.5px] font-semibold text-orange-600 uppercase">Vi phạm không chuẩn bị bài</span>
+            <span className="text-sm font-bold text-orange-600">{activeSnapshot.summary.unpreparedViolationText || '—'}</span>
           </div>
         </div>
       ) : (
@@ -119,7 +119,7 @@ export const LearningStatsTab: React.FC = () => {
       )}
 
       {activeSnapshot && activeSnapshot.missingColumns.length > 0 && (
-        <div className="text-[11px] px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 font-medium text-amber-800 select-none">
+        <div className="text-[12.5px] px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 font-medium text-amber-800 select-none">
           ⚠️ LMS đã đổi cấu trúc cột: {activeSnapshot.missingColumns.join(', ')} — dữ liệu các cột này có thể thiếu.
         </div>
       )}
@@ -131,21 +131,21 @@ export const LearningStatsTab: React.FC = () => {
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
           placeholder="Lọc theo tên hoặc email..."
-          className="w-full text-xs px-3 py-1.5 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-400"
+          className="w-full text-xs px-3 py-1.5 rounded-md border border-[var(--border-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)]"
         />
       )}
 
       {/* Main table */}
-      <div className="flex-1 min-h-0 overflow-auto border border-slate-200 rounded-lg bg-white">
+      <div className="flex-1 min-h-0 rank-matrix-wrapper">
         {displayedRows.length > 0 ? (
-          <table className="w-full text-xs text-slate-600 text-left border-collapse">
-            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 sticky top-0 z-10 select-none">
+          <table className="rank-matrix-table">
+            <thead className="sticky top-0 z-10 select-none">
               <tr>
                 {COLUMNS.map(col => (
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
-                    className="py-2.5 px-3 whitespace-nowrap cursor-pointer hover:bg-slate-100"
+                    className="cursor-pointer hover:bg-slate-100/50"
                     title="Bấm để sắp xếp"
                   >
                     {col.label}
@@ -154,15 +154,15 @@ export const LearningStatsTab: React.FC = () => {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="stagger-grid">
               {displayedRows.map((row, idx) => (
-                <tr key={`${row.studentEmail}-${idx}`} className={`hover:bg-slate-50 transition-colors ${isRiskyRow(row) ? 'bg-rose-50/40' : ''}`}>
+                <tr key={`${row.studentEmail}-${idx}`} className={`animate-entrance ${isRiskyRow(row) ? 'bg-rose-50/40' : ''}`}>
                   {COLUMNS.map(col => (
                     <td key={col.key} className="py-2 px-3 whitespace-nowrap">
                       {col.key === 'studentName' ? (
                         <div className="flex flex-col">
-                          <span className="font-semibold text-slate-800">{row.studentName}</span>
-                          <span className="text-[9.5px] text-slate-400">{row.studentEmail}</span>
+                          <span className="font-semibold text-[var(--text-heading)]">{row.studentName}</span>
+                          <span className="text-[11px] text-[var(--text-muted)]">{row.studentEmail}</span>
                         </div>
                       ) : (
                         formatCell(row, col.key)
@@ -176,7 +176,7 @@ export const LearningStatsTab: React.FC = () => {
         ) : (
           <div className="flex flex-col justify-center items-center py-16 text-slate-400 select-none">
             <span className="text-sm font-semibold text-slate-600">Chưa có dữ liệu chỉ số học tập</span>
-            <span className="text-[11px] text-slate-400 text-center max-w-[280px] mt-1">
+            <span className="text-[12.5px] text-slate-400 text-center max-w-[280px] mt-1">
               Mở trang Thống kê học tập trên LMS, chọn lớp + môn học, rồi bấm "Quét chỉ số".
             </span>
           </div>

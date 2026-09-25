@@ -88,7 +88,7 @@ export const CareTab: React.FC = () => {
         ) : (
           <div className="flex flex-col justify-center items-center py-16 text-slate-400 select-none">
             <span className="text-sm font-semibold text-slate-600">Chưa có dữ liệu chăm sóc</span>
-            <span className="text-[11px] text-slate-400 text-center max-w-[280px] mt-1">
+            <span className="text-[12.5px] text-slate-400 text-center max-w-[280px] mt-1">
               Mở trang Chăm sóc học viên trên LMS (/class/*/take-care) và bấm "Quét dữ liệu".
             </span>
           </div>
@@ -101,7 +101,7 @@ export const CareTab: React.FC = () => {
           onClick={handleClearList}
           className="py-1.5 px-3 bg-white hover:bg-slate-50 text-rose-600 border border-slate-200 rounded-md text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
         >
-          <TrashIcon className="w-3.5 h-3.5 text-rose-500" />
+          <TrashIcon className="w-3.5 h-3.5 text-rose-600" />
           <span>Xóa danh sách</span>
         </button>
         <div className="flex gap-2">

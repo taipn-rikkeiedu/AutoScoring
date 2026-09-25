@@ -34,8 +34,10 @@ export default defineContentScript({
         return;
       }
 
-      // Only monitor clicks on the class list / homework checking page
-      if (!window.location.pathname.includes('/homework-checking')) {
+      // Only monitor clicks on the class list / homework checking page or practice result page
+      const isHomeworkChecking = window.location.pathname.includes('/homework-checking');
+      const isPracticeResult = window.location.pathname.includes('/practice-result');
+      if (!isHomeworkChecking && !isPracticeResult) {
         return;
       }
       
@@ -47,7 +49,7 @@ export default defineContentScript({
                          target.classList.contains('btn') || 
                          target.tagName === 'SPAN';
                          
-        if (isButton && text.trim().toLowerCase() === 'chi tiết') {
+        if (isButton && (text.trim().toLowerCase() === 'chi tiết' || text.trim().toLowerCase() === 'chấm điểm')) {
           let row: HTMLElement | null = target;
           while (row && row.tagName !== 'TR') {
             row = row.parentElement;
@@ -56,8 +58,15 @@ export default defineContentScript({
           if (row) {
             const cells = Array.from(row.querySelectorAll('td'));
             if (cells.length >= 4) {
-              const studentName = cells[1] ? cells[1].textContent?.trim().split('\n')[0] || '' : '';
-              const studentId = cells[3] ? cells[3].textContent?.trim().split('\n')[0] || '' : '';
+              let studentName = '';
+              let studentId = '';
+              if (isPracticeResult) {
+                studentName = cells[2] ? cells[2].textContent?.trim().split('\n')[0] || '' : '';
+                studentId = cells[1] ? cells[1].textContent?.trim().split('\n')[0] || '' : '';
+              } else {
+                studentName = cells[1] ? cells[1].textContent?.trim().split('\n')[0] || '' : '';
+                studentId = cells[3] ? cells[3].textContent?.trim().split('\n')[0] || '' : '';
+              }
               
               if (studentName || studentId) {
                 const transitionData = {
