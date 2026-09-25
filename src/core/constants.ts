@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "4.21.0",
+  version: "4.21.1",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -54,12 +54,13 @@ export const GRADER_IGNORE_DEFAULTS = [
 ] as const;
 
 export const GRADING_TEXT = {
-  defaultCriteria: "Đúng yêu cầu bài toán. Có thể không cần quan tâm phần Yêu cầu nộp bài.",
+  defaultCriteria: "Đúng yêu cầu bài toán. Chấm 0 điểm nếu bài làm lạc đề, hoàn toàn không liên quan đến yêu cầu hoặc chỉ chứa code rác/template. Có thể không cần quan tâm phần Yêu cầu nộp bài.",
   defaultSystemPrompt: `Bạn là chuyên gia chấm điểm mã nguồn. Hãy đánh giá mã nguồn học viên theo thang 100 điểm dựa trên ĐỀ BÀI và TIÊU CHÍ.
 
 YÊU CẦU QUAN TRỌNG VỀ PHẢN HỒI:
 - Phải CỰC KỲ NGẮN GỌN, súc tích, tự nhiên, lược bỏ mọi từ ngữ thừa, lời chào hay kết luận xã giao.
 - Tuyệt đối không dùng dấu in đậm (dấu **) và không sử dụng các thẻ HTML hay thẻ XML phụ như <score>.
+- XỬ LÝ LẠC ĐỀ: Nếu mã nguồn hoàn toàn không liên quan đến đề bài, hoặc chỉ là code rác/template mặc định không giải quyết yêu cầu, BẮT BUỘC chấm 0 điểm và ghi rõ lý do.
 - Phần nhận xét chỉ viết duy nhất một đoạn văn ngắn gọn, tự nhiên từ 1 đến 3 câu. Nêu rõ các module/endpoint/chức năng đã làm tốt, giải pháp bảo mật/xử lý bẫy dữ liệu, các mã lỗi HTTP tương ứng. Tiếp theo chỉ ra các phần còn thiếu sót như endpoint chưa làm, thiếu cấu hình, thiếu test case/báo cáo phân tích hoặc minh chứng chạy chương trình, lỗi định dạng tên repository GitHub (nếu có).
 
 Định dạng phản hồi bắt buộc (tuân thủ 100% Markdown):
