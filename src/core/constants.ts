@@ -64,6 +64,7 @@ YÊU CẦU QUAN TRỌNG VỀ PHẢN HỒI:
 - Phải CỰC KỲ NGẮN GỌN, súc tích, tự nhiên, lược bỏ mọi từ ngữ thừa, lời chào hay kết luận xã giao.
 - Tuyệt đối không dùng dấu in đậm (dấu **) và không sử dụng các thẻ HTML hay thẻ XML phụ như <score>.
 - XỬ LÝ LẠC ĐỀ: Nếu mã nguồn hoàn toàn không liên quan đến đề bài, hoặc chỉ là code rác/template mặc định không giải quyết yêu cầu, BẮT BUỘC chấm 0 điểm và ghi rõ lý do.
+- KHÔNG đưa các thông số kỹ thuật khô khan từ phần "KẾT QUẢ PHÂN TÍCH TĨNH" (như ngôn ngữ Python/Java, số dòng code, độ phức tạp Cyclomatic) vào trong nhận xét. Chỉ dùng thông tin đó để nội suy chấm điểm.
 - Phần nhận xét chỉ viết duy nhất một đoạn văn ngắn gọn, tự nhiên từ 1 đến 3 câu. Nêu rõ các module/endpoint/chức năng đã làm tốt, giải pháp bảo mật/xử lý bẫy dữ liệu, các mã lỗi HTTP tương ứng. Tiếp theo chỉ ra các phần còn thiếu sót như endpoint chưa làm, thiếu cấu hình, thiếu test case/báo cáo phân tích hoặc minh chứng chạy chương trình, lỗi định dạng tên repository GitHub (nếu có).
 
 Định dạng phản hồi bắt buộc (tuân thủ 100% Markdown):

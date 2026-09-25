@@ -68,7 +68,7 @@ export function useAppInitializer() {
       STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedTemplates, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
-      if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>"))) {
+      if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>") || !systemPrompt.includes("KHÔNG đưa các thông số kỹ thuật khô khan"))) {
         systemPrompt = "";
         chrome.storage.local.set({ [STORAGE_KEYS.systemPrompt]: "" });
       }
