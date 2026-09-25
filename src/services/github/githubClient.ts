@@ -21,7 +21,7 @@ const ALLOWED_EXTENSIONS = [
   '.html', '.htm', '.css', '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.c', '.cpp', '.h', '.hpp',
   '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.sql', '.sh', '.json', '.xml', '.yaml', '.yml',
   '.md', '.txt', '.vue', '.svelte', '.dart', '.r', '.scala', '.m', '.mm', '.pl', '.pm', '.dockerfile',
-  '.docx', '.png', '.jpg', '.jpeg', '.gif', '.webp'
+  '.docx', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.drawio'
 ];
 
 const KNOWN_EXTENSIONLESS_FILES = new Set(["readme", "makefile", "dockerfile", "license"]);
