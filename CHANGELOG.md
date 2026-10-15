@@ -4,6 +4,25 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.5.0] - 2026-10-15
+
+### 🚀 Tính năng mới
+- **Gộp "Giám sát học tập" và "Phân tích BTVN & điểm thi" thành một tab Giám sát học tập**, chọn được nhiều lớp cùng lúc.
+  - **Mức Báo động / Cảnh báo / Sắp vượt ngưỡng** theo ngưỡng từng chỉ số (chỉnh được): cảnh báo khi nghỉ học hoặc thiếu bài tập từ 10%, chậm E-learning 1 bài, có bài thi dưới 50; báo động khi nghỉ học hoặc thiếu bài tập trên 20%, chậm E-learning từ 2 bài, vắng thi hoặc có từ 2 lỗi cảnh báo; sắp vượt ngưỡng khi nghỉ học / thiếu bài tập 7–10% hoặc bài thi 50–55 điểm.
+  - Sinh viên báo động hiển thị đầu danh sách. Mỗi dòng chỉ có tên, mức và các lỗi chính; bấm vào để xem đầy đủ chỉ số, MSSV, email, gợi ý hành động và dấu hiệu nghi vấn.
+  - **Bộ lọc thông minh**: Báo động, Cảnh báo, Sắp vượt ngưỡng và "Lọc thêm" theo từng vấn đề (nghỉ học, thiếu bài tập, chậm E-learning, điểm thi thấp, vắng thi, nghi vấn BTVN, trùng link, danh sách rà soát); chọn nhiều bộ lọc thì hiện sinh viên khớp bất kỳ bộ lọc nào.
+  - **Tổng quan lớp** tự tính (vấn đề phổ biến nhất, nghỉ học / thiếu bài tập trung bình) và **gợi ý hành động** cho từng sinh viên.
+  - **AI tổng quan lớp** và **AI nhận xét từng sinh viên** (bấm nút khi cần, dùng AI đã cấu hình trong Cài đặt).
+  - Nghi vấn BTVN ↔ điểm thi và trùng link bài nộp là nhãn riêng, không tính vào mức báo động.
+
+### ✨ Cải thiện
+- Giao diện theo chuẩn Ant Design: chữ 14px, bảng vừa khung không cần cuộn ngang, nút chính đặt cạnh ô chọn lớp / môn.
+
+### 🐛 Sửa lỗi
+- Tên sinh viên hiện nhãn "ĐÌNH CHỈ" sai: đang đọc trạng thái hồ sơ chung thay vì trạng thái trong lớp. Đã bỏ nhãn này.
+
+---
+
 ## [5.4.1] - 2026-10-15
 
 ### ✨ Cải thiện

@@ -13,7 +13,6 @@ import {
   TerminalIcon,
   SettingsIcon,
   WindowIcon,
-  TableCellsIcon,
   ChartBarIcon,
   ChevronDownIcon,
 } from '~/src/components/Icons';
@@ -95,8 +94,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
         { key: 'tab-class-list', icon: <UsersIcon className="w-4 h-4" />, label: 'Danh sách lớp' },
         { key: 'tab-care', icon: <PhoneIcon className="w-4 h-4" />, label: 'Chăm sóc học viên' },
         { key: 'tab-exercises', icon: <BookOpenIcon className="w-4 h-4" />, label: 'Kho đề bài' },
-        { key: 'tab-learning-stats', icon: <TableCellsIcon className="w-4 h-4" />, label: 'Giám sát học tập' },
-        { key: 'tab-exam-analysis', icon: <ChartBarIcon className="w-4 h-4" />, label: 'Phân tích BTVN & thi' },
+        { key: 'tab-learning-stats', icon: <ChartBarIcon className="w-4 h-4" />, label: 'Giám sát học tập' },
       ],
     },
     {

@@ -81,13 +81,15 @@ export interface AnalysisRow {
   exercises: StudentExercise[] | null;
 }
 
-export interface FlaggedRow extends AnalysisRow {
-  level: AnalysisLevel;
+export interface FlagInfo {
+  level: AnalysisLevel;       // mức nghi vấn (BTVN cao nhưng điểm thi thấp, trùng link…)
   reasons: string[];
   dups: DuplicateLink[];
   gap: number | null;
   watch: boolean;
 }
+
+export type FlaggedRow<T extends AnalysisRow = AnalysisRow> = T & FlagInfo;
 
 /* ---------- Tiện ích số / chuỗi ---------- */
 export const avg = (a: (number | null | undefined)[]): number | null => {
@@ -219,7 +221,7 @@ export function parseWatchList(text: string): string[] {
 }
 
 /* ---------- Gắn cờ ---------- */
-export function flagRows(rows: AnalysisRow[], rules: AnalysisRules, watchList: string[]): { rows: FlaggedRow[]; watchMissing: string[] } {
+export function flagRows<T extends AnalysisRow>(rows: T[], rules: AnalysisRules, watchList: string[]): { rows: FlaggedRow<T>[]; watchMissing: string[] } {
   // Trùng link: bài thi + bài tập (nếu đã tải)
   const byLink = new Map<string, { row: AnalysisRow; what: string; link: string }[]>();
   for (const r of rows) {
@@ -247,7 +249,7 @@ export function flagRows(rows: AnalysisRow[], rules: AnalysisRules, watchList: s
   const watchNorm = watchList.map(w => ({ w, n: normName(w), p: plainText(w) }));
   const found = new Set<string>();
 
-  const flagged = rows.map((r): FlaggedRow => {
+  const flagged = rows.map((r): FlaggedRow<T> => {
     const reasons: string[] = [];
     const dups = dupsByRow.get(r) || [];
     const ability = r.essay != null ? r.essay : r.exam;
