@@ -34,3 +34,6 @@ scratch/
 .wxt/
 node_modules/
 lsm-homewrok-response.txt
+
+# Tài liệu tham khảo & dữ liệu API mẫu (chứa thông tin cá nhân SV)
+api-project/

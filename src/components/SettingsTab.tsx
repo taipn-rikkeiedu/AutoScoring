@@ -1,22 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useSettings } from '~/src/hooks/settings/useSettings';
 import { GRADER_IGNORE_DEFAULTS } from '~/src/core/constants';
-import { ConfirmModal } from '~/src/components/ConfirmModal';
-import { 
-  RefreshIcon, 
-  TrashIcon, 
-  DownloadIcon, 
-  EyeIcon, 
-  EyeSlashIcon,
-  CheckIcon,
+import { Tabs, Card, Select, Input, Button, Switch, Space, Typography, Tag, Badge, Popconfirm } from 'antd';
+import {
   SparklesIcon,
   DocumentTextIcon,
   ArchiveBoxIcon
 } from '~/src/components/Icons';
+import { EyeOutlined, EyeInvisibleOutlined, SyncOutlined, CheckOutlined, DeleteOutlined, DownloadOutlined, GoogleOutlined, RobotOutlined, ThunderboltOutlined, RocketOutlined, GlobalOutlined, LaptopOutlined, SettingOutlined, ApiOutlined } from '@ant-design/icons';
+
+const { Text, Title, Paragraph } = Typography;
+const { TextArea } = Input;
 
 const defaultGraderIgnoreOptions = [...GRADER_IGNORE_DEFAULTS];
-
-type SubTab = 'ai' | 'rules' | 'logs';
 
 export const SettingsTab: React.FC = () => {
   const {
@@ -63,6 +59,10 @@ export const SettingsTab: React.FC = () => {
     setExerciseApiUrl,
     exerciseApiToken,
     setExerciseApiToken,
+    gradingScale,
+    setGradingScale,
+    strictnessLevel,
+    setStrictnessLevel,
     supabasePat,
     setSupabasePat,
     dbInitialized,
@@ -70,596 +70,383 @@ export const SettingsTab: React.FC = () => {
     handleMigrateDatabase
   } = useSettings();
 
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('ai');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showGithubToken, setShowGithubToken] = useState(false);
-  const [showAnonKey, setShowAnonKey] = useState(false);
-  const [showPat, setShowPat] = useState(false);
-
-  const [confirmModalState, setConfirmModalState] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    isDanger: boolean;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    isDanger: false
-  });
-
-  const openConfirmModal = (title: string, message: string, onConfirm: () => void, isDanger = false) => {
-    setConfirmModalState({ isOpen: true, title, message, onConfirm, isDanger });
-  };
-
-  const closeConfirmModal = () => {
-    setConfirmModalState(prev => ({ ...prev, isOpen: false }));
-  };
-
   useEffect(() => {
-    if (activeSubTab === 'logs') {
-      loadSystemLogs();
-      loadCacheStats();
-    }
-  }, [activeSubTab]);
+    loadSystemLogs();
+    loadCacheStats();
+  }, [loadSystemLogs, loadCacheStats]);
 
-  return (
-    <div className="flex flex-col h-full bg-slate-50 overflow-hidden select-none">
-      {/* Compact Segmented Header */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
-        {/* Sub-tab Navigation */}
-        <div className="flex items-center bg-slate-100/90 p-1 rounded-lg border border-slate-200/80 gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('ai')}
-            className={`flex items-center gap-1.5 px-3 py-1.2 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              activeSubTab === 'ai'
-                ? 'bg-white text-sky-700 shadow-xs border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <SparklesIcon className="w-3.5 h-3.5" />
-            <span>AI & Kết nối</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('rules')}
-            className={`flex items-center gap-1.5 px-3 py-1.2 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              activeSubTab === 'rules'
-                ? 'bg-white text-sky-700 shadow-xs border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <DocumentTextIcon className="w-3.5 h-3.5" />
-            <span>Barem & Quy tắc</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('logs')}
-            className={`flex items-center gap-1.5 px-3 py-1.2 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-              activeSubTab === 'logs'
-                ? 'bg-white text-sky-700 shadow-xs border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <ArchiveBoxIcon className="w-3.5 h-3.5" />
-            <span>Bộ nhớ & Log</span>
-          </button>
+  const aiTabContent = (
+    <Space direction="vertical" size="middle" style={{ width: '100%', maxWidth: 700, margin: '0 auto', display: 'flex' }}>
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <Text strong style={{ fontSize: 12 }}>NHÀ CUNG CẤP AI (PROVIDER)</Text>
+          <Tag color={aiReady ? 'success' : 'warning'}>{aiReady ? '🟢 Đã sẵn sàng' : '🟡 Cần bổ sung cấu hình'}</Tag>
         </div>
+        <Select
+          value={aiProvider}
+          onChange={handleProviderChange}
+          style={{ width: '100%', marginBottom: 12 }}
+          options={[
+            { value: 'gemini', label: <span><GoogleOutlined style={{ color: '#1677ff', marginRight: 8 }} />Google Gemini (GenAI API Direct)</span> },
+            { value: 'claude', label: <span><RobotOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Anthropic Claude (Direct API)</span> },
+            { value: 'openai', label: <span><ThunderboltOutlined style={{ color: '#52c41a', marginRight: 8 }} />OpenAI (GPT-4o, o1 Direct)</span> },
+            { value: 'deepseek', label: <span><RocketOutlined style={{ color: '#722ed1', marginRight: 8 }} />DeepSeek (DeepSeek-V3 Direct)</span> },
+            { value: 'groq', label: <span><ThunderboltOutlined style={{ color: '#f5222d', marginRight: 8 }} />Groq (Fast Llama, Mixtral)</span> },
+            { value: 'grok', label: <span><ApiOutlined style={{ color: '#000000', marginRight: 8 }} />xAI Grok (Grok-2 Direct)</span> },
+            { value: 'openrouter', label: <span><GlobalOutlined style={{ color: '#13c2c2', marginRight: 8 }} />OpenRouter (Multi-model Gateway)</span> },
+            { value: 'local', label: <span><LaptopOutlined style={{ color: '#595959', marginRight: 8 }} />Ollama Local (Mô hình chạy cục bộ)</span> },
+            { value: 'custom', label: <span><SettingOutlined style={{ color: '#8c8c8c', marginRight: 8 }} />Custom OpenAI-Compatible Provider</span> }
+          ]}
+        />
 
-        {/* Auto-save Status Indicator */}
-        <div className="flex items-center gap-1.5 text-[12.5px] font-medium">
-          {isTesting ? (
-            <span className="text-amber-600 flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-              Đang lưu...
-            </span>
-          ) : (
-            <span className="text-emerald-600 flex items-center gap-1 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Tự động lưu
-            </span>
+        {aiProvider !== 'local' && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block' }}>API KEY</Text>
+              {(() => {
+                const links: Record<string, string> = {
+                  gemini: 'https://aistudio.google.com/app/apikey',
+                  claude: 'https://console.anthropic.com/settings/keys',
+                  openai: 'https://platform.openai.com/api-keys',
+                  deepseek: 'https://platform.deepseek.com/api_keys',
+                  groq: 'https://console.groq.com/keys',
+                  grok: 'https://console.x.ai/',
+                  openrouter: 'https://openrouter.ai/keys'
+                };
+                const link = links[aiProvider];
+                if (link) {
+                  return (
+                    <a href={link} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#1677ff' }}>
+                      Lấy API Key tại đây
+                    </a>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+            <Input.Password
+              value={aiApiKey}
+              onChange={(e) => setAiApiKey(e.target.value)}
+              placeholder="Nhập API Key của bạn..."
+              iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
+            />
+          </div>
+        )}
+
+        {(aiProvider === 'custom' || aiProvider === 'local') && (
+          <div style={{ marginBottom: 12 }}>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+              {aiProvider === 'local' ? "OLLAMA ENDPOINT URL" : "BASE URL (OPENAI-COMPATIBLE)"}
+            </Text>
+            <Input
+              value={aiUrl}
+              onChange={(e) => setAiUrl(e.target.value)}
+              placeholder={aiProvider === 'local' ? "http://localhost:11434" : "https://api.example.com/v1"}
+            />
+          </div>
+        )}
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block' }}>MÔ HÌNH AI (MODEL)</Text>
+            <Button type="link" size="small" onClick={refreshModels} loading={isLoadingModels} icon={<SyncOutlined />} style={{ fontSize: 11, padding: 0 }}>
+              Làm mới model
+            </Button>
+          </div>
+          {providerModels && providerModels.length > 0 ? (
+            <Select
+              value={providerModels.some(m => m.value === aiModelName) ? aiModelName : "custom"}
+              onChange={(val) => setAiModelName(val !== "custom" ? val : "")}
+              style={{ width: '100%' }}
+              options={[
+                ...providerModels,
+                { value: 'custom', label: 'Khác (Nhập model thủ công)...' }
+              ]}
+            />
+          ) : null}
+
+          {(!providerModels || providerModels.length === 0 || !providerModels.some(m => m.value === aiModelName)) && (
+            <Input
+              value={aiModelName}
+              onChange={(e) => setAiModelName(e.target.value)}
+              placeholder="Tên model (vd: gemini-2.5-flash, gpt-4o...)"
+              style={{ marginTop: providerModels && providerModels.length > 0 ? 8 : 0 }}
+            />
           )}
         </div>
-      </div>
+      </Card>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-3.5">
-        {/* ================= TAB 1: AI & KẾT NỐI ================= */}
-        {activeSubTab === 'ai' && (
-          <div className="space-y-3 max-w-2xl mx-auto">
-            {/* AI Provider & Models Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3.5">
-              {/* Provider Selection */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>Nhà cung cấp AI (Provider)</span>
-                  <span className={`text-[11.5px] px-2 py-0.5 rounded-full font-semibold border ${
-                    aiReady 
-                      ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
-                      : 'bg-amber-50 text-amber-600 border-amber-200'
-                  }`}>
-                    {aiReady ? '🟢 Đã sẵn sàng' : '🟡 Cần bổ sung cấu hình'}
-                  </span>
-                </label>
-                <select
-                  value={aiProvider}
-                  onChange={handleProviderChange}
-                  className="w-full text-xs font-semibold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer transition-all"
-                >
-                  <option value="gemini">💎 Google Gemini (GenAI API Direct)</option>
-                  <option value="claude">🧠 Anthropic Claude (Direct API)</option>
-                  <option value="openai">⚡ OpenAI (GPT-4o, o1 Direct)</option>
-                  <option value="deepseek">🐋 DeepSeek (DeepSeek-V3 Direct)</option>
-                  <option value="openrouter">🌐 OpenRouter (Multi-model Gateway)</option>
-                  <option value="local">💻 Ollama Local (Mô hình chạy cục bộ)</option>
-                  <option value="custom">⚙️ Custom OpenAI-Compatible Provider</option>
-                </select>
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>GITHUB PERSONAL ACCESS TOKEN (PAT)</Text>
+        <Input.Password
+          value={githubToken}
+          onChange={(e) => setGithubToken(e.target.value)}
+          placeholder="ghp_xxxxxxxxxxxx (chấm repository private & tăng limit API)"
+          iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)}
+        />
+      </Card>
+
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <Text strong style={{ fontSize: 12, display: 'block' }}>ĐỒNG BỘ CLOUD (SUPABASE)</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>Lưu điểm, ghi chú & đề bài lên Supabase của bạn</Text>
+          </div>
+          <Switch checked={supabaseSyncEnabled} onChange={setSupabaseSyncEnabled} />
+        </div>
+
+        {supabaseSyncEnabled && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>SUPABASE PROJECT URL</Text>
+                <Input value={supabaseUrl} onChange={(e) => setSupabaseUrl(e.target.value)} placeholder="https://xxxx.supabase.co" />
               </div>
-
-              {aiProvider !== 'local' && (
-                <div className="flex flex-col gap-1 pt-0.5">
-                  <label className="text-[12.5px] font-semibold text-slate-600">API Key</label>
-                  <div className="relative">
-                    <input
-                      type={showApiKey ? "text" : "password"}
-                      value={aiApiKey}
-                      onChange={(e) => setAiApiKey(e.target.value)}
-                      placeholder={
-                        aiProvider === 'gemini' ? "AIzaSy..." :
-                        aiProvider === 'claude' ? "sk-ant-..." :
-                        aiProvider === 'openai' ? "sk-proj-..." :
-                        aiProvider === 'deepseek' ? "sk-..." :
-                        "Nhập API Key của bạn..."
-                      }
-                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 pl-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                      title={showApiKey ? "Ẩn API Key" : "Hiện API Key"}
-                    >
-                      {showApiKey ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {(aiProvider === 'custom' || aiProvider === 'local') && (
-                <div className="flex flex-col gap-1 pt-0.5">
-                  <label className="text-[12.5px] font-semibold text-slate-600">
-                    {aiProvider === 'local' ? "Ollama Endpoint URL" : "Base URL (OpenAI-compatible)"}
-                  </label>
-                  <input
-                    type="text"
-                    value={aiUrl}
-                    onChange={(e) => setAiUrl(e.target.value)}
-                    placeholder={aiProvider === 'local' ? "http://localhost:11434" : "https://api.example.com/v1"}
-                    className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
-                </div>
-              )}
-
-              {/* Model Selection & Auto-fetch */}
-              <div className="flex flex-col gap-1 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[12.5px] font-semibold text-slate-600 flex items-center gap-1.5">
-                    <span>Mô hình AI (Model)</span>
-                    {providerModels && providerModels.length > 0 && (
-                      <span className="text-[11.5px] bg-sky-50 text-sky-700 font-semibold border border-sky-200 px-1.5 py-0.2 rounded">
-                        {providerModels.length} models từ API
-                      </span>
-                    )}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={refreshModels}
-                    disabled={isLoadingModels}
-                    className="text-[12.5px] text-sky-600 hover:text-sky-800 flex items-center gap-1 font-semibold cursor-pointer disabled:opacity-50"
-                    title="Truy vấn danh sách model mới nhất từ API"
-                  >
-                    <RefreshIcon className={`w-3 h-3 ${isLoadingModels ? 'animate-spin' : ''}`} />
-                    <span>Làm mới model</span>
-                  </button>
-                </div>
-
-                {providerModels && providerModels.length > 0 ? (
-                  <select
-                    value={providerModels.some(m => m.value === aiModelName) ? aiModelName : "custom"}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val !== "custom") {
-                        setAiModelName(val);
-                      } else {
-                        setAiModelName("");
-                      }
-                    }}
-                    className="w-full text-xs font-semibold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-lg py-1.5 px-2.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                  >
-                    {providerModels.map(m => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                    <option value="custom">Khác (Nhập model thủ công)...</option>
-                  </select>
-                ) : null}
-
-                {(!providerModels || providerModels.length === 0 || !providerModels.some(m => m.value === aiModelName)) && (
-                  <input
-                    type="text"
-                    value={aiModelName}
-                    onChange={(e) => setAiModelName(e.target.value)}
-                    placeholder="Tên model (vd: gemini-2.5-flash, gpt-4o, claude-3-5-sonnet...)"
-                    className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
-                )}
+              <div style={{ flex: 1 }}>
+                <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>ANON PUBLIC KEY</Text>
+                <Input.Password value={supabaseAnonKey} onChange={(e) => setSupabaseAnonKey(e.target.value)} placeholder="eyJhbGciOi..." iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)} />
               </div>
             </div>
 
-            {/* GitHub Token Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs flex items-center justify-between gap-3">
-              <div className="flex-1">
-                <label className="text-[12.5px] font-semibold text-slate-700 block mb-1">
-                  GitHub Personal Access Token (PAT)
-                </label>
-                <div className="relative">
-                  <input
-                    type={showGithubToken ? "text" : "password"}
-                    value={githubToken}
-                    onChange={(e) => setGithubToken(e.target.value)}
-                    placeholder="ghp_xxxxxxxxxxxx (chấm repository private & tăng limit API)"
-                    className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 pl-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowGithubToken(!showGithubToken)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                    title={showGithubToken ? "Ẩn Token" : "Hiện Token"}
-                  >
-                    {showGithubToken ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Supabase Cloud Sync Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800">Đồng bộ Cloud (Supabase)</h3>
-                  <p className="text-[11.5px] text-slate-500">Lưu điểm, ghi chú & đề bài lên Supabase của bạn (tùy chọn)</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSupabaseSyncEnabled(!supabaseSyncEnabled)}
-                  className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
-                    supabaseSyncEnabled ? 'bg-emerald-500' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-xs transition-transform ${
-                      supabaseSyncEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {supabaseSyncEnabled && (
-                <div className="grid grid-cols-2 gap-3 pt-0.5">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[12.5px] font-semibold text-slate-600">Supabase Project URL</label>
-                    <input
-                      type="text"
-                      value={supabaseUrl}
-                      onChange={(e) => setSupabaseUrl(e.target.value)}
-                      placeholder="https://xxxx.supabase.co"
-                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[12.5px] font-semibold text-slate-600">Anon Public Key</label>
-                    <div className="relative">
-                      <input
-                        type={showAnonKey ? "text" : "password"}
-                        value={supabaseAnonKey}
-                        onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                        placeholder="eyJhbGciOi..."
-                        className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 pl-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowAnonKey(!showAnonKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                        title={showAnonKey ? "Ẩn Anon Key" : "Hiện Anon Key"}
-                      >
-                        {showAnonKey ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+            <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>PERSONAL ACCESS TOKEN (TÙY CHỌN CHO ZERO SETUP)</Text>
+              <Input.Password value={supabasePat} onChange={(e) => setSupabasePat(e.target.value)} placeholder="sbp_xxxxxxxxxxxx" iconRender={visible => (visible ? <EyeOutlined /> : <EyeInvisibleOutlined />)} style={{ marginBottom: 8 }} />
               
-              {supabaseSyncEnabled && (
-                <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-slate-100">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[12.5px] font-semibold text-slate-600">Personal Access Token (Tùy chọn cho Zero Setup)</label>
-                    <div className="relative">
-                      <input
-                        type={showPat ? "text" : "password"}
-                        value={supabasePat}
-                        onChange={(e) => setSupabasePat(e.target.value)}
-                        placeholder="sbp_xxxxxxxxxxxx"
-                        className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 pl-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPat(!showPat)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                        title={showPat ? "Ẩn PAT" : "Hiện PAT"}
-                      >
-                        {showPat ? <EyeSlashIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-50 border border-slate-200/60 p-2.5 rounded-lg mt-1">
-                    <div className="flex flex-col">
-                      <span className="text-[12.5px] font-bold text-slate-700">Trạng thái Cơ sở dữ liệu:</span>
-                      <span className={`text-[11.5px] font-semibold mt-0.5 flex items-center gap-1 ${dbInitialized ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {dbInitialized === null ? (
-                          <><span>⏳</span> Đang kiểm tra...</>
-                        ) : dbInitialized ? (
-                          <><span>🟢</span> Đã khởi tạo bảng thành công</>
-                        ) : (
-                          <><span>🟡</span> Chưa tạo bảng (hoặc lỗi kết nối)</>
-                        )}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleMigrateDatabase}
-                      disabled={isMigrating || dbInitialized === true}
-                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md text-[12.5px] font-bold transition-all disabled:opacity-50 cursor-pointer border border-indigo-200 flex items-center gap-1.5"
-                    >
-                      {isMigrating && <RefreshIcon className="w-3.5 h-3.5 animate-spin" />}
-                      <span>{isMigrating ? "Đang tạo DB..." : dbInitialized ? "Đã Setup" : "Khởi tạo DB (Zero Setup)"}</span>
-                    </button>
-                  </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafafa', padding: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Text strong style={{ fontSize: 12 }}>Trạng thái Cơ sở dữ liệu:</Text>
+                  <Text style={{ fontSize: 11, color: dbInitialized === null ? '#faad14' : dbInitialized ? '#52c41a' : '#faad14', fontWeight: 600 }}>
+                    {dbInitialized === null ? '⏳ Đang kiểm tra...' : dbInitialized ? '🟢 Đã khởi tạo bảng thành công' : '🟡 Chưa tạo bảng (hoặc lỗi kết nối)'}
+                  </Text>
                 </div>
-              )}
-            </div>
-
-            {/* Test Connection Action Button */}
-            <div className="pt-1 flex justify-end">
-              <button
-                type="button"
-                onClick={handleTestAiConnection}
-                disabled={isTestingAi}
-                className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-lg text-xs font-bold flex items-center gap-2 disabled:opacity-50 transition-all shadow-xs active:scale-98 cursor-pointer"
-              >
-                <RefreshIcon className={`w-3.5 h-3.5 ${isTestingAi ? 'animate-spin' : ''}`} />
-                <span>{isTestingAi ? 'Đang kiểm tra...' : 'Kiểm tra kết nối AI'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 2: BAREM & QUY TẮC ================= */}
-        {activeSubTab === 'rules' && (
-          <div className="space-y-3 max-w-2xl mx-auto">
-            {/* Exercise Source Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-3.5">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>Nguồn Ngân Hàng Bài Tập</span>
-                </label>
-                <select
-                  value={exerciseSource}
-                  onChange={(e) => setExerciseSource(e.target.value)}
-                  className="w-full text-xs font-semibold text-slate-800 bg-slate-50/70 border border-slate-200 rounded-lg py-2 px-3 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer transition-all"
-                >
-                  <option value="local">📁 Local (Mặc định - exercises.json)</option>
-                  <option value="api">🌐 API Server (Tải từ máy chủ từ xa)</option>
-                </select>
-              </div>
-
-              {exerciseSource === 'api' && (
-                <>
-                  <div className="flex flex-col gap-1 pt-0.5">
-                    <label className="text-[12.5px] font-semibold text-slate-600">Exercise API URL</label>
-                    <input
-                      type="text"
-                      value={exerciseApiUrl}
-                      onChange={(e) => setExerciseApiUrl(e.target.value)}
-                      placeholder="https://api.example.com/exercises"
-                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1 pt-0.5">
-                    <label className="text-[12.5px] font-semibold text-slate-600">API Token (Tùy chọn)</label>
-                    <input
-                      type="text"
-                      value={exerciseApiToken}
-                      onChange={(e) => setExerciseApiToken(e.target.value)}
-                      placeholder="Bearer token..."
-                      className="w-full text-xs font-mono text-slate-800 bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* .graderignore Chip/Tag Selector */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800">Danh Sách Bỏ Qua (.graderignore)</h3>
-                  <p className="text-[11.5px] text-slate-500">Bấm vào thẻ để bật/tắt tệp và thư mục gửi cho AI</p>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[12.5px] font-semibold text-slate-600">
-                    {graderIgnoreItems.length}/{defaultGraderIgnoreOptions.length} đã chọn
-                  </span>
-                  <span className="text-slate-300">|</span>
-                  <button
-                    type="button"
-                    onClick={handleSelectAllIgnore}
-                    className="text-[12.5px] text-sky-600 hover:text-sky-800 font-semibold cursor-pointer"
-                  >
-                    Chọn tất cả
-                  </button>
-                  <span className="text-slate-300">|</span>
-                  <button
-                    type="button"
-                    onClick={handleDeselectAllIgnore}
-                    className="text-[12.5px] text-slate-500 hover:text-slate-700 cursor-pointer"
-                  >
-                    Bỏ chọn
-                  </button>
-                </div>
-              </div>
-
-              {/* Tag Pills List */}
-              <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1 bg-slate-50/70 rounded-lg border border-slate-100">
-                {defaultGraderIgnoreOptions.map((item) => {
-                  const isChecked = graderIgnoreItems.includes(item);
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => toggleIgnoreItem(item)}
-                      className={`px-2.5 py-1 rounded-md text-[12.5px] font-mono transition-all flex items-center gap-1 cursor-pointer border select-none ${
-                        isChecked
-                          ? 'bg-sky-500 text-white font-medium border-sky-600 shadow-xs'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      {isChecked && <CheckIcon className="w-3 h-3 text-white flex-shrink-0" />}
-                      <span>{item}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* System Prompt Editor */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800">Mẫu Câu Lệnh (System Prompt)</h3>
-                  <p className="text-[11.5px] text-slate-500">Tùy chỉnh hướng dẫn chấm bài cho AI</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => openConfirmModal("Khôi phục System Prompt?", "Bạn có chắc chắn muốn khôi phục system prompt về mặc định không?", handleResetPrompt)}
-                  className="text-[12.5px] text-sky-600 hover:text-sky-800 font-semibold cursor-pointer"
-                >
-                  Khôi phục mặc định
-                </button>
-              </div>
-
-              <textarea
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                rows={6}
-                placeholder="Nhập prompt tùy chỉnh cho AI..."
-                className="w-full text-xs font-mono text-slate-800 bg-slate-50/50 border border-slate-200 rounded-lg p-2.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 leading-relaxed text-[12.5px]"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ================= TAB 3: BỘ NHỚ & LOG ================= */}
-        {activeSubTab === 'logs' && (
-          <div className="space-y-3 max-w-2xl mx-auto">
-            {/* Cache Management Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800">Bộ nhớ đệm mã nguồn (Cache)</h4>
-                <p className="text-[12.5px] text-slate-500 mt-0.5">
-                  Đã lưu trữ: <span className="font-bold text-sky-600">{cacheCount} repositories</span> (Tự động xóa sau 24h)
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => openConfirmModal("Xóa Cache?", "Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm mã nguồn không?", handleClearCodeCache, true)}
-                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <TrashIcon className="w-3.5 h-3.5" />
-                <span>Xóa Cache</span>
-              </button>
-            </div>
-
-            {/* System Logs Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-xs space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-bold text-slate-800">Nhật ký hoạt động</h4>
-                  <span className="text-[11.5px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full">
-                    {systemLogs.length} dòng
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDownloadLogsZip}
-                    className="text-xs text-sky-600 hover:text-sky-800 font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    <DownloadIcon className="w-3.5 h-3.5" />
-                    <span>Tải ZIP</span>
-                  </button>
-                  <span className="text-slate-300">|</span>
-                  <button
-                    type="button"
-                    onClick={() => openConfirmModal("Xóa nhật ký?", "Bạn có chắc chắn muốn xóa toàn bộ nhật ký hệ thống không?", handleClearLogs, true)}
-                    className="text-xs text-slate-500 hover:text-rose-600 cursor-pointer"
-                  >
-                    Xóa nhật ký
-                  </button>
-                </div>
-              </div>
-
-              {/* Monospaced Log Console */}
-              <div className="bg-slate-900 text-slate-200 rounded-lg p-3 max-h-52 overflow-y-auto font-mono text-[12px] space-y-1 select-text border border-slate-800">
-                {systemLogs.length === 0 ? (
-                  <div className="text-slate-500 text-center py-6">Chưa có nhật ký hoạt động nào.</div>
-                ) : (
-                  systemLogs.map((log, idx) => (
-                    <div key={idx} className="border-b border-slate-800/60 pb-1 leading-relaxed">
-                      <span className="text-slate-500">[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
-                      <span
-                        className={`font-bold ${
-                          log.level === 'success'
-                            ? 'text-emerald-400'
-                            : log.level === 'error'
-                            ? 'text-rose-400'
-                            : log.level === 'warn'
-                            ? 'text-amber-400'
-                            : 'text-cyan-400'
-                        }`}
-                      >
-                        [{log.module}]
-                      </span>{' '}
-                      <span className="text-slate-300">{log.message}</span>
-                    </div>
-                  ))
-                )}
+                <Button size="small" onClick={handleMigrateDatabase} loading={isMigrating} disabled={isMigrating || dbInitialized === true}>
+                  {isMigrating ? "Đang tạo DB..." : dbInitialized ? "Đã Setup" : "Khởi tạo DB"}
+                </Button>
               </div>
             </div>
           </div>
         )}
+      </Card>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          type="primary"
+          style={{ backgroundColor: '#faad14', borderColor: '#faad14', color: '#000', fontWeight: 'bold' }}
+          icon={<SyncOutlined spin={isTestingAi} />}
+          onClick={handleTestAiConnection}
+          loading={isTestingAi}
+        >
+          {isTestingAi ? 'Đang kiểm tra...' : 'Kiểm tra kết nối AI'}
+        </Button>
       </div>
-      <ConfirmModal
-        isOpen={confirmModalState.isOpen}
-        title={confirmModalState.title}
-        message={confirmModalState.message}
-        onConfirm={confirmModalState.onConfirm}
-        onCancel={closeConfirmModal}
-        isDanger={confirmModalState.isDanger}
-      />
+    </Space>
+  );
+
+  const rulesTabContent = (
+    <Space direction="vertical" size="middle" style={{ width: '100%', maxWidth: 700, margin: '0 auto', display: 'flex' }}>
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>NGUỒN NGÂN HÀNG BÀI TẬP</Text>
+        <Select
+          value={exerciseSource}
+          onChange={(val) => setExerciseSource(val)}
+          style={{ width: '100%', marginBottom: 12 }}
+          options={[
+            { value: 'local', label: '📁 Local (Mặc định - exercises.json)' },
+            { value: 'api', label: '🌐 API Server (Tải từ máy chủ từ xa)' }
+          ]}
+        />
+        {exerciseSource === 'api' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>EXERCISE API URL</Text>
+              <Input value={exerciseApiUrl} onChange={(e) => setExerciseApiUrl(e.target.value)} placeholder="https://api.example.com/exercises" />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>API TOKEN (TÙY CHỌN)</Text>
+              <Input value={exerciseApiToken} onChange={(e) => setExerciseApiToken(e.target.value)} placeholder="Bearer token..." />
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>THANG ĐIỂM CHẤM</Text>
+            <Select
+              value={gradingScale}
+              onChange={(val) => setGradingScale(val)}
+              style={{ width: '100%' }}
+              options={[
+                { value: '10', label: 'Thang 10 điểm (Mặc định)' },
+                { value: '100', label: 'Thang 100 điểm' }
+              ]}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>MỨC ĐỘ NGHIÊM KHẮC</Text>
+            <Select
+              value={strictnessLevel}
+              onChange={(val) => setStrictnessLevel(val)}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'Dễ dãi, bỏ qua lỗi nhỏ', label: '🟢 Dễ dãi (Bỏ qua lỗi nhỏ)' },
+                { value: 'Bình thường', label: '🟡 Bình thường (Tiêu chuẩn)' },
+                { value: 'Rất khắt khe, trừ điểm nặng mọi lỗi nhỏ', label: '🔴 Khắt khe (Trừ điểm nặng)' }
+              ]}
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <Text strong style={{ fontSize: 12, display: 'block' }}>DANH SÁCH BỎ QUA (.GRADERIGNORE)</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>Bấm vào thẻ để bật/tắt tệp và thư mục gửi cho AI</Text>
+          </div>
+          <Space size="small">
+            <Text type="secondary" style={{ fontSize: 11 }}>{graderIgnoreItems.length}/{defaultGraderIgnoreOptions.length} đã chọn</Text>
+            <Button type="link" size="small" onClick={handleSelectAllIgnore} style={{ fontSize: 11, padding: 0 }}>Chọn tất cả</Button>
+            <Button type="link" size="small" onClick={handleDeselectAllIgnore} style={{ fontSize: 11, padding: 0, color: '#8c8c8c' }}>Bỏ chọn</Button>
+          </Space>
+        </div>
+        
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 8, backgroundColor: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, maxHeight: 150, overflowY: 'auto' }}>
+          {defaultGraderIgnoreOptions.map((item) => {
+            const isChecked = graderIgnoreItems.includes(item);
+            return (
+              <Tag.CheckableTag
+                key={item}
+                checked={isChecked}
+                onChange={() => toggleIgnoreItem(item)}
+                style={{
+                  border: '1px solid',
+                  borderColor: isChecked ? '#91caff' : '#d9d9d9',
+                  backgroundColor: isChecked ? '#1677ff' : '#fff',
+                  color: isChecked ? '#fff' : '#595959',
+                  padding: '4px 8px',
+                  borderRadius: 6,
+                  margin: 0
+                }}
+              >
+                {isChecked && <CheckOutlined style={{ marginRight: 4 }} />}
+                {item}
+              </Tag.CheckableTag>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <Text strong style={{ fontSize: 12, display: 'block' }}>MẪU CÂU LỆNH (SYSTEM PROMPT)</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>Tùy chỉnh hướng dẫn chấm bài cho AI</Text>
+          </div>
+          <Popconfirm title="Khôi phục System Prompt?" description="Bạn có chắc chắn muốn khôi phục về mặc định không?" onConfirm={handleResetPrompt} okText="Đồng ý" cancelText="Hủy">
+            <Button type="link" size="small" style={{ fontSize: 11, padding: 0 }}>Khôi phục mặc định</Button>
+          </Popconfirm>
+        </div>
+        <TextArea
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
+          placeholder="Nhập prompt tùy chỉnh cho AI..."
+          autoSize={{ minRows: 6, maxRows: 12 }}
+          style={{ fontSize: 12, fontFamily: 'monospace' }}
+        />
+      </Card>
+    </Space>
+  );
+
+  const logsTabContent = (
+    <Space direction="vertical" size="middle" style={{ width: '100%', maxWidth: 700, margin: '0 auto', display: 'flex' }}>
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Text strong style={{ fontSize: 12, display: 'block' }}>Bộ nhớ đệm mã nguồn (Cache)</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>Đã lưu trữ: <Text strong style={{ color: '#1677ff' }}>{cacheCount} repositories</Text> (Tự động xóa sau 24h)</Text>
+          </div>
+          <Popconfirm title="Xóa Cache?" description="Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm mã nguồn không?" onConfirm={handleClearCodeCache} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+            <Button danger icon={<DeleteOutlined />}>Xóa Cache</Button>
+          </Popconfirm>
+        </div>
+      </Card>
+
+      <Card size="small" style={{ borderRadius: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Space>
+            <Text strong style={{ fontSize: 12 }}>Nhật ký hoạt động</Text>
+            <Badge count={`${systemLogs.length} dòng`} style={{ backgroundColor: '#f0f0f0', color: '#595959', fontSize: 10 }} />
+          </Space>
+          <Space size="small">
+            <Button type="link" size="small" icon={<DownloadOutlined />} onClick={handleDownloadLogsZip} style={{ fontSize: 11, padding: 0 }}>Tải ZIP</Button>
+            <Text type="secondary" style={{ fontSize: 11 }}>|</Text>
+            <Popconfirm title="Xóa nhật ký?" description="Bạn có chắc chắn muốn xóa toàn bộ nhật ký hệ thống không?" onConfirm={handleClearLogs} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+              <Button type="link" danger size="small" style={{ fontSize: 11, padding: 0 }}>Xóa nhật ký</Button>
+            </Popconfirm>
+          </Space>
+        </div>
+        
+        <div style={{ backgroundColor: '#141414', borderRadius: 8, padding: 12, maxHeight: 300, overflowY: 'auto' }}>
+          {systemLogs.length === 0 ? (
+            <Text type="secondary" style={{ display: 'block', textAlign: 'center', margin: '24px 0' }}>Chưa có nhật ký hoạt động nào.</Text>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {systemLogs.map((log, idx) => (
+                <div key={idx} style={{ fontSize: 11, fontFamily: 'monospace', borderBottom: '1px solid #303030', paddingBottom: 4 }}>
+                  <span style={{ color: '#8c8c8c' }}>[{new Date(log.timestamp).toLocaleTimeString()}]</span>{' '}
+                  <span style={{ 
+                    fontWeight: 'bold', 
+                    color: log.level === 'success' ? '#52c41a' : 
+                           log.level === 'error' ? '#ff4d4f' : 
+                           log.level === 'warn' ? '#faad14' : '#13c2c2' 
+                  }}>
+                    [{log.module}]
+                  </span>{' '}
+                  <span style={{ color: '#d9d9d9' }}>{log.message}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
+    </Space>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#fafafa', overflow: 'hidden' }}>
+      
+      <div style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
+        <Tabs
+          defaultActiveKey="1"
+          centered
+          tabBarExtraContent={
+            <Badge 
+              status={isTesting ? "warning" : "success"} 
+              text={isTesting ? "Đang lưu..." : "Tự động lưu"} 
+              style={{ fontSize: 12, color: isTesting ? '#faad14' : '#52c41a', backgroundColor: isTesting ? '#fffbe6' : '#f6ffed', padding: '2px 8px', borderRadius: 4, border: `1px solid ${isTesting ? '#ffe58f' : '#b7eb8f'}` }}
+            />
+          }
+          items={[
+            {
+              key: '1',
+              label: <Space><SparklesIcon className="w-4 h-4" /> AI & Kết nối</Space>,
+              children: aiTabContent,
+            },
+            {
+              key: '2',
+              label: <Space><DocumentTextIcon className="w-4 h-4" /> Barem & Quy tắc</Space>,
+              children: rulesTabContent,
+            },
+            {
+              key: '3',
+              label: <Space><ArchiveBoxIcon className="w-4 h-4" /> Bộ nhớ & Log</Space>,
+              children: logsTabContent,
+            },
+          ]}
+        />
+      </div>
     </div>
   );
 };

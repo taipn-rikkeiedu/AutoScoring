@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { STORAGE_KEYS } from '~/src/core/constants';
 import { safeNavigate } from '~/src/core/utils';
-import { PinIcon } from '~/src/components/Icons';
+import { Button, Space, Typography } from 'antd';
+import { PushpinOutlined } from '@ant-design/icons';
+
+const { Text } = Typography;
 
 interface Shortcut {
   id: string;
@@ -37,23 +40,25 @@ export const QuickAccessBar: React.FC = () => {
   if (pinnedShortcuts.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5 pt-2 mt-1.5 border-t border-slate-100 overflow-x-auto scrollbar-none select-none">
-      <span className="text-[11.5px] font-semibold text-slate-400 whitespace-nowrap flex items-center gap-1">
-        <PinIcon className="w-3 h-3 text-slate-400" />
-        <span>Ghim:</span>
-      </span>
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-1">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '8px', marginTop: '6px', borderTop: '1px solid #f0f0f0', overflowX: 'auto' }}>
+      <Space size="small" style={{ whiteSpace: 'nowrap' }}>
+        <PushpinOutlined style={{ color: '#bfbfbf' }} />
+        <Text type="secondary" style={{ fontSize: '12px', fontWeight: 600 }}>Ghim:</Text>
+      </Space>
+      <Space size="small" style={{ flex: 1, overflowX: 'auto' }}>
         {pinnedShortcuts.map((item) => (
-          <button
+          <Button
             key={item.id}
+            size="small"
+            type="default"
             onClick={() => handleNavigate(item.url)}
             title={`Mở: ${item.url}`}
-            className="px-2.5 py-1 bg-sky-50 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-1 text-[12px] font-medium text-sky-800 rounded-md border border-sky-200 transition-colors whitespace-nowrap max-w-[130px] truncate cursor-pointer"
+            style={{ fontSize: '12px', color: '#0958d9', borderColor: '#91caff', backgroundColor: '#e6f4ff', maxWidth: '130px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
           >
             {item.name}
-          </button>
+          </Button>
         ))}
-      </div>
+      </Space>
     </div>
   );
 };

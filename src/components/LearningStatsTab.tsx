@@ -1,206 +1,192 @@
 import React from 'react';
-import { useLearningStatsManager, SortColumn } from '~/src/hooks/learning-stats/useLearningStatsManager';
-import { exportToExcel } from '~/src/core/excelExporter';
-import { RefreshIcon, DownloadIcon, TrashIcon } from '~/src/components/Icons';
-import { LearningStatRow } from '~/src/types';
+import { useLearningStatsManager } from '~/src/hooks/learning-stats/useLearningStatsManager';
+import { LearningStatRow, ExamCell, LEARNING_STATS_RISK_PERCENT } from '~/src/core/learningStats';
+import { fmtScore } from '~/src/core/examAnalysis';
+import { Table, Button, Select, Input, Tag, Card, Typography, Empty, Tooltip } from 'antd';
+import type { TableColumnsType } from 'antd';
+import { CloudDownloadOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 
-const COLUMNS: { key: SortColumn; label: string }[] = [
-  { key: 'no', label: 'STT' },
-  { key: 'studentName', label: 'Học viên' },
-  { key: 'absentRatio', label: 'Tỷ lệ nghỉ học' },
-  { key: 'missingHomeworkRatio', label: 'Tỷ lệ thiếu bài tập' },
-  { key: 'elearningStatus', label: 'E-learning' },
-  { key: 'lateAssignmentsText', label: 'Số bài chậm' },
-  { key: 'hackathonTN', label: 'Hackathon - TN' },
-  { key: 'hackathonTL', label: 'Hackathon - TL' },
-  { key: 'rPoints', label: 'R-Points' },
-  { key: 'autoRPoints', label: 'Auto R-Points' },
-  { key: 'scoreLockStatus', label: 'Trạng thái chốt điểm' },
-  { key: 'projectEligibility', label: 'Điều kiện project' }
-];
+const { Text } = Typography;
 
-function formatCell(row: LearningStatRow, key: SortColumn): string {
-  const value = row[key];
-  if (value === null || value === undefined) return '—';
-  if (key === 'absentRatio' || key === 'missingHomeworkRatio') return `${value}%`;
-  return String(value);
-}
+const DANGER = '#cf1322';
+const EXAM_FAIL_BELOW = 50;
+/** Ô vi phạm: nghỉ học / thiếu bài tập từ 10%, chậm e-learning từ 1 bài → tô nền đỏ. */
+const HIGHLIGHT_PERCENT_FROM = 10;
+const HIGHLIGHT_CELL: React.CSSProperties = { background: '#ffccc7' };
+const HIGHLIGHT_TEXT: React.CSSProperties = { color: '#a8071a', fontWeight: 600 };
+const isHighPercent = (v: number | null) => v != null && v >= HIGHLIGHT_PERCENT_FROM;
+const isUnprepared = (v: number | null) => v != null && v >= 1;
+const highlightCell = (on: boolean) => ({ style: on ? HIGHLIGHT_CELL : undefined });
 
-function isRiskyRow(row: LearningStatRow): boolean {
-  const status = `${row.elearningStatus} ${row.lateAssignmentsText}`.toLowerCase();
-  return row.projectEligibility.includes('Không đủ điều kiện') ||
-    status.includes('cảnh báo') ||
-    status.includes('báo động');
-}
+const lastName = (name: string) => name.trim().split(/\s+/).pop() || '';
+const examValue = (v: ExamCell) => (typeof v === 'number' ? v : -1);
+
+const Percent: React.FC<{ value: number | null }> = ({ value }) => (
+  <Text style={{ fontSize: 12, ...(isHighPercent(value) ? HIGHLIGHT_TEXT : {}) }}>
+    {value == null ? '—' : `${fmtScore(value)}%`}
+  </Text>
+);
+
+const Exam: React.FC<{ value: ExamCell }> = ({ value }) => {
+  if (value === 'absent') return <Text type="secondary" style={{ fontSize: 12 }}>Vắng</Text>;
+  return <Text style={{ fontSize: 12, color: value != null && value < EXAM_FAIL_BELOW ? DANGER : undefined }}>{fmtScore(value)}</Text>;
+};
+
+const examColumn = (key: 'hkTN' | 'hkTL' | 'ckTN' | 'ckTL', title: string, tip: string) => ({
+  title: <Tooltip title={tip}>{title}</Tooltip>, key, width: 70, align: 'right' as const,
+  sorter: (x: LearningStatRow, y: LearningStatRow) => examValue(x[key]) - examValue(y[key]),
+  render: (_: unknown, r: LearningStatRow) => <Exam value={r[key]} />
+});
 
 export const LearningStatsTab: React.FC = () => {
-  const {
-    snapshots,
-    activeKey,
-    activeSnapshot,
-    displayedRows,
-    isScanning,
-    statusText,
-    sortColumn,
-    sortDirection,
-    filterText,
-    setFilterText,
-    handleScan,
-    handleDeleteSnapshot,
-    handleSwitchSnapshot,
-    handleSort
-  } = useLearningStatsManager();
+  const s = useLearningStatsManager();
 
-  const snapshotKeys = Object.keys(snapshots);
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: s.statusText }));
+    return () => { window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: null })); };
+  }, [s.statusText]);
 
-  const handleExportExcel = () => {
-    if (!activeSnapshot) return;
-    const data = displayedRows.map(row => {
-      const record: Record<string, any> = {};
-      COLUMNS.forEach(col => { record[col.label] = formatCell(row, col.key); });
-      record['Email'] = row.studentEmail;
-      return record;
-    });
-    exportToExcel(data, 'ChiSoHocTap', `ChiSoHocTap_${activeSnapshot.className}_${activeSnapshot.subjectName}.xlsx`);
-  };
+  const columns: TableColumnsType<LearningStatRow> = [
+    { title: 'STT', dataIndex: 'no', key: 'no', width: 50, sorter: (x, y) => x.no - y.no },
+    {
+      title: 'Học viên', key: 'name',
+      sorter: (x, y) => lastName(x.name).localeCompare(lastName(y.name), 'vi') || x.name.localeCompare(y.name, 'vi'),
+      render: (_, r) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text strong style={{ fontSize: 12 }}>
+            {r.name}
+            {r.studentStatus && r.studentStatus !== 'ĐANG HỌC' && <Tag color="red" style={{ marginLeft: 6, fontSize: 10 }}>{r.studentStatus}</Tag>}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>{r.email}</Text>
+        </div>
+      )
+    },
+    {
+      title: 'Nghỉ học', key: 'absentRate', width: 80, align: 'right',
+      sorter: (x, y) => (x.absentRate ?? -1) - (y.absentRate ?? -1),
+      onCell: (r) => highlightCell(isHighPercent(r.absentRate)),
+      render: (_, r) => <Percent value={r.absentRate} />
+    },
+    {
+      title: 'Thiếu BT', key: 'missingHomework', width: 80, align: 'right',
+      sorter: (x, y) => (x.missingHomework ?? -1) - (y.missingHomework ?? -1),
+      onCell: (r) => highlightCell(isHighPercent(r.missingHomework)),
+      render: (_, r) => <Percent value={r.missingHomework} />
+    },
+    {
+      title: <Tooltip title="Số bài e-learning chậm tiến độ (vi phạm không chuẩn bị bài)">Chậm E-learning</Tooltip>,
+      key: 'unprepared', width: 90, align: 'right',
+      sorter: (x, y) => (x.unprepared ?? -1) - (y.unprepared ?? -1),
+      onCell: (r) => highlightCell(isUnprepared(r.unprepared)),
+      render: (_, r) => <Text style={{ fontSize: 12, ...(isUnprepared(r.unprepared) ? HIGHLIGHT_TEXT : {}) }}>{r.unprepared ?? '—'}</Text>
+    },
+    examColumn('hkTN', 'HK TN', 'Hackathon — trắc nghiệm'),
+    examColumn('hkTL', 'HK TL', 'Hackathon — tự luận'),
+    examColumn('ckTN', 'CK TN', 'Thi cuối môn — trắc nghiệm'),
+    examColumn('ckTL', 'CK TL', 'Thi cuối môn — tự luận'),
+    {
+      title: 'R-Points', key: 'rpoints', width: 80, align: 'right',
+      sorter: (x, y) => (x.rpoints ?? -1) - (y.rpoints ?? -1),
+      render: (_, r) => r.rpoints == null ? <Text type="secondary" style={{ fontSize: 12 }}>Chưa có</Text> : <Text style={{ fontSize: 12 }}>{fmtScore(r.rpoints)}</Text>
+    }
+  ];
+
+  const summary = s.data?.summary;
+  const pct = (n: number) => (summary?.total ? `${((n / summary.total) * 100).toFixed(2)}%` : '—');
+  const cards = summary ? [
+    { label: `Nghỉ học trên ${LEARNING_STATS_RISK_PERCENT}%`, value: summary.absentOver10 },
+    { label: `Thiếu bài tập trên ${LEARNING_STATS_RISK_PERCENT}%`, value: summary.homeworkOver10 },
+    { label: 'Vi phạm không chuẩn bị bài', value: summary.unprepared }
+  ] : [];
 
   return (
-    <div className="flex flex-col flex-1 p-3.5 gap-3 overflow-hidden">
-      {/* Snapshot switcher */}
-      {snapshotKeys.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap select-none">
-          {snapshotKeys.map(key => {
-            const snap = snapshots[key];
-            const isActive = key === activeKey;
-            return (
-              <button
-                key={key}
-                onClick={() => handleSwitchSnapshot(key)}
-                className={`flex items-center gap-1.5 py-1 px-2.5 rounded-md text-[12.5px] font-semibold transition-colors cursor-pointer border ${
-                  isActive
-                    ? "bg-sky-500 text-white border-sky-500"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                <span>{snap.className} · {snap.subjectName}</span>
-                <span
-                  role="button"
-                  onClick={(e) => { e.stopPropagation(); handleDeleteSnapshot(key); }}
-                  className="inline-flex"
-                >
-                  <TrashIcon className={`w-3 h-3 ${isActive ? "text-white/80 hover:text-white" : "text-slate-400 hover:text-rose-500"}`} />
-                </span>
-              </button>
-            );
-          })}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: '12px', overflow: 'hidden' }}>
+      {/* Chọn lớp / môn */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Select
+          style={{ flex: 1, minWidth: 0 }}
+          placeholder="Chọn lớp"
+          options={s.classes}
+          value={s.classId || undefined}
+          onChange={s.handleClassChange}
+          showSearch
+          optionFilterProp="label"
+          disabled={s.isLoading}
+        />
+        <Select
+          style={{ flex: 1, minWidth: 0 }}
+          placeholder={s.classId ? 'Chọn môn học' : 'Chọn lớp trước'}
+          options={s.courses}
+          value={s.courseId || undefined}
+          onChange={s.handleCourseChange}
+          showSearch
+          optionFilterProp="label"
+          disabled={s.isLoading || !s.classId}
+        />
+        <Tooltip title="Tải lại danh sách lớp">
+          <Button icon={<ReloadOutlined />} onClick={s.reloadClasses} disabled={s.isLoading} />
+        </Tooltip>
+      </div>
+
+      {/* Tóm tắt */}
+      {summary && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          {cards.map(c => (
+            <Card key={c.label} size="small" style={{ flex: 1 }} styles={{ body: { padding: '6px 12px' } }}>
+              <div style={{ fontSize: 11, color: '#8c8c8c' }}>{c.label}</div>
+              <div>
+                <Text strong style={{ fontSize: 16, color: c.value > 0 ? DANGER : '#389e0d' }}>{pct(c.value)}</Text>
+                <Text type="secondary" style={{ fontSize: 11, marginLeft: 6 }}>{c.value}/{summary.total} SV</Text>
+              </div>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Summary cards */}
-      {activeSnapshot ? (
-        <div className="grid grid-cols-3 gap-2 select-none">
-          <div className="bg-[var(--bg-card)] border border-[var(--primary-red)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
-            <span className="text-[11.5px] font-semibold text-[var(--primary-red)] uppercase">Nghỉ học &gt;10%</span>
-            <span className="text-sm font-bold text-[var(--primary-red)]">{activeSnapshot.summary.absentOverTenPercentText || '—'}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-[var(--accent-gold)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
-            <span className="text-[11.5px] font-semibold text-[var(--accent-gold)] uppercase">Vi phạm bài tập &gt;10%</span>
-            <span className="text-sm font-bold text-[var(--accent-gold)]">{activeSnapshot.summary.homeworkViolationText || '—'}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-orange-400 rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
-            <span className="text-[11.5px] font-semibold text-orange-600 uppercase">Vi phạm không chuẩn bị bài</span>
-            <span className="text-sm font-bold text-orange-600">{activeSnapshot.summary.unpreparedViolationText || '—'}</span>
-          </div>
-        </div>
-      ) : (
-        <div className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 select-none">
-          {statusText}
-        </div>
-      )}
-
-      {activeSnapshot && activeSnapshot.missingColumns.length > 0 && (
-        <div className="text-[12.5px] px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 font-medium text-amber-800 select-none">
-          ⚠️ LMS đã đổi cấu trúc cột: {activeSnapshot.missingColumns.join(', ')} — dữ liệu các cột này có thể thiếu.
-        </div>
-      )}
-
-      {/* Filter input */}
-      {activeSnapshot && (
-        <input
-          type="text"
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-          placeholder="Lọc theo tên hoặc email..."
-          className="w-full text-xs px-3 py-1.5 rounded-md border border-[var(--border-color)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)]"
+      {s.data && (
+        <Input.Search
+          size="small"
+          placeholder="Tìm tên / email / MSSV"
+          allowClear
+          value={s.filterText}
+          onChange={(e) => s.setFilterText(e.target.value)}
         />
       )}
 
-      {/* Main table */}
-      <div className="flex-1 min-h-0 rank-matrix-wrapper">
-        {displayedRows.length > 0 ? (
-          <table className="rank-matrix-table">
-            <thead className="sticky top-0 z-10 select-none">
-              <tr>
-                {COLUMNS.map(col => (
-                  <th
-                    key={col.key}
-                    onClick={() => handleSort(col.key)}
-                    className="cursor-pointer hover:bg-slate-100/50"
-                    title="Bấm để sắp xếp"
-                  >
-                    {col.label}
-                    {sortColumn === col.key && (sortDirection === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="stagger-grid">
-              {displayedRows.map((row, idx) => (
-                <tr key={`${row.studentEmail}-${idx}`} className={`animate-entrance ${isRiskyRow(row) ? 'bg-rose-50/40' : ''}`}>
-                  {COLUMNS.map(col => (
-                    <td key={col.key} className="py-2 px-3 whitespace-nowrap">
-                      {col.key === 'studentName' ? (
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-[var(--text-heading)]">{row.studentName}</span>
-                          <span className="text-[11px] text-[var(--text-muted)]">{row.studentEmail}</span>
-                        </div>
-                      ) : (
-                        formatCell(row, col.key)
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="flex flex-col justify-center items-center py-16 text-slate-400 select-none">
-            <span className="text-sm font-semibold text-slate-600">Chưa có dữ liệu chỉ số học tập</span>
-            <span className="text-[12.5px] text-slate-400 text-center max-w-[280px] mt-1">
-              Mở trang Thống kê học tập trên LMS, chọn lớp + môn học, rồi bấm "Quét chỉ số".
-            </span>
-          </div>
-        )}
+      {/* Bảng */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', border: '1px solid #f0f0f0', borderRadius: 8 }}>
+        <Table<LearningStatRow>
+          rowKey="key"
+          dataSource={s.displayedRows}
+          columns={columns}
+          pagination={false}
+          size="small"
+          sticky
+          scroll={{ x: 'max-content' }}
+          showSorterTooltip={false}
+          loading={s.isLoading}
+          locale={{
+            emptyText: <Empty description={s.data
+              ? 'Không có học viên nào khớp bộ lọc.'
+              : 'Chọn lớp và môn học rồi bấm "Tải dữ liệu". Cần đăng nhập QLĐT ít nhất một lần.'} />
+          }}
+        />
       </div>
 
-      {/* Footer controls */}
-      <div className="flex justify-end items-center select-none pt-0.5 gap-2">
-        <button
-          onClick={handleExportExcel}
-          disabled={!activeSnapshot || displayedRows.length === 0}
-          className="py-1.5 px-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-md text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+      {/* Footer */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Button icon={<DownloadOutlined />} onClick={s.handleExport} disabled={!s.displayedRows.length}>
+          Xuất Excel
+        </Button>
+        <Button
+          type="primary"
+          icon={<CloudDownloadOutlined />}
+          onClick={s.handleLoad}
+          loading={s.isLoading}
+          disabled={!s.classId || !s.courseId}
         >
-          <DownloadIcon className="w-3.5 h-3.5" />
-          <span>Xuất Excel</span>
-        </button>
-        <button
-          onClick={handleScan}
-          disabled={isScanning}
-          className="py-1.5 px-3.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-md text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer flex items-center gap-1.5 active:scale-95"
-        >
-          <RefreshIcon className="w-3.5 h-3.5" />
-          <span>Quét chỉ số</span>
-        </button>
+          Tải dữ liệu
+        </Button>
       </div>
     </div>
   );

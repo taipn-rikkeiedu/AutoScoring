@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { STORAGE_KEYS, APP_INFO } from '~/src/core/constants';
+import { Layout, Menu, Button, Tooltip, Badge, Space } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   SparklesIcon,
   FolderIcon,
@@ -12,33 +14,21 @@ import {
   SettingsIcon,
   WindowIcon,
   TableCellsIcon,
+  ChartBarIcon,
   ChevronDownIcon,
 } from '~/src/components/Icons';
+
+const { Sider } = Layout;
 
 interface NavigationSidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-interface MenuItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
-}
-
-interface MenuGroup {
-  title: string;
-  items: MenuItem[];
-}
-
-const EXPANDED_WIDTH = "w-[185px]";
-const COLLAPSED_WIDTH = "w-12";
-
 function statusDotColor(isSuccess: boolean, isError: boolean): string {
-  if (isSuccess) return "bg-emerald-500";
-  if (isError) return "bg-rose-500";
-  return "bg-amber-400";
+  if (isSuccess) return "green";
+  if (isError) return "red";
+  return "gold";
 }
 
 export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab, setActiveTab }) => {
@@ -71,170 +61,155 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
     chrome.storage.local.set({ [STORAGE_KEYS.uiSidebarCollapsed]: next });
   };
 
-  const menuGroups: MenuGroup[] = [
+  const items: MenuProps['items'] = [
     {
-      title: "Chấm điểm",
-      items: [
-        { id: "tab-auto", label: "Chấm hàng loạt", icon: SparklesIcon, badge: "AI" },
+      type: 'group',
+      label: !isCollapsed && 'Chấm điểm',
+      children: [
+        {
+          key: 'tab-auto',
+          icon: <SparklesIcon className="w-4 h-4" />,
+          label: (
+            <div className="flex justify-between items-center w-full">
+              <span>Chấm hàng loạt</span>
+              {!isCollapsed && <Badge count="AI" style={{ backgroundColor: '#fadb14', color: '#000', fontSize: '10px' }} />}
+            </div>
+          ),
+        },
+        {
+          key: 'tab-miniproject',
+          icon: <WindowIcon className="w-4 h-4" />,
+          label: (
+            <div className="flex justify-between items-center w-full">
+              <span>Chấm Mini Project</span>
+              {!isCollapsed && <Badge count="AI" style={{ backgroundColor: '#fadb14', color: '#000', fontSize: '10px' }} />}
+            </div>
+          ),
+        },
       ],
     },
     {
-      title: "Quản lý LMS",
-      items: [
-        { id: "tab-class-list", label: "Danh sách lớp", icon: UsersIcon },
-        { id: "tab-care", label: "Chăm sóc học viên", icon: PhoneIcon },
-        { id: "tab-exercises", label: "Kho đề bài", icon: BookOpenIcon },
-        { id: "tab-learning-stats", label: "Giám sát học tập", icon: TableCellsIcon },
+      type: 'group',
+      label: !isCollapsed && 'Quản lý LMS',
+      children: [
+        { key: 'tab-class-list', icon: <UsersIcon className="w-4 h-4" />, label: 'Danh sách lớp' },
+        { key: 'tab-care', icon: <PhoneIcon className="w-4 h-4" />, label: 'Chăm sóc học viên' },
+        { key: 'tab-exercises', icon: <BookOpenIcon className="w-4 h-4" />, label: 'Kho đề bài' },
+        { key: 'tab-learning-stats', icon: <TableCellsIcon className="w-4 h-4" />, label: 'Giám sát học tập' },
+        { key: 'tab-exam-analysis', icon: <ChartBarIcon className="w-4 h-4" />, label: 'Phân tích BTVN & thi' },
       ],
     },
     {
-      title: "Hệ thống",
-      items: [
-        { id: "tab-settings", label: "Cài đặt", icon: SettingsIcon },
+      type: 'group',
+      label: !isCollapsed && 'Hệ thống',
+      children: [
+        { key: 'tab-settings', icon: <SettingsIcon className="w-4 h-4" />, label: 'Cài đặt' },
       ],
     },
   ];
 
   return (
-    <aside className={`${isCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH} h-full flex-shrink-0 bg-[var(--bg-subtle)] text-[var(--text-main)] flex flex-col justify-between border-r border-[var(--border-color)] select-none transition-[width] duration-150`}>
+    <Sider
+      collapsible
+      collapsed={isCollapsed}
+      onCollapse={setIsCollapsed}
+      trigger={null}
+      width={220}
+      collapsedWidth={60}
+      theme="light"
+      style={{
+        borderRight: '1px solid #f0f0f0',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       {/* Brand Header */}
-      <div className={`px-2 py-3 border-b border-[var(--border-color)] bg-[var(--bg-card)] flex items-center ${isCollapsed ? "justify-center" : "justify-between px-3.5"}`}>
+      <div className={`p-3 border-b border-gray-100 flex items-center h-14 ${isCollapsed ? "justify-center" : "justify-between"}`}>
         {isCollapsed ? (
-          <div className="w-6 h-6 rounded-md bg-amber-400 flex items-center justify-center text-slate-950 font-extrabold text-xs tracking-wider shadow-xs" title={`REduX AutoScoring v${version}`}>
-            RE
-          </div>
+          <Tooltip title={`REduX AutoScoring v${version}`} placement="right">
+            <div className="w-8 h-8 rounded-md bg-amber-400 flex items-center justify-center text-slate-950 font-extrabold text-sm tracking-wider shadow-sm cursor-pointer">
+              RE
+            </div>
+          </Tooltip>
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-amber-400 flex items-center justify-center text-slate-950 font-extrabold text-xs tracking-wider shadow-xs">
+              <div className="w-8 h-8 rounded-md bg-amber-400 flex items-center justify-center text-slate-950 font-extrabold text-sm tracking-wider shadow-sm">
                 RE
               </div>
               <div className="flex flex-col">
-                <span className="font-extrabold text-slate-900 text-xs tracking-tight">REduX</span>
-                <span className="text-[10.5px] text-sky-700 leading-none font-bold">AutoScoring</span>
+                <span className="font-extrabold text-slate-900 text-sm tracking-tight leading-tight">REduX</span>
+                <span className="text-[11px] text-sky-700 leading-none font-bold">AutoScoring</span>
               </div>
             </div>
-            <span className="text-[10.5px] font-mono text-[var(--accent-blue)] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-card)] font-semibold">
-              v{version}
-            </span>
+            <Badge count={`v${version}`} style={{ backgroundColor: '#f0f5ff', color: '#2f54eb', borderColor: '#adc6ff' }} />
           </>
         )}
       </div>
 
       {/* Collapse/Expand Toggle */}
-      <button
-        type="button"
+      <div 
         onClick={handleToggleCollapsed}
-        className={`flex items-center gap-1.5 py-1.5 border-b border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] focus:ring-inset ${isCollapsed ? "justify-center px-2" : "justify-start px-3"}`}
-        title={isCollapsed ? "Mở rộng menu" : "Thu gọn menu"}
+        className={`flex items-center gap-2 py-2 border-b border-gray-100 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer ${isCollapsed ? "justify-center" : "justify-start px-4"}`}
       >
-        <ChevronDownIcon className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${isCollapsed ? "-rotate-90" : "rotate-90"}`} />
-        {!isCollapsed && <span className="text-[12px] font-semibold">Thu gọn</span>}
-      </button>
+        <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? "-rotate-90" : "rotate-90"}`} />
+        {!isCollapsed && <span className="text-xs font-semibold">Thu gọn</span>}
+      </div>
 
       {/* Navigation List */}
-      <div className={`flex-1 overflow-y-auto py-2.5 flex flex-col gap-3 scrollbar-none ${isCollapsed ? "px-1.5" : "px-2"}`}>
-        {menuGroups.map((group) => (
-          <div key={group.title} className="flex flex-col gap-0.5">
-            {!isCollapsed && (
-              <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {group.title}
-              </div>
-            )}
-            {group.items.map((item) => {
-              const isActive = activeTab === item.id;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  title={isCollapsed ? item.label : undefined}
-                  className={`w-full flex items-center rounded-md text-xs transition-colors cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] focus:ring-inset ${
-                    isCollapsed ? "justify-center px-2 py-2" : "justify-between px-2.5 py-1.5"
-                  } ${
-                    isActive
-                      ? "bg-[var(--accent-blue)] text-white font-bold shadow-sm"
-                      : "text-[var(--text-main)] hover:bg-[var(--bg-subtle)] hover:text-[var(--accent-blue)] font-medium"
-                  }`}
-                >
-                  <div className={`flex items-center gap-2 truncate ${isCollapsed ? "relative" : ""}`}>
-                    <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? "text-white" : "text-[var(--text-muted)]"}`} />
-                    {!isCollapsed && <span className="truncate">{item.label}</span>}
-                    {isCollapsed && item.badge && (
-                      <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    )}
-                  </div>
-                  {!isCollapsed && item.badge && (
-                    <span
-                      className={`text-[10.5px] font-extrabold px-1.5 py-0.2 rounded flex-shrink-0 ${
-                        isActive ? "bg-amber-400 text-slate-950" : "bg-amber-100 text-amber-900 border border-amber-300"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <Menu
+          mode="inline"
+          selectedKeys={[activeTab]}
+          onClick={(e) => setActiveTab(e.key)}
+          items={items}
+          style={{ borderRight: 0 }}
+        />
       </div>
 
       {/* Footer Status & Actions */}
-      <div className={`p-2 border-t border-[var(--border-color)] bg-[var(--bg-card)] flex flex-col gap-2 ${isCollapsed ? "items-center" : ""}`}>
+      <div className={`p-3 border-t border-gray-100 flex flex-col gap-3 ${isCollapsed ? "items-center" : ""}`}>
         {/* Status Indicators */}
         {isCollapsed ? (
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab("tab-settings")}
-              className={`w-2 h-2 rounded-full cursor-pointer ${statusDotColor(supabaseStatus.includes("🟢"), supabaseStatus.includes("🔴"))}`}
-              title="Trạng thái Supabase Cloud"
-            />
-            <button
-              type="button"
-              onClick={() => setActiveTab("tab-settings")}
-              className={`w-2 h-2 rounded-full cursor-pointer ${statusDotColor(aiStatus === "success", aiStatus === "error")}`}
-              title="Trạng thái AI Provider"
-            />
-          </div>
+          <Space direction="vertical" size="small" align="center">
+            <Tooltip title="Trạng thái Supabase Cloud" placement="right">
+              <Badge status={statusDotColor(supabaseStatus.includes("🟢"), supabaseStatus.includes("🔴")) as any} />
+            </Tooltip>
+            <Tooltip title="Trạng thái AI Provider" placement="right">
+              <Badge status={statusDotColor(aiStatus === "success", aiStatus === "error") as any} />
+            </Tooltip>
+          </Space>
         ) : (
-          <div className="flex items-center justify-between text-[11.5px] font-semibold px-1 text-slate-600">
-            <button
-              type="button"
-              onClick={() => setActiveTab("tab-settings")}
-              className="flex items-center gap-1.5 cursor-pointer hover:text-sky-700 transition-colors"
-              title="Trạng thái Supabase Cloud"
-            >
-              <span className={`w-2 h-2 rounded-full ${statusDotColor(supabaseStatus.includes("🟢"), supabaseStatus.includes("🔴"))}`} />
-              <span>Cloud</span>
-            </button>
+          <div className="flex items-center justify-between text-xs font-semibold text-gray-600 px-1">
+            <Tooltip title="Trạng thái Supabase Cloud">
+              <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setActiveTab("tab-settings")}>
+                <Badge status={statusDotColor(supabaseStatus.includes("🟢"), supabaseStatus.includes("🔴")) as any} />
+                <span>Cloud</span>
+              </div>
+            </Tooltip>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("tab-settings")}
-              className="flex items-center gap-1.5 cursor-pointer hover:text-sky-700 transition-colors"
-              title="Trạng thái AI Provider"
-            >
-              <span className={`w-2 h-2 rounded-full ${statusDotColor(aiStatus === "success", aiStatus === "error")}`} />
-              <span>AI</span>
-            </button>
+            <Tooltip title="Trạng thái AI Provider">
+              <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => setActiveTab("tab-settings")}>
+                <Badge status={statusDotColor(aiStatus === "success", aiStatus === "error") as any} />
+                <span>AI</span>
+              </div>
+            </Tooltip>
           </div>
         )}
 
         {/* Window Mode Toggle */}
-        <button
-          type="button"
-          onClick={handleToggleWindowMode}
-          title={isWindowMode ? "Chuyển về dạng popup" : "Mở dạng cửa sổ riêng biệt"}
-          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[12.5px] font-semibold bg-[var(--bg-subtle)] hover:bg-[var(--border-color)] text-[var(--text-main)] border border-[var(--border-card)] transition-colors cursor-pointer ${
-            isCollapsed ? "w-8 px-0" : "w-full px-2"
-          }`}
-        >
-          <WindowIcon className="w-3.5 h-3.5 text-[var(--text-muted)] flex-shrink-0" />
-          {!isCollapsed && <span>{isWindowMode ? "Ghim tiện ích" : "Mở cửa sổ rời"}</span>}
-        </button>
+        <Tooltip title={isWindowMode ? "Chuyển về dạng popup" : "Mở dạng cửa sổ riêng biệt"} placement={isCollapsed ? "right" : "top"}>
+          <Button 
+            onClick={handleToggleWindowMode}
+            icon={<WindowIcon className="w-4 h-4" />}
+            className="w-full text-xs font-semibold flex items-center justify-center"
+            type="default"
+          >
+            {!isCollapsed && (isWindowMode ? "Ghim tiện ích" : "Mở cửa sổ rời")}
+          </Button>
+        </Tooltip>
       </div>
-    </aside>
+    </Sider>
   );
 };

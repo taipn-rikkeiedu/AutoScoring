@@ -96,7 +96,8 @@ export default defineUnlistedScript(() => {
         }
         
         if (linkColIndex !== -1 && cells[linkColIndex]) {
-          const a = cells[linkColIndex].querySelector('a[href*="github.com"]') as HTMLAnchorElement | null;
+          let a = cells[linkColIndex].querySelector('a[href*="github.com"]') as HTMLAnchorElement | null;
+          if (!a) a = cells[linkColIndex].querySelector('a') as HTMLAnchorElement | null;
           if (a) githubUrl = a.href;
         }
         

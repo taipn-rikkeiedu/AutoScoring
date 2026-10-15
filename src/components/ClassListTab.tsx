@@ -1,12 +1,22 @@
 import React from 'react';
 import { useClassManager } from '~/src/hooks/class-management/useClassManager';
+import { useSettings } from '~/src/hooks/settings/useSettings';
 import { Student } from '~/src/types';
 import { ExcelExportModal } from '~/src/components/ExcelExportModal';
-import { DownloadIcon, RefreshIcon, TrashIcon } from '~/src/components/Icons';
+import { Table, Button, Card, Row, Col, Statistic, Tag, Space, Typography, Tooltip, Empty, Avatar } from 'antd';
+import type { TableColumnsType } from 'antd';
+import {
+  DownloadOutlined,
+  SyncOutlined,
+  DeleteOutlined,
+  LinkOutlined
+} from '@ant-design/icons';
 
 interface ClassListTabProps {
   setActiveTab: (tab: string) => void;
 }
+
+const { Text } = Typography;
 
 export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
   const {
@@ -23,12 +33,24 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
     handleOpenExportModal
   } = useClassManager(setActiveTab);
 
+  const { gradingScale } = useSettings();
+
   const sortedStudents = [...classStudents].sort((a, b) => {
     const statusA = a.lmsStatus?.toUpperCase() || '';
     const statusB = b.lmsStatus?.toUpperCase() || '';
-    const isPendingA = statusA.includes('CHỜ KIỂM TRA') || statusA.includes('ĐANG CHỜ');
-    const isPendingB = statusB.includes('CHỜ KIỂM TRA') || statusB.includes('ĐANG CHỜ');
-    return (isPendingA ? 1 : 2) - (isPendingB ? 1 : 2);
+    
+    // Priority 1: Chưa nộp, Chưa hoàn thành, Đang chờ / Chờ kiểm tra
+    const getPriority = (status: string, submitted: number) => {
+      if (submitted === 0 || status.includes('CHƯA NỘP')) return 1;
+      if (status.includes('CHƯA HOÀN THÀNH')) return 1;
+      if (status.includes('CHỜ KIỂM TRA') || status.includes('ĐANG CHỜ')) return 1;
+      return 2;
+    };
+
+    const priorityA = getPriority(statusA, a.submittedCount || 0);
+    const priorityB = getPriority(statusB, b.submittedCount || 0);
+
+    return priorityA - priorityB;
   });
 
   const getStudentScoreInfo = (st: Student) => {
@@ -50,169 +72,185 @@ export const ClassListTab: React.FC<ClassListTabProps> = ({ setActiveTab }) => {
     return { score, report };
   };
 
+  const columns: TableColumnsType<Student> = [
+    {
+      title: 'Mã SV',
+      dataIndex: 'studentId',
+      key: 'studentId',
+      width: 100,
+      render: (text, record) => (
+        <Text strong style={{ cursor: 'pointer', color: '#1890ff' }} onClick={() => handleStudentScroll(record)}>
+          {text}
+        </Text>
+      )
+    },
+    {
+      title: 'Học viên',
+      key: 'studentInfo',
+      render: (_, st) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Avatar size="small" style={{ backgroundColor: '#f0f2f5', color: '#595959', border: '1px solid #d9d9d9' }}>
+            {st.studentName ? st.studentName.charAt(0).toUpperCase() : '?'}
+          </Avatar>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <a 
+              href={st.submissionUrl} 
+              target="_blank" 
+              rel="noreferrer" 
+              onClick={(e) => { 
+                if (!e.ctrlKey && !e.metaKey) { 
+                  e.preventDefault(); 
+                  handleStudentScroll(st); 
+                } 
+              }} 
+              style={{ fontWeight: 600, color: '#262626' }}
+            >
+              {st.studentName}
+            </a>
+            {st.githubUrl && (
+              <a 
+                href={st.githubUrl} 
+                target="_blank" 
+                rel="noreferrer" 
+                style={{ fontSize: '11px', color: '#1890ff', fontFamily: 'monospace' }}
+              >
+                <LinkOutlined style={{ marginRight: 4 }}/>
+                {st.githubUrl.replace(/^https?:\/\/(www\.)?github\.com\//, "")}
+              </a>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      title: 'Trạng thái LMS',
+      key: 'lmsStatus',
+      align: 'center',
+      width: 140,
+      render: (_, st) => {
+        let statusText = st.lmsStatus || 'CHƯA NỘP';
+        let isCompleted = statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA');
+        let isPending = statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ');
+        
+        const submitted = st.submittedCount || 0;
+        if (submitted === 0) {
+          isCompleted = false;
+          isPending = false;
+          statusText = 'CHƯA NỘP';
+        }
+
+        let color = 'default';
+        if (isCompleted) color = 'success';
+        else if (isPending) color = 'warning';
+        else color = 'error';
+
+        return <Tag color={color} style={{ fontWeight: 'bold' }}>{statusText}</Tag>;
+      }
+    },
+    {
+      title: 'Tiến độ bài nộp',
+      key: 'progress',
+      align: 'center',
+      width: 140,
+      render: (_, st) => {
+        const { score, report } = getStudentScoreInfo(st);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Tag color="processing" style={{ margin: 0 }}>
+              {st.completedCount || 0} / {st.submittedCount || 0}
+            </Tag>
+            {score !== null && score !== undefined && (
+              <Tooltip title="Nhấp để xem chi tiết báo cáo">
+                <Text 
+                  strong 
+                  style={{ color: '#389e0d', fontSize: '11px', marginTop: '4px', cursor: 'pointer', borderBottom: '1px dashed #389e0d' }}
+                  onClick={() => (window as any).showReportModal?.({ title: `Báo cáo: ${st.studentName}`, score, report })}
+                >
+                  Điểm: {score}/{gradingScale}
+                </Text>
+              </Tooltip>
+            )}
+          </div>
+        );
+      }
+    }
+  ];
+
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: statusText }));
+    return () => window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: null }));
+  }, [statusText]);
+
   return (
-    <div className="flex flex-col flex-1 p-3.5 gap-3 overflow-hidden">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: '16px', overflow: 'hidden' }}>
+      
       {/* Stats Summary Cards */}
       {statusType === 'success' && stats.total > 0 ? (
-        <div className="grid grid-cols-4 gap-2 select-none">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-card)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
-            <span className="text-[11.5px] font-semibold text-[var(--text-muted)] uppercase">Sĩ số</span>
-            <span className="text-sm font-bold text-[var(--text-heading)]">{stats.total}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-[var(--accent-green)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
-            <span className="text-[11.5px] font-semibold text-[var(--accent-green)] uppercase">Hoàn thành</span>
-            <span className="text-sm font-bold text-[var(--accent-green)]">{stats.completed}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-[var(--accent-gold)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
-            <span className="text-[11.5px] font-semibold text-[var(--accent-gold)] uppercase">Chờ kiểm tra</span>
-            <span className="text-sm font-bold text-[var(--accent-gold)]">{stats.pending}</span>
-          </div>
-          <div className="bg-[var(--bg-card)] border border-[var(--primary-red)] rounded-lg p-2 flex flex-col hover:-translate-y-0.5 transition-transform shadow-sm">
-            <span className="text-[11.5px] font-semibold text-[var(--primary-red)] uppercase">Chưa nộp / Lỗi</span>
-            <span className="text-sm font-bold text-[var(--primary-red)]">{stats.notCompleted}</span>
-          </div>
-        </div>
-      ) : (
-        <div className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 select-none">
-          {statusText}
-        </div>
-      )}
+        <Row gutter={8}>
+          <Col span={6}>
+            <Card size="small" bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+              <Statistic title="Sĩ số" value={stats.total} valueStyle={{ color: '#262626', fontWeight: 'bold' }} />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small" bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', borderBottom: '2px solid #52c41a' }}>
+              <Statistic title="Hoàn thành" value={stats.completed} valueStyle={{ color: '#52c41a', fontWeight: 'bold' }} />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small" bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', borderBottom: '2px solid #faad14' }}>
+              <Statistic title="Chờ kiểm tra" value={stats.pending} valueStyle={{ color: '#faad14', fontWeight: 'bold' }} />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card size="small" bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', borderBottom: '2px solid #ff4d4f' }}>
+              <Statistic title="Chưa nộp / Lỗi" value={stats.notCompleted} valueStyle={{ color: '#ff4d4f', fontWeight: 'bold' }} />
+            </Card>
+          </Col>
+        </Row>
+      ) : null}
 
       {/* Main Student List Table */}
-      <div className="flex-1 min-h-0 rank-matrix-wrapper">
-        {sortedStudents.length > 0 ? (
-          <table className="rank-matrix-table table-fixed">
-            <thead className="sticky top-0 z-10 select-none">
-              <tr>
-                <th className="w-20">Mã SV</th>
-                <th>Học viên</th>
-                <th className="text-center w-28">Trạng thái LMS</th>
-                <th className="text-center w-36">Tiến độ bài nộp</th>
-              </tr>
-            </thead>
-            <tbody className="stagger-grid">
-              {sortedStudents.map((st) => {
-                let statusText = st.lmsStatus || 'CHƯA NỘP';
-                let isCompleted = statusText.includes('HOÀN THÀNH') && !statusText.includes('CHƯA');
-                let isPending = statusText.includes('CHỜ KIỂM TRA') || statusText.includes('ĐANG CHỜ');
-                
-                const submitted = st.submittedCount || 0;
-                if (submitted === 0) {
-                  isCompleted = false;
-                  isPending = false;
-                  statusText = 'CHƯA NỘP';
-                }
-                const { score, report } = getStudentScoreInfo(st);
-
-                return (
-                  <tr key={st.studentId} className="animate-entrance">
-                    <td 
-                      onClick={() => handleStudentScroll(st)} 
-                      className="py-2.5 px-3 font-mono font-semibold text-[var(--text-heading)] cursor-pointer hover:text-[var(--accent-blue)] hover:underline"
-                    >
-                      {st.studentId}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-[11.5px] text-slate-600 flex-shrink-0">
-                          {st.studentName ? st.studentName.charAt(0).toUpperCase() : '?'}
-                        </div>
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <a 
-                            href={st.submissionUrl} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            onClick={(e) => { 
-                              if (!e.ctrlKey && !e.metaKey) { 
-                                e.preventDefault(); 
-                                handleStudentScroll(st); 
-                              } 
-                            }} 
-                            className="font-semibold text-slate-800 hover:text-blue-600 hover:underline truncate"
-                          >
-                            {st.studentName}
-                          </a>
-                          {(st as any).githubUrl && (
-                            <a 
-                              href={(st as any).githubUrl} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="text-[11px] text-blue-600 font-mono font-normal truncate max-w-[160px] hover:underline"
-                            >
-                              {(st as any).githubUrl.replace(/^https?:\/\/(www\.)?github\.com\//, "")}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <span className={`tag ${
-                        isCompleted 
-                          ? 'tag-green' 
-                          : isPending 
-                          ? 'tag-gold' 
-                          : 'tag-purple'
-                      }`}>
-                        {statusText}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="inline-block text-[12px] font-medium py-0.5 px-2 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                          {st.completedCount || 0} / {st.submittedCount || 0}
-                        </span>
-                        {score !== null && score !== undefined && (
-                          <div 
-                            className="text-[11px] text-emerald-700 font-semibold mt-1 underline decoration-dashed cursor-pointer hover:text-emerald-800"
-                            onClick={() => (window as any).showReportModal?.({ title: `Báo cáo: ${st.studentName}`, score, report })}
-                          >
-                            Điểm: {score}/100
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="flex flex-col justify-center items-center py-16 text-slate-400 select-none">
-            <span className="text-sm font-semibold text-slate-600">Chưa có dữ liệu lớp học</span>
-            <span className="text-[12.5px] text-slate-400 text-center max-w-[280px] mt-1">
-              Mở trang danh sách học viên trên LMS và bấm "Quét danh sách lớp".
-            </span>
-          </div>
-        )}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', border: '1px solid #f0f0f0', borderRadius: 8 }}>
+        <Table<Student>
+          dataSource={sortedStudents.map(st => ({ ...st, key: st.studentId }))}
+          columns={columns}
+          loading={isScanning && classStudents.length === 0}
+          pagination={false}
+          size="small"
+          sticky
+          locale={{
+            emptyText: <Empty description="Chưa có dữ liệu lớp học. Mở trang danh sách học viên trên LMS và bấm 'Quét danh sách lớp'." />
+          }}
+        />
       </div>
 
       {/* Footer Controls */}
-      <div className="flex justify-between items-center select-none pt-0.5">
-        <button 
-          onClick={handleClearClass} 
-          className="py-1.5 px-3 bg-white hover:bg-slate-50 text-rose-600 border border-slate-200 rounded-md text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Button 
+          danger 
+          icon={<DeleteOutlined />} 
+          onClick={handleClearClass}
         >
-          <TrashIcon className="w-3.5 h-3.5 text-rose-600" />
-          <span>Xóa danh sách</span>
-        </button>
-        <div className="flex gap-2">
-          <button 
+          Xóa danh sách
+        </Button>
+        <Space>
+          <Button 
+            icon={<SyncOutlined />} 
             onClick={handleScanClass} 
-            disabled={isScanning} 
-            className="py-1.5 px-3.5 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-md text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer flex items-center gap-1.5 active:scale-95"
+            disabled={isScanning}
           >
-            <RefreshIcon className="w-3.5 h-3.5" />
-            <span>Quét danh sách</span>
-          </button>
-          <button 
+            Quét danh sách
+          </Button>
+          <Button 
+            type="primary" 
+            icon={<DownloadOutlined />} 
             onClick={handleOpenExportModal} 
-            disabled={classStudents.length === 0} 
-            className="py-1.5 px-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-md text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+            disabled={classStudents.length === 0}
           >
-            <DownloadIcon className="w-3.5 h-3.5" />
-            <span>Xuất Excel</span>
-          </button>
-        </div>
+            Xuất Excel
+          </Button>
+        </Space>
       </div>
 
       {showExportModal && (

@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "4.21.4",
+  version: "5.4.1",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -9,12 +9,14 @@ export const AI_DEFAULTS = {
   geminiModel: "gemini-3.1-flash-lite",
   openAiModel: "gpt-4o-mini",
   deepSeekModel: "deepseek-chat",
+  groqModel: "llama-3.3-70b-versatile",
   openRouterModel: "qwen/qwen3-coder:free",
+  grokModel: "grok-2-latest",
   localModel: "gemma-4-31b"
 } as const;
 
 export const BACKGROUND_FETCH_PROXY = {
-  allowedHosts: ["api.github.com", "codeload.github.com", "raw.githubusercontent.com", "apiportal.rikkei.edu.vn"],
+  allowedHosts: ["api.github.com", "codeload.github.com", "raw.githubusercontent.com", "apiportal.rikkei.edu.vn", "docs.google.com"],
   allowedMethods: ["GET", "HEAD"],
   allowedHeaders: ["accept", "authorization", "user-agent"]
 } as const;
@@ -22,6 +24,7 @@ export const BACKGROUND_FETCH_PROXY = {
 export const STORAGE_KEYS = {
   aiProvider: "aiProvider",
   aiApiKey: "aiApiKey",
+  aiApiKeys: "aiApiKeys",
   aiApiUrl: "aiApiUrl",
   aiModelName: "aiModelName",
   githubToken: "githubToken",
@@ -36,6 +39,8 @@ export const STORAGE_KEYS = {
   supabaseAnonKey: "supabaseAnonKey",
   supabasePat: "supabasePat",
   googleApiKey: "googleApiKey",
+  gradingScale: "gradingScale",
+  strictnessLevel: "strictnessLevel",
   activeStudentTransition: "activeStudentTransition",
   careStudents: "careStudents",
   classStudentLists: "classStudentLists",
@@ -44,7 +49,9 @@ export const STORAGE_KEYS = {
   customShortcuts: "customShortcuts",
   uiWindowMode: "uiWindowMode",
   uiSidebarCollapsed: "uiSidebarCollapsed",
-  learningStatsSnapshots: "learningStatsSnapshots",
+  learningStatsSelection: "learningStatsSelection",
+  qldtAuthToken: "qldtAuthToken",
+  examAnalysisPrefs: "examAnalysisPrefs",
   cachedTemplates: "cachedTemplates",
   cachedAiStatus: "cachedAiStatus",
   cachedSupabaseStatus: "cachedSupabaseStatus"
@@ -58,31 +65,38 @@ export const GRADER_IGNORE_DEFAULTS = [
 
 export const GRADING_TEXT = {
   defaultCriteria: "Đúng yêu cầu bài toán. Chấm 0 điểm nếu bài làm lạc đề, hoàn toàn không liên quan đến yêu cầu hoặc chỉ chứa code rác/template. Có thể không cần quan tâm phần Yêu cầu nộp bài.",
-  defaultSystemPrompt: `Bạn là chuyên gia chấm điểm mã nguồn. Hãy đánh giá mã nguồn học viên theo thang 100 điểm dựa trên ĐỀ BÀI và TIÊU CHÍ.
+  defaultSystemPrompt: `Bạn là chuyên gia chấm điểm mã nguồn vô cùng khắt khe. Hãy đánh giá mã nguồn theo thang {{grading_scale}} điểm dựa trên ĐỀ BÀI và TIÊU CHÍ một cách chặt chẽ và nghiêm khắc.
 
 YÊU CẦU QUAN TRỌNG VỀ PHẢN HỒI:
-- Phải CỰC KỲ NGẮN GỌN, súc tích, tự nhiên, lược bỏ mọi từ ngữ thừa, lời chào hay kết luận xã giao.
-- Tuyệt đối không dùng dấu in đậm (dấu **) và không sử dụng các thẻ HTML hay thẻ XML phụ như <score>.
-- XỬ LÝ LẠC ĐỀ: Nếu mã nguồn hoàn toàn không liên quan đến đề bài, hoặc chỉ là code rác/template mặc định không giải quyết yêu cầu, BẮT BUỘC chấm 0 điểm và ghi rõ lý do.
-- KHÔNG đưa các thông số kỹ thuật khô khan từ phần "KẾT QUẢ PHÂN TÍCH TĨNH" (như ngôn ngữ Python/Java, số dòng code, độ phức tạp Cyclomatic) vào trong nhận xét. Chỉ dùng thông tin đó để nội suy chấm điểm.
-- Phần nhận xét chỉ viết duy nhất một đoạn văn ngắn gọn, tự nhiên từ 1 đến 3 câu. Nêu rõ các module/endpoint/chức năng đã làm tốt, giải pháp bảo mật/xử lý bẫy dữ liệu, các mã lỗi HTTP tương ứng. Tiếp theo chỉ ra các phần còn thiếu sót như endpoint chưa làm, thiếu cấu hình, thiếu test case/báo cáo phân tích hoặc minh chứng chạy chương trình, lỗi định dạng tên repository GitHub (nếu có).
+- VAI TRÒ: Giảng viên nhận xét bài làm. Gọi người nộp bài là "em" (tuyệt đối không dùng "bạn", "học viên", "sinh viên"). Không khen ngợi, không cảm xúc, không giải thích dài dòng.
+- CHỈ RA LỖI + GỢI Ý SỬA NGẮN NHẤT: Chỉ nêu các lỗi chính. Mỗi lỗi viết một câu ngắn gồm vị trí (tên file, hàm hoặc chức năng thực tế), lỗi gì và cách sửa, ví dụ "Hàm get_user chưa xử lý không tìm thấy, thêm raise HTTPException 404." Không mô tả lại phần em đã làm đúng, không nhắc lại đề bài.
+- ĐỘ DÀI: Tối đa 3 câu, viết xuôi, không gạch đầu dòng, không tiêu đề. Nếu bài làm đã đúng và đủ thì chỉ cần 1 câu ngắn xác nhận đã đáp ứng yêu cầu, không bịa thêm lỗi.
+- KẾT LUẬN CHƯA ĐẠT Ở CUỐI: Chỉ khi tổng điểm dưới 50% thang điểm thì thêm câu cuối: "Em làm chưa đủ yêu cầu nên bài làm chưa đạt." Nếu đạt thì TUYỆT ĐỐI KHÔNG ghi chữ "đạt" hay kết luận nào.
+- KHÔNG đưa các thông số kỹ thuật khô khan từ "KẾT QUẢ PHÂN TÍCH TĨNH" vào nhận xét. KHÔNG bắt bẻ lỗi chính tả nhỏ.
+- KHÔNG dùng dấu backtick (\`) để bọc tên file, biến hay hàm.
+- XỬ LÝ LẠC ĐỀ: Nếu mã nguồn không liên quan đến đề bài hoặc chỉ là template mặc định, BẮT BUỘC chấm 0 điểm, ghi "Bài nộp không đúng đề." và câu kết luận chưa đạt.
 
 Định dạng phản hồi bắt buộc (tuân thủ 100% Markdown):
-[Đoạn văn nhận xét tự nhiên, súc tích: Nêu rõ các module/endpoint/chức năng đã làm tốt, giải pháp bảo mật/xử lý bẫy dữ liệu, các mã lỗi HTTP tương ứng. Tiếp theo chỉ ra các phần còn thiếu sót như endpoint chưa làm, thiếu cấu hình, thiếu test case/báo cáo phân tích hoặc minh chứng chạy chương trình].
+[Nhận xét ngắn gọn: lỗi ở đâu + cách sửa; nếu chưa đạt thì kết thúc bằng câu kết luận chưa đạt.]
 
-Tổng điểm: [Điểm]/100
+Tổng điểm: [Điểm]/{{grading_scale}}
 
 ---
-Ví dụ nhận xét mẫu chuẩn:
-Sinh viên đã hoàn thành tốt các yêu cầu về xây dựng Middleware phân quyền RBAC và cấu hình bảo mật CORS. Hệ thống sử dụng \`FastAPI\` với cấu trúc module rõ ràng, triển khai \`Custom Middleware\` để kiểm tra \`X-User-Role\` và trả về mã lỗi 403 Forbidden chính xác khi truy cập trái phép. Cấu hình CORS được thiết lập nghiêm ngặt với whitelist domain cụ thể, loại bỏ hoàn toàn wildcard \`*\`. Tuy nhiên, sinh viên thiếu file \`requirements.txt\` và chưa cung cấp báo cáo kiểm thử (test cases) hoặc minh chứng chạy chương trình cụ thể cho các kịch bản phân quyền và CORS theo yêu cầu.
+Ví dụ 1 (đạt, không có kết luận):
+Hàm get_user trong users.py chưa xử lý không tìm thấy, thêm raise HTTPException 404. Thiếu file requirements.txt, bổ sung để chạy được project.
 
-Tổng điểm: 85/100
+Tổng điểm: 65/{{grading_scale}}
+
+Ví dụ 2 (chưa đạt):
+Các route CRUD trong users.py chưa có logic, viết hàm tạo, đọc, sửa, xóa và gắn vào router. Chưa có middleware phân quyền và CORS, thêm vào main.py. Em làm chưa đủ yêu cầu nên bài làm chưa đạt.
+
+Tổng điểm: 30/{{grading_scale}}
 
 ---
 ĐỀ BÀI:
 {{assignment}}
 
-TIÊU CHÍ:
+TIÊU CHÍ (CHẤM THEO MỨC ĐỘ: {{strictness}}):
 {{criteria}}
 
 KẾT QUẢ PHÂN TÍCH TĨNH:

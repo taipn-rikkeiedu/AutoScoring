@@ -151,7 +151,7 @@ export function useSingleGrader() {
       );
 
       setResults({ score: result.score, report: result.report, fileList: result.fileList, language: result.language, astMetrics: result.astMetrics, imagesAttached: result.imagesAttached, imagesSkipped: result.imagesSkipped });
-      logger.success("SINGLE_GRADER", `Chấm điểm thành công bằng AI. Điểm số: ${result.score}/100.`);
+      logger.success("SINGLE_GRADER", `Chấm điểm thành công bằng AI. Điểm số: ${result.score}/${config.gradingScale}.`);
       if (activeStudent) await saveResolvedStudentResult(result.score, result.report);
     } catch (err: any) {
       showToast("Quá trình chấm bài thất bại. Vui lòng kiểm tra lại cấu hình AI hoặc kết nối mạng.", "error");

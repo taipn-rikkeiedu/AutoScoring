@@ -3,7 +3,10 @@ import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { useToast } from '~/src/core/ToastContext';
 import { AstMetricsPanel } from '~/src/components/AstMetricsPanel';
+import { useSettings } from '~/src/hooks/settings/useSettings';
 import { ASTMetrics } from '~/src/services/codeAnalysis';
+import { Modal, Button, Tag, Space, Alert } from 'antd';
+import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -20,43 +23,28 @@ interface ReportModalProps {
 export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title, score, report, language, astMetrics, imagesAttached, imagesSkipped }) => {
   const [isCopied, setIsCopied] = useState(false);
   const { showToast } = useToast();
+  const { gradingScale } = useSettings();
 
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, isOpen]);
-
-  if (!isOpen) return null;
-
-  // Parse markdown safely
   const parsedMarkdown = report ? DOMPurify.sanitize(marked.parse(report) as string) : '';
   const numericScore = score ? parseFloat(score) : NaN;
 
-  // Determine score badge color
-  let scoreBadgeClass = "bg-gradient-to-br from-red-600 to-red-800 text-white";
+  let badgeColor = 'error';
   if (!isNaN(numericScore)) {
-    if (numericScore >= 80) {
-      scoreBadgeClass = "bg-gradient-to-br from-green-600 to-green-800 text-white";
-    } else if (numericScore >= 50) {
-      scoreBadgeClass = "bg-gradient-to-br from-amber-600 to-amber-800 text-white";
-    }
+    const ratio = numericScore / (parseFloat(gradingScale) || 10);
+    if (ratio >= 0.8) badgeColor = 'success';
+    else if (ratio >= 0.5) badgeColor = 'warning';
   }
 
   const handleCopy = () => {
     if (!report) return;
     let textToCopy = report.replace(/<score>[\s\S]*?<\/score>/gi, '').trim();
     if (score && !textToCopy.toLowerCase().includes('tổng điểm')) {
-      textToCopy = `${textToCopy}\n\nTổng điểm: ${score}/100`;
+      textToCopy = `${textToCopy}\n\nTổng điểm: ${score}/${gradingScale}`;
     }
     navigator.clipboard.writeText(textToCopy).then(() => {
       setIsCopied(true);
       showToast("Đã sao chép báo cáo vào bộ nhớ tạm!", "success");
-      setTimeout(() => {
-        setIsCopied(false);
-      }, 1500);
+      setTimeout(() => setIsCopied(false), 1500);
     }).catch(err => {
       console.error(err);
       showToast("Lỗi sao chép báo cáo.", "error");
@@ -64,75 +52,61 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/55 backdrop-blur-[2px] animate-fade-in"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="relative w-full max-w-lg max-h-[85vh] bg-white rounded-lg shadow-xl border border-slate-200 flex flex-col overflow-hidden animate-scale-up">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-          <div className="flex flex-col pr-6">
-            <span className="text-[12.5px] font-bold text-slate-400 uppercase tracking-wider">Báo cáo chấm bài</span>
-            <h3 className="text-sm font-bold text-slate-800 line-clamp-1">{title}</h3>
+    <Modal
+      open={isOpen}
+      onCancel={onClose}
+      footer={null}
+      width={700}
+      centered
+      destroyOnClose
+      title={
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
+          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 16 }}>
+             {title}
           </div>
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-lg"
-          >
-            &times;
-          </button>
+          <Space>
+             <Button 
+               icon={isCopied ? <CheckOutlined /> : <CopyOutlined />} 
+               onClick={handleCopy} 
+               size="small"
+             >
+               {isCopied ? "Đã sao chép" : "Sao chép"}
+             </Button>
+             <Tag color={badgeColor} style={{ margin: 0, fontSize: 14, padding: '2px 8px' }}>
+               {score !== null ? `${score} / ${gradingScale}` : `-- / ${gradingScale}`}
+             </Tag>
+          </Space>
         </div>
-
-        {/* Action Panel */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100 bg-white">
-          <button
-            onClick={handleCopy}
-            className={`flex items-center gap-1 text-[12.5px] font-bold px-3 py-1.5 rounded transition-all duration-150 border active:scale-95 ${
-              isCopied
-                ? "bg-green-50 border-green-500 text-green-700"
-                : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700"
-            }`}
-          >
-            {isCopied ? "✓ Đã sao chép" : "📋 Sao chép báo cáo"}
-          </button>
-
-          <button
-            onClick={handleCopy}
-            className={`text-[12.5px] font-bold py-1 px-2.5 rounded-full shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all ${scoreBadgeClass}`}
-            title="Nhấp để sao chép báo cáo"
-          >
-            {score !== null ? `${score} / 100` : '-- / 100'}
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 p-4 overflow-y-auto bg-slate-50/50 flex flex-col gap-3">
-          <AstMetricsPanel language={language} metrics={astMetrics} />
-          {(!!imagesAttached || !!imagesSkipped) && (
-            <div className="flex flex-col gap-1 text-[12px] font-medium">
-              {!!imagesAttached && (
-                <span className="text-sky-700">📎 Đã gửi kèm {imagesAttached} ảnh sơ đồ cho AI</span>
-              )}
-              {!!imagesSkipped && (
-                <span className="text-amber-700">⚠️ Bỏ qua {imagesSkipped} ảnh (định dạng không hỗ trợ hoặc vượt giới hạn dung lượng)</span>
-              )}
-            </div>
-          )}
-          {report ? (
-            <div
-              className="prose prose-sm max-w-none text-slate-700 leading-relaxed text-xs 
-                prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2
-                prose-p:my-1 prose-ul:my-1 prose-li:my-0.5
-                prose-strong:text-slate-800"
-              dangerouslySetInnerHTML={{ __html: parsedMarkdown }}
-            />
-          ) : (
-            <div className="text-center py-12 text-slate-400 text-xs">
-              Không có dữ liệu báo cáo.
-            </div>
-          )}
-        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+        <AstMetricsPanel language={language} metrics={astMetrics} />
+        
+        {(!!imagesAttached || !!imagesSkipped) && (
+          <Space direction="vertical" size={4}>
+            {!!imagesAttached && (
+              <Alert type="info" showIcon message={`Đã gửi kèm ${imagesAttached} ảnh sơ đồ cho AI`} style={{ padding: '4px 12px' }} />
+            )}
+            {!!imagesSkipped && (
+              <Alert type="warning" showIcon message={`Bỏ qua ${imagesSkipped} ảnh (định dạng không hỗ trợ hoặc vượt dung lượng)`} style={{ padding: '4px 12px' }} />
+            )}
+          </Space>
+        )}
+        
+        {report ? (
+          <div
+            className="prose prose-sm max-w-none text-slate-700 leading-relaxed text-xs 
+              prose-headings:font-bold prose-headings:text-slate-800 prose-headings:my-2
+              prose-p:my-1 prose-ul:my-1 prose-li:my-0.5
+              prose-strong:text-slate-800"
+            dangerouslySetInnerHTML={{ __html: parsedMarkdown }}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: '#999' }}>
+            Không có dữ liệu báo cáo.
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 };

@@ -1,7 +1,18 @@
 import React from 'react';
 import { useExerciseManager } from '~/src/hooks/exercise-manager/useExerciseManager';
-import { TrashIcon, DownloadIcon, CopyIcon, DocumentTextIcon, PlusIcon } from '~/src/components/Icons';
 import { MarkdownExportModal } from '~/src/components/MarkdownExportModal';
+import { Button, Card, Select, Input, Space, Typography, Modal, AutoComplete, Empty, Tooltip, Row, Col } from 'antd';
+import {
+  PlusOutlined,
+  SyncOutlined,
+  ExportOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  CopyOutlined
+} from '@ant-design/icons';
+
+const { Text } = Typography;
+const { TextArea } = Input;
 
 export const ExercisesTab: React.FC = () => {
   const {
@@ -48,143 +59,153 @@ export const ExercisesTab: React.FC = () => {
   } = useExerciseManager();
 
   return (
-    <div className="flex flex-col flex-1 p-3.5 gap-3 overflow-y-auto">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', gap: '16px', overflowY: 'auto' }}>
       {/* Action Row */}
-      <div className="flex gap-2">
-        <button
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Button
+          type="primary"
+          style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', flex: 1, fontWeight: 'bold' }}
+          icon={<PlusOutlined />}
           onClick={handleOpenAddExerciseModal}
-          className="flex-1 py-1.5 px-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 flex items-center justify-center gap-1.5"
         >
-          <PlusIcon className="w-3.5 h-3.5" />
-          <span>Thêm đề bài mới</span>
-        </button>
+          Thêm đề bài mới
+        </Button>
 
-        <button
+        <Button
+          type="primary"
+          style={{ backgroundColor: '#faad14', borderColor: '#faad14', color: '#000', flex: 1, fontWeight: 'bold' }}
+          icon={<SyncOutlined />}
           onClick={handleScrapeFromLms}
-          disabled={isScraping}
-          className="flex-1 py-1.5 px-3 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-md text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs active:scale-95"
+          loading={isScraping}
         >
-          {isScraping ? "Đang lấy dữ liệu..." : "Lấy đề bài từ LMS"}
-        </button>
+          {isScraping ? "Đang lấy..." : "Lấy đề từ LMS"}
+        </Button>
 
-        <button
+        <Button
+          icon={<ExportOutlined />}
           onClick={() => setIsExportModalOpen(true)}
-          className="px-3 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-xs active:scale-95"
-          title="Mở bảng điều khiển xuất Markdown / Zip"
+          style={{ fontWeight: 'bold', color: '#096dd9', borderColor: '#91d5ff', backgroundColor: '#e6f7ff' }}
         >
-          <DocumentTextIcon className="w-3.5 h-3.5 text-sky-700" />
-          <span>Xuất MD</span>
-        </button>
+          Xuất MD
+        </Button>
 
-        <button
+        <Button
+          danger
+          icon={<DeleteOutlined />}
           onClick={handleDeleteExercise}
           disabled={!isLocalDeletable()}
-          className="px-3 py-1.5 bg-white hover:bg-slate-50 text-rose-600 border border-slate-200 rounded-md text-xs font-semibold transition-colors disabled:opacity-40 cursor-pointer flex items-center gap-1 shadow-xs"
         >
-          <TrashIcon className="w-3.5 h-3.5 text-rose-600" />
-          <span>Xóa đề</span>
-        </button>
+          Xóa đề
+        </Button>
       </div>
 
-      {/* Selectors Card */}
-      <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-col gap-2.5">
-        <div className="flex flex-col gap-1">
-          <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Chương trình / Khóa học:</label>
-          <select
-            value={selectedChapter}
-            onChange={handleChapterChange}
-            className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-          >
-            <option value="">-- Chọn chương trình --</option>
-            {chapters.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Session:</label>
-            <select
-              value={selectedSession}
-              onChange={handleSessionChange}
+      {/* Compact Selectors */}
+      <div style={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', padding: '12px', borderRadius: 8 }}>
+        <Row gutter={12}>
+          <Col span={8}>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>CHƯƠNG TRÌNH / KHÓA HỌC:</Text>
+            <Select
+              showSearch
+              placeholder="-- Chọn chương trình --"
+              value={selectedChapter || undefined}
+              onChange={(val) => handleChapterChange({ target: { value: val } } as any)}
+              style={{ width: '100%' }}
+              options={chapters.map(c => ({ value: c, label: c }))}
+            />
+          </Col>
+          <Col span={8}>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>SESSION:</Text>
+            <Select
+              showSearch
+              placeholder="-- Chọn session --"
+              value={selectedSession || undefined}
+              onChange={(val) => handleSessionChange({ target: { value: val } } as any)}
+              style={{ width: '100%' }}
               disabled={!selectedChapter}
-              className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
-            >
-              <option value="">-- Chọn session --</option>
-              {sessions.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider">Bài tập:</label>
-            <select
-              value={selectedAssignment}
-              onChange={handleAssignmentChange}
+              options={sessions.map(s => ({ value: s, label: s }))}
+            />
+          </Col>
+          <Col span={8}>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>BÀI TẬP:</Text>
+            <Select
+              showSearch
+              placeholder="-- Chọn bài tập --"
+              value={selectedAssignment || undefined}
+              onChange={(val) => handleAssignmentChange({ target: { value: val } } as any)}
+              style={{ width: '100%' }}
               disabled={!selectedSession}
-              className="w-full text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
-            >
-              <option value="">-- Chọn bài tập --</option>
-              {assignments.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
-        </div>
+              options={assignments.map(a => ({ value: a, label: a }))}
+            />
+          </Col>
+        </Row>
       </div>
 
       {/* Editor Content Area */}
       {showDetail ? (
-        <div className="flex flex-col gap-3 bg-white border border-slate-200 rounded-lg p-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Đề bài (Mô tả):</label>
-            <textarea
+        <Card size="small" style={{ borderRadius: 8, flex: 1, display: 'flex', flexDirection: 'column' }} bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          
+          <div>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>ĐỀ BÀI (MÔ TẢ):</Text>
+            <TextArea
               value={promptText}
               onChange={(e) => setPromptText(e.target.value)}
-              className="w-full text-xs text-slate-700 bg-white border border-slate-200 rounded-md p-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[90px] resize-y font-sans leading-relaxed"
               placeholder="Nội dung yêu cầu đề bài..."
+              autoSize={{ minRows: 4, maxRows: 8 }}
+              style={{ fontSize: 12 }}
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-semibold text-slate-600 uppercase tracking-wider">Tiêu chí chấm điểm (Rubric):</label>
-            <textarea
+          <div>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>TIÊU CHÍ CHẤM ĐIỂM (RUBRIC):</Text>
+            <TextArea
               value={criteriaText}
               onChange={(e) => setCriteriaText(e.target.value)}
-              className="w-full text-xs text-slate-700 bg-white border border-slate-200 rounded-md p-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[90px] resize-y font-sans leading-relaxed"
               placeholder="Tiêu chí đánh giá phân bổ điểm số..."
+              autoSize={{ minRows: 4, maxRows: 8 }}
+              style={{ fontSize: 12 }}
             />
           </div>
 
-          <div className="flex flex-col gap-2 pt-1">
-            <button
+          <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+            <Button
+              type="primary"
+              block
+              style={{ backgroundColor: '#faad14', borderColor: '#faad14', color: '#000', fontWeight: 'bold', marginBottom: 8 }}
               onClick={handleSaveDetail}
-              className="w-full py-2 bg-amber-400 hover:bg-amber-500 text-slate-950 rounded-md text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
             >
               Lưu thay đổi
-            </button>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={handleExportCurrentMd}
-                className="py-1.5 px-2 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 rounded-md text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
-                title="Tải ngay tệp .md của bài tập này về máy tính"
-              >
-                <DownloadIcon className="w-3.5 h-3.5 text-sky-700" />
-                <span>Xuất file .md</span>
-              </button>
-
-              <button
-                onClick={handleCopyCurrentMd}
-                className="py-1.5 px-2 bg-white hover:bg-sky-50 text-slate-700 border border-sky-200 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
-                title="Sao chép Markdown vào bộ nhớ tạm để dán vào Notion / Obsidian"
-              >
-                <CopyIcon className="w-3.5 h-3.5 text-slate-500" />
-                <span>Sao chép MD</span>
-              </button>
-            </div>
+            </Button>
+            
+            <Row gutter={8}>
+              <Col span={12}>
+                <Tooltip title="Tải ngay tệp .md của bài tập này về máy tính">
+                  <Button 
+                    block 
+                    icon={<DownloadOutlined />} 
+                    onClick={handleExportCurrentMd}
+                    style={{ color: '#096dd9', borderColor: '#91d5ff', backgroundColor: '#e6f7ff' }}
+                  >
+                    Xuất file .md
+                  </Button>
+                </Tooltip>
+              </Col>
+              <Col span={12}>
+                <Tooltip title="Sao chép Markdown vào bộ nhớ tạm">
+                  <Button 
+                    block 
+                    icon={<CopyOutlined />} 
+                    onClick={handleCopyCurrentMd}
+                  >
+                    Sao chép MD
+                  </Button>
+                </Tooltip>
+              </Col>
+            </Row>
           </div>
-        </div>
+        </Card>
       ) : (
-        <div className="flex-1 flex flex-col justify-center items-center py-12 border border-slate-200 border-dashed rounded-lg bg-white text-slate-400 select-none">
-          <span className="text-xs font-semibold text-slate-600">Chọn đề bài để xem chi tiết hoặc chỉnh sửa</span>
-          <span className="text-[11.5px] text-slate-400 mt-0.5">Sử dụng bộ chọn phía trên hoặc bấm lấy đề bài từ LMS</span>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', border: '1px dashed #d9d9d9', borderRadius: 8, backgroundColor: '#fafafa' }}>
+          <Empty description="Chọn đề bài để xem chi tiết hoặc chỉnh sửa. Bạn cũng có thể bấm Lấy đề từ LMS." />
         </div>
       )}
 
@@ -203,90 +224,76 @@ export const ExercisesTab: React.FC = () => {
       )}
 
       {/* Scraped Confirm Modal */}
-      {isScrapeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="w-full max-w-sm bg-white rounded-lg shadow-xl border border-slate-200 flex flex-col overflow-hidden p-4 gap-3">
-            <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-              <span className="text-xs font-bold text-slate-800">
-                Thêm đề bài mới
-              </span>
-              <button
-                onClick={() => setIsScrapeModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-base cursor-pointer"
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Chương (Khóa học):</label>
-                <input
-                  type="text"
-                  list="exercise-chapter-suggestions"
-                  value={scrapeChapter}
-                  onChange={(e) => setScrapeChapter(e.target.value)}
-                  placeholder="Chọn chương có sẵn hoặc gõ tên chương mới"
-                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none"
-                />
-                <datalist id="exercise-chapter-suggestions">
-                  {chapters.map(c => <option key={c} value={c} />)}
-                </datalist>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Session:</label>
-                <input
-                  type="text"
-                  list="exercise-session-suggestions"
-                  value={scrapeSession}
-                  onChange={(e) => setScrapeSession(e.target.value)}
-                  placeholder="Chọn session có sẵn hoặc gõ tên session mới"
-                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none"
-                />
-                <datalist id="exercise-session-suggestions">
-                  {scrapeSessionSuggestions.map(s => <option key={s} value={s} />)}
-                </datalist>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Tên bài tập:</label>
-                <input
-                  type="text"
-                  value={scrapeAssignmentName}
-                  onChange={(e) => setScrapeAssignmentName(e.target.value)}
-                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-md py-1.5 px-2.5 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Đề bài:</label>
-                <textarea
-                  value={scrapeAssignmentText}
-                  onChange={(e) => setScrapeAssignmentText(e.target.value)}
-                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-md p-2 focus:outline-none min-h-[60px]"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[11.5px] font-semibold text-slate-500 uppercase">Rubric chấm:</label>
-                <textarea
-                  value={scrapeCriteriaText}
-                  onChange={(e) => setScrapeCriteriaText(e.target.value)}
-                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-md p-2 focus:outline-none min-h-[60px]"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={handleConfirmScrapeSave}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold transition-colors cursor-pointer"
-            >
-              Xác nhận lưu
-            </button>
+      <Modal
+        title="Thêm đề bài mới"
+        open={isScrapeModalOpen}
+        onCancel={() => setIsScrapeModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsScrapeModalOpen(false)}>Hủy</Button>,
+          <Button key="submit" type="primary" onClick={handleConfirmScrapeSave}>Xác nhận lưu</Button>
+        ]}
+        width={400}
+        destroyOnClose
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="small">
+          <div>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>CHƯƠNG (KHÓA HỌC):</Text>
+            <AutoComplete
+              value={scrapeChapter}
+              onChange={setScrapeChapter}
+              options={chapters.map(c => ({ value: c }))}
+              placeholder="Gõ hoặc chọn chương trình"
+              style={{ width: '100%' }}
+              filterOption={(inputValue, option) =>
+                option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+              }
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>SESSION:</Text>
+            <AutoComplete
+              value={scrapeSession}
+              onChange={setScrapeSession}
+              options={scrapeSessionSuggestions.map(s => ({ value: s }))}
+              placeholder="Gõ hoặc chọn session"
+              style={{ width: '100%' }}
+              filterOption={(inputValue, option) =>
+                option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+              }
+            />
+          </div>
+
+          <div>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>TÊN BÀI TẬP:</Text>
+            <Input
+              value={scrapeAssignmentName}
+              onChange={(e) => setScrapeAssignmentName(e.target.value)}
+              placeholder="Nhập tên bài tập..."
+            />
+          </div>
+
+          <div>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>ĐỀ BÀI:</Text>
+            <TextArea
+              value={scrapeAssignmentText}
+              onChange={(e) => setScrapeAssignmentText(e.target.value)}
+              placeholder="Nội dung yêu cầu..."
+              autoSize={{ minRows: 2, maxRows: 6 }}
+            />
+          </div>
+
+          <div>
+            <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>RUBRIC CHẤM:</Text>
+            <TextArea
+              value={scrapeCriteriaText}
+              onChange={(e) => setScrapeCriteriaText(e.target.value)}
+              placeholder="Tiêu chí đánh giá..."
+              autoSize={{ minRows: 2, maxRows: 6 }}
+            />
+          </div>
+        </Space>
+      </Modal>
     </div>
   );
 };

@@ -8,7 +8,11 @@ import {
   sanitizeFileName,
   ExerciseLibrary
 } from '~/src/core/markdownExporter';
-import { DocumentTextIcon, DownloadIcon, CopyIcon, CheckIcon, ArchiveBoxIcon } from '~/src/components/Icons';
+import { Modal, Tabs, Radio, Checkbox, Button, Space, Typography, Badge, Alert } from 'antd';
+import { DocumentTextIcon } from '~/src/components/Icons';
+import { CopyOutlined, DownloadOutlined, FileZipOutlined, CheckOutlined } from '@ant-design/icons';
+
+const { Text, Paragraph } = Typography;
 
 type ExportScope = 'single' | 'session' | 'all';
 
@@ -33,7 +37,6 @@ export const MarkdownExportModal: React.FC<Props> = ({
   onClose,
   onToast
 }) => {
-  // Determine default scope: 'single' if exercise is selected, otherwise 'all'
   const [scope, setScope] = useState<ExportScope>(
     selectedChapter && selectedSession && selectedAssignment ? 'single' : 'all'
   );
@@ -41,9 +44,8 @@ export const MarkdownExportModal: React.FC<Props> = ({
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'options' | 'preview'>('options');
+  const [activeTab, setActiveTab] = useState('options');
 
-  // Compute stats
   const totalChapters = Object.keys(exerciseTemplates).length;
   let totalAllExercises = 0;
   Object.values(exerciseTemplates).forEach(sessions => {
@@ -55,7 +57,6 @@ export const MarkdownExportModal: React.FC<Props> = ({
   const sessionExercises = (selectedChapter && selectedSession && exerciseTemplates[selectedChapter]?.[selectedSession]) || {};
   const sessionExerciseCount = Object.keys(sessionExercises).length;
 
-  // Single markdown preview
   const currentMarkdown = formatExerciseToMarkdown({
     chapter: selectedChapter || 'Chưa chọn',
     session: selectedSession || 'Chưa chọn',
@@ -76,7 +77,6 @@ export const MarkdownExportModal: React.FC<Props> = ({
         onToast('Không thể sao chép vào bộ nhớ tạm.', 'error');
       }
     } else if (scope === 'session') {
-      // Build merged markdown for session
       const names = Object.keys(sessionExercises).sort();
       const merged = names.map((name) => {
         const ex = sessionExercises[name];
@@ -149,248 +149,121 @@ export const MarkdownExportModal: React.FC<Props> = ({
     }
   };
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/50 backdrop-blur-xs select-none"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-white/20 rounded-lg backdrop-blur-xs">
-              <DocumentTextIcon className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xs font-bold leading-tight">Xuất Đề Bài Sang Markdown (.md)</h2>
-              <p className="text-[11.5px] text-blue-100 font-medium">Lưu trữ trên máy tính cá nhân hoặc dán vào Notion / Obsidian</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-white/80 hover:text-white hover:bg-white/10 rounded-lg p-1 transition-colors text-base leading-none cursor-pointer"
-          >
-            &times;
-          </button>
-        </div>
-
-        {/* Tab navigation for Options / Preview */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-4 pt-2 gap-2 text-xs font-semibold">
-          <button
-            onClick={() => setActiveTab('options')}
-            className={`pb-2 px-1 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'options'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Tùy chọn xuất
-          </button>
-          {scope === 'single' && (
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`pb-2 px-1 border-b-2 transition-colors cursor-pointer ${
-                activeTab === 'preview'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Xem trước Markdown
-            </button>
-          )}
-        </div>
-
-        {/* Body Content */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
-          {activeTab === 'options' ? (
-            <>
-              {/* Scope Selection */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">
-                  Phạm vi xuất đề bài:
-                </label>
-                <div className="grid grid-cols-1 gap-2">
-                  {/* Option 1: Single Exercise */}
-                  <label
-                    className={`flex items-start gap-2.5 p-2.5 border rounded-lg cursor-pointer transition-all ${
-                      scope === 'single'
-                        ? 'border-blue-500 bg-blue-50/50 shadow-xs'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    } ${!selectedAssignment ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="exportScope"
-                      checked={scope === 'single'}
-                      onChange={() => setScope('single')}
-                      disabled={!selectedAssignment}
-                      className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-800">1. Đề bài đang chọn</span>
-                        <span className="text-[11.5px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
-                          File .md
-                        </span>
-                      </div>
-                      <p className="text-[12px] text-slate-500 mt-0.5 truncate">
-                        {selectedAssignment ? selectedAssignment : '(Chưa chọn bài tập)'}
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Option 2: Current Session */}
-                  <label
-                    className={`flex items-start gap-2.5 p-2.5 border rounded-lg cursor-pointer transition-all ${
-                      scope === 'session'
-                        ? 'border-blue-500 bg-blue-50/50 shadow-xs'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    } ${!selectedSession ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="exportScope"
-                      checked={scope === 'session'}
-                      onChange={() => setScope('session')}
-                      disabled={!selectedSession}
-                      className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-800">2. Toàn bộ Session này</span>
-                        <span className="text-[11.5px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-semibold">
-                          File .zip ({sessionExerciseCount} bài)
-                        </span>
-                      </div>
-                      <p className="text-[12px] text-slate-500 mt-0.5 truncate">
-                        {selectedSession ? `${selectedChapter} > ${selectedSession}` : '(Chưa chọn Session)'}
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Option 3: Full Library */}
-                  <label
-                    className={`flex items-start gap-2.5 p-2.5 border rounded-lg cursor-pointer transition-all ${
-                      scope === 'all'
-                        ? 'border-blue-500 bg-blue-50/50 shadow-xs'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="exportScope"
-                      checked={scope === 'all'}
-                      onChange={() => setScope('all')}
-                      className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-800">3. Toàn bộ Kho đề bài</span>
-                        <span className="text-[11.5px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
-                          Gói .zip ({totalAllExercises} bài)
-                        </span>
-                      </div>
-                      <p className="text-[12px] text-slate-500 mt-0.5">
-                        Bao gồm {totalChapters} khóa học, tạo cấu trúc thư mục và README mục lục.
-                      </p>
-                    </div>
-                  </label>
-                </div>
+  const optionsContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>PHẠM VI XUẤT ĐỀ BÀI</Text>
+        <Radio.Group onChange={(e) => setScope(e.target.value)} value={scope} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          
+          <Radio value="single" disabled={!selectedAssignment} style={{ margin: 0, padding: 8, border: '1px solid', borderColor: scope === 'single' ? '#91caff' : '#d9d9d9', backgroundColor: scope === 'single' ? '#e6f7ff' : '#fff', borderRadius: 6 }}>
+            <div style={{ display: 'inline-flex', flexDirection: 'column', marginLeft: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text strong style={{ fontSize: 12 }}>1. Đề bài đang chọn</Text>
+                <Badge count="File .md" style={{ backgroundColor: '#1677ff' }} />
               </div>
-
-              {/* Formatting Options */}
-              <div className="flex flex-col gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <label className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">
-                  Cài đặt định dạng:
-                </label>
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={includeRubric}
-                      onChange={(e) => setIncludeRubric(e.target.checked)}
-                      className="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Kèm tiêu chí chấm điểm (Rubric / Criteria)</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={includeMetadata}
-                      onChange={(e) => setIncludeMetadata(e.target.checked)}
-                      className="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>Kèm thông tin Khóa học & Ngày xuất (Metadata Header)</span>
-                  </label>
-                </div>
-              </div>
-            </>
-          ) : (
-            /* Preview Area */
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">
-                  Xem trước nội dung Markdown:
-                </span>
-                <span className="text-[11.5px] text-slate-400">
-                  {currentMarkdown.length} ký tự
-                </span>
-              </div>
-              <pre className="text-[12.5px] font-mono p-3 bg-slate-900 text-slate-100 rounded-lg max-h-[220px] overflow-y-auto leading-relaxed whitespace-pre-wrap select-text">
-                {currentMarkdown}
-              </pre>
+              <Text type="secondary" style={{ fontSize: 11 }}>{selectedAssignment || '(Chưa chọn bài tập)'}</Text>
             </div>
-          )}
-        </div>
+          </Radio>
 
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-t border-slate-200">
-          {scope !== 'all' && (
-            <button
-              onClick={handleCopy}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-98"
-            >
-              {copied ? (
-                <>
-                  <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-700">Đã chép!</span>
-                </>
-              ) : (
-                <>
-                  <CopyIcon className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Sao chép</span>
-                </>
-              )}
-            </button>
-          )}
+          <Radio value="session" disabled={!selectedSession} style={{ margin: 0, padding: 8, border: '1px solid', borderColor: scope === 'session' ? '#91caff' : '#d9d9d9', backgroundColor: scope === 'session' ? '#e6f7ff' : '#fff', borderRadius: 6 }}>
+            <div style={{ display: 'inline-flex', flexDirection: 'column', marginLeft: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text strong style={{ fontSize: 12 }}>2. Toàn bộ Session này</Text>
+                <Badge count={`File .zip (${sessionExerciseCount} bài)`} style={{ backgroundColor: '#531dab' }} />
+              </div>
+              <Text type="secondary" style={{ fontSize: 11 }}>{selectedSession ? `${selectedChapter} > ${selectedSession}` : '(Chưa chọn Session)'}</Text>
+            </div>
+          </Radio>
 
-          <button
-            onClick={handleDownload}
-            disabled={isExporting}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs active:scale-98"
-          >
-            {isExporting ? (
-              <span>Đang đóng gói...</span>
-            ) : (
-              <>
-                {scope === 'single' ? (
-                  <DownloadIcon className="w-3.5 h-3.5 text-white" />
-                ) : (
-                  <ArchiveBoxIcon className="w-3.5 h-3.5 text-white" />
-                )}
-                <span>
-                  {scope === 'single'
-                    ? 'Tải file .md về máy'
-                    : scope === 'session'
-                    ? `Tải Session .zip (${sessionExerciseCount} bài)`
-                    : `Tải Kho đề bài .zip (${totalAllExercises} bài)`}
-                </span>
-              </>
-            )}
-          </button>
+          <Radio value="all" style={{ margin: 0, padding: 8, border: '1px solid', borderColor: scope === 'all' ? '#91caff' : '#d9d9d9', backgroundColor: scope === 'all' ? '#e6f7ff' : '#fff', borderRadius: 6 }}>
+            <div style={{ display: 'inline-flex', flexDirection: 'column', marginLeft: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text strong style={{ fontSize: 12 }}>3. Toàn bộ Kho đề bài</Text>
+                <Badge count={`Gói .zip (${totalAllExercises} bài)`} style={{ backgroundColor: '#52c41a' }} />
+              </div>
+              <Text type="secondary" style={{ fontSize: 11 }}>Bao gồm {totalChapters} khóa học, tạo cấu trúc thư mục và README mục lục.</Text>
+            </div>
+          </Radio>
+
+        </Radio.Group>
+      </div>
+
+      <div>
+        <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>CÀI ĐẶT ĐỊNH DẠNG</Text>
+        <div style={{ padding: 12, backgroundColor: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Checkbox checked={includeRubric} onChange={(e) => setIncludeRubric(e.target.checked)}>
+            <Text style={{ fontSize: 12 }}>Kèm tiêu chí chấm điểm (Rubric / Criteria)</Text>
+          </Checkbox>
+          <Checkbox checked={includeMetadata} onChange={(e) => setIncludeMetadata(e.target.checked)}>
+            <Text style={{ fontSize: 12 }}>Kèm thông tin Khóa học & Ngày xuất (Metadata Header)</Text>
+          </Checkbox>
         </div>
       </div>
     </div>
+  );
+
+  const previewContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text strong style={{ fontSize: 12 }}>XEM TRƯỚC NỘI DUNG MARKDOWN</Text>
+        <Text type="secondary" style={{ fontSize: 11 }}>{currentMarkdown.length} ký tự</Text>
+      </div>
+      <div style={{ backgroundColor: '#141414', padding: 12, borderRadius: 8, maxHeight: 300, overflowY: 'auto' }}>
+        <pre style={{ margin: 0, color: '#f0f0f0', fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+          {currentMarkdown}
+        </pre>
+      </div>
+    </div>
+  );
+
+  return (
+    <Modal
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <DocumentTextIcon className="w-4 h-4 text-blue-600" />
+          <span>Xuất Đề Bài Sang Markdown</span>
+        </div>
+      }
+      open={true}
+      onCancel={onClose}
+      footer={[
+        <div key="footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
+          {scope !== 'all' ? (
+            <Button 
+              icon={copied ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined />}
+              onClick={handleCopy}
+              style={{ color: copied ? '#52c41a' : undefined, borderColor: copied ? '#b7eb8f' : undefined }}
+            >
+              {copied ? 'Đã chép!' : 'Sao chép'}
+            </Button>
+          ) : <div />}
+          
+          <Button
+            type="primary"
+            icon={scope === 'single' ? <DownloadOutlined /> : <FileZipOutlined />}
+            onClick={handleDownload}
+            loading={isExporting}
+          >
+            {scope === 'single'
+              ? 'Tải file .md'
+              : scope === 'session'
+              ? `Tải Session .zip (${sessionExerciseCount} bài)`
+              : `Tải Kho đề bài .zip (${totalAllExercises} bài)`}
+          </Button>
+        </div>
+      ]}
+      width={500}
+      destroyOnClose
+      styles={{ body: { paddingTop: 8 } }}
+    >
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab}
+        items={[
+          { key: 'options', label: 'Tùy chọn xuất', children: optionsContent },
+          ...(scope === 'single' ? [{ key: 'preview', label: 'Xem trước Markdown', children: previewContent }] : [])
+        ]}
+      />
+    </Modal>
   );
 };

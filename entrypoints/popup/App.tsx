@@ -4,29 +4,33 @@ import { ToastProvider } from '~/src/core/ToastContext';
 import { NavigationSidebar } from '~/src/components/NavigationSidebar';
 import { Header } from '~/src/components/Header';
 import { AutoGraderTab } from '~/src/components/AutoGraderTab';
+import { MiniProjectTab } from '~/src/components/MiniProjectTab';
 import { ClassListTab } from '~/src/components/ClassListTab';
 import { CareTab } from '~/src/components/CareTab';
 import { ExercisesTab } from '~/src/components/ExercisesTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
 import { ReportModal } from '~/src/components/ReportModal';
 import { LearningStatsTab } from '~/src/components/LearningStatsTab';
+import { ExamAnalysisTab } from '~/src/components/ExamAnalysisTab';
 import { queryActiveLmsTab } from '~/src/core/utils';
+import { ConfigProvider, Layout, Spin, Result, Button, App as AntdApp } from 'antd';
+import viVN from 'antd/locale/vi_VN';
+
+const { Content } = Layout;
 
 const UnsupportedPageWarning: React.FC = () => {
   return (
-    <div className="flex-1 flex flex-col justify-center items-center p-8 bg-slate-50 text-center select-none">
-      <h3 className="text-sm font-bold text-slate-800 mb-1.5">Trang web không thuộc LMS</h3>
-      <p className="text-xs text-slate-500 max-w-xs leading-relaxed mb-4">
-        Tính năng này cần hoạt động trên hệ thống đào tạo Rikkei Education (<span className="font-semibold text-blue-600">rikkei.edu.vn</span>).
-      </p>
-      <button
-        onClick={() => {
-          chrome.tabs.create({ url: "https://qldt.rikkei.edu.vn" });
-        }}
-        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-colors cursor-pointer"
-      >
-        Mở QLDT Rikkei Education
-      </button>
+    <div style={{ display: 'flex', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+      <Result
+        status="warning"
+        title="Trang web không thuộc LMS"
+        subTitle={<>Tính năng này cần hoạt động trên hệ thống đào tạo Rikkei Education (<strong style={{ color: '#1890ff' }}>rikkei.edu.vn</strong>).</>}
+        extra={
+          <Button type="primary" onClick={() => chrome.tabs.create({ url: "https://qldt.rikkei.edu.vn" })}>
+            Mở QLDT Rikkei Education
+          </Button>
+        }
+      />
     </div>
   );
 };
@@ -51,7 +55,6 @@ const AppContent: React.FC = () => {
     report: ""
   });
 
-  // Attach report modal trigger to window for legacy support from other contexts
   useEffect(() => {
     (window as any).showReportModal = (data: { title: string; score: string | null; report: string; language?: string; astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics; imagesAttached?: number; imagesSkipped?: number }) => {
       setReportModalData({
@@ -70,7 +73,6 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  // Auto-route based on active browser URL on mount
   useEffect(() => {
     queryActiveLmsTab((tab) => {
       if (tab) {
@@ -86,6 +88,8 @@ const AppContent: React.FC = () => {
           targetTab = "tab-exercises";
         } else if (url.includes("/learning-statistics")) {
           targetTab = "tab-learning-stats";
+        } else if (url.includes("/practice-result/")) {
+          targetTab = "tab-miniproject";
         }
         
         setActiveTab(targetTab);
@@ -95,9 +99,9 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col justify-center items-center bg-slate-900 text-white h-full w-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-3 border-blue-500 border-t-transparent mb-3"></div>
-        <span className="text-xs font-bold text-slate-300 animate-pulse">Đang khởi động REduX AutoScoring...</span>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw', background: '#001529' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16, color: '#fff', fontSize: 14, fontWeight: 'bold' }}>Đang khởi động REduX AutoScoring...</div>
       </div>
     );
   }
@@ -105,31 +109,30 @@ const AppContent: React.FC = () => {
   const isLmsPage = activeTabUrl.includes('rikkei.edu.vn') || activeTabUrl.includes('localhost') || activeTabUrl.includes('127.0.0.1');
 
   return (
-    <div className="flex h-full w-full bg-slate-50 select-none overflow-hidden font-sans">
-      {/* Modern Navigation Sidebar */}
+    <Layout style={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
       <NavigationSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0 bg-slate-50 overflow-hidden">
+      
+      <Layout style={{ overflow: 'hidden', background: '#f5f5f5' }}>
         <Header activeTab={activeTab} />
         
-        <main className="flex-1 overflow-hidden flex flex-col bg-slate-50">
-          {!isLmsPage && ["tab-auto", "tab-class-list", "tab-care", "tab-exercises", "tab-learning-stats"].includes(activeTab) ? (
+        <Content style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          {!isLmsPage && ["tab-auto", "tab-miniproject", "tab-class-list", "tab-care", "tab-exercises"].includes(activeTab) ? (
             <UnsupportedPageWarning />
           ) : (
             <>
               {activeTab === "tab-auto" && <AutoGraderTab />}
+              {activeTab === "tab-miniproject" && <MiniProjectTab />}
               {activeTab === "tab-class-list" && <ClassListTab setActiveTab={setActiveTab} />}
               {activeTab === "tab-care" && <CareTab />}
               {activeTab === "tab-exercises" && <ExercisesTab />}
               {activeTab === "tab-learning-stats" && <LearningStatsTab />}
+              {activeTab === "tab-exam-analysis" && <ExamAnalysisTab />}
               {activeTab === "tab-settings" && <SettingsTab />}
             </>
           )}
-        </main>
-      </div>
+        </Content>
+      </Layout>
 
-      {/* Modal View */}
       <ReportModal
         isOpen={reportModalData.isOpen}
         onClose={() => setReportModalData(prev => ({ ...prev, isOpen: false }))}
@@ -141,17 +144,35 @@ const AppContent: React.FC = () => {
         imagesAttached={reportModalData.imagesAttached}
         imagesSkipped={reportModalData.imagesSkipped}
       />
-    </div>
+    </Layout>
   );
 };
 
 export const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </ToastProvider>
+    <ConfigProvider 
+      locale={viVN}
+      theme={{
+        token: {
+          colorPrimary: '#1677ff',
+          borderRadius: 6,
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        },
+        components: {
+          Layout: {
+            siderBg: '#ffffff',
+          }
+        }
+      }}
+    >
+      <AntdApp>
+        <ToastProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </ToastProvider>
+      </AntdApp>
+    </ConfigProvider>
   );
 };
 

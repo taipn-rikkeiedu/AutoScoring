@@ -50,3 +50,11 @@ export async function proxyFetchBinary(url: string, headers: Record<string, stri
   }
   return bytes.buffer;
 }
+
+export async function proxyFetchText(url: string, headers: Record<string, string> = {}): Promise<string> {
+  const response = await proxyFetch(url, headers);
+  if (!response.success) throw new Error(response.error || UI_MESSAGES.github.noBackgroundResponse);
+  if (!response.ok) throw new Error(response.error || `HTTP ${response.status}`);
+  if (response.isBinary || response.text === undefined) throw new Error("Không lấy được dữ liệu văn bản");
+  return response.text;
+}

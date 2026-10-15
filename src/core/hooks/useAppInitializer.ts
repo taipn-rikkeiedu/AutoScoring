@@ -12,6 +12,7 @@ const defaultIgnoreItems = [...GRADER_IGNORE_DEFAULTS];
 export const defaultConfig: AppConfig = {
   aiProvider: AI_DEFAULTS.provider,
   aiApiKey: "",
+  aiApiKeys: {},
   aiApiUrl: "",
   aiModelName: AI_DEFAULTS.geminiModel,
   githubToken: "",
@@ -25,7 +26,9 @@ export const defaultConfig: AppConfig = {
   supabaseUrl: "",
   supabaseAnonKey: "",
   supabasePat: "",
-  googleApiKey: ""
+  googleApiKey: "",
+  gradingScale: "10",
+  strictnessLevel: "Bình thường"
 };
 
 export function useAppInitializer() {
@@ -62,20 +65,27 @@ export function useAppInitializer() {
     });
 
     chrome.storage.local.get([
-      STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
+      STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiKeys, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseSource, STORAGE_KEYS.exerciseApiUrl, STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.uploadedExercises,
-      STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey,
+      STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey, STORAGE_KEYS.gradingScale, STORAGE_KEYS.strictnessLevel,
       STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedTemplates, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
-      if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>") || !systemPrompt.includes("KHÔNG đưa các thông số kỹ thuật khô khan"))) {
+      if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>") || !systemPrompt.includes("KHÔNG đưa các thông số kỹ thuật khô khan") || !systemPrompt.includes("CHỈ RA LỖI + GỢI Ý SỬA NGẮN NHẤT"))) {
         systemPrompt = "";
         chrome.storage.local.set({ [STORAGE_KEYS.systemPrompt]: "" });
       }
 
+      const activeProvider: string = stored[STORAGE_KEYS.aiProvider] || defaultConfig.aiProvider;
+      const legacyKey: string = stored[STORAGE_KEYS.aiApiKey] || defaultConfig.aiApiKey;
+      const aiApiKeys: Record<string, string> = { ...(stored[STORAGE_KEYS.aiApiKeys] || {}) };
+      // Migrate legacy single key: attribute it to the provider that was active
+      if (legacyKey && !aiApiKeys[activeProvider]) aiApiKeys[activeProvider] = legacyKey;
+
       const mergedConfig: AppConfig = {
-        aiProvider: stored[STORAGE_KEYS.aiProvider] || defaultConfig.aiProvider,
-        aiApiKey: stored[STORAGE_KEYS.aiApiKey] || defaultConfig.aiApiKey,
+        aiProvider: activeProvider,
+        aiApiKey: aiApiKeys[activeProvider] || "",
+        aiApiKeys,
         aiApiUrl: stored[STORAGE_KEYS.aiApiUrl] || defaultConfig.aiApiUrl,
         aiModelName: stored[STORAGE_KEYS.aiModelName] || defaultConfig.aiModelName,
         githubToken: stored[STORAGE_KEYS.githubToken] || defaultConfig.githubToken,
@@ -89,7 +99,9 @@ export function useAppInitializer() {
         supabaseUrl: stored[STORAGE_KEYS.supabaseUrl] || defaultConfig.supabaseUrl,
         supabaseAnonKey: stored[STORAGE_KEYS.supabaseAnonKey] || defaultConfig.supabaseAnonKey,
         supabasePat: stored[STORAGE_KEYS.supabasePat] || defaultConfig.supabasePat,
-        googleApiKey: stored[STORAGE_KEYS.googleApiKey] || defaultConfig.googleApiKey
+        googleApiKey: stored[STORAGE_KEYS.googleApiKey] || defaultConfig.googleApiKey,
+        gradingScale: stored[STORAGE_KEYS.gradingScale] || defaultConfig.gradingScale,
+        strictnessLevel: stored[STORAGE_KEYS.strictnessLevel] || defaultConfig.strictnessLevel
       };
 
       setConfig(mergedConfig);
@@ -213,7 +225,7 @@ export function useAppInitializer() {
       chrome.storage.local.set(newConfig, () => resolve());
     });
 
-    const aiKeys = [STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.systemPrompt];
+    const aiKeys = [STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiKeys, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.systemPrompt];
     const hasAiChanges = aiKeys.some(key => key in newConfig);
 
     const exKeys = [

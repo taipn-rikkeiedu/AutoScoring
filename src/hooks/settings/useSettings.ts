@@ -38,6 +38,19 @@ export function useSettings() {
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(config.supabaseAnonKey);
   const [supabasePat, setSupabasePat] = useState(config.supabasePat || "");
   const [googleApiKey, setGoogleApiKey] = useState(config.googleApiKey || "");
+  const [gradingScale, setGradingScaleState] = useState(config.gradingScale || "10");
+  const [strictnessLevel, setStrictnessLevelState] = useState(config.strictnessLevel || "Bình thường");
+
+  // Mỗi component gọi useSettings() có state riêng; lưu ngay vào config chung để các tab
+  // (Cài đặt, Chấm hàng loạt, Mini project) và luồng chấm bài luôn đọc cùng một giá trị.
+  const setGradingScale = (value: string) => {
+    setGradingScaleState(value);
+    updateConfig({ gradingScale: value });
+  };
+  const setStrictnessLevel = (value: string) => {
+    setStrictnessLevelState(value);
+    updateConfig({ strictnessLevel: value });
+  };
   const [exerciseSource, setExerciseSource] = useState(config.exerciseSource || "local");
   const [exerciseApiUrl, setExerciseApiUrl] = useState(config.exerciseApiUrl || "");
   const [exerciseApiToken, setExerciseApiToken] = useState(config.exerciseApiToken || "");
@@ -51,13 +64,16 @@ export function useSettings() {
   const [providerModels, setProviderModels] = useState<{ label: string; value: string; description?: string }[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  const fetchProviderModels = async () => {
-    const key = (googleApiKey || aiApiKey || "").trim();
+  const fetchProviderModels = async (isStale: () => boolean = () => false) => {
+    const key = (aiApiKey || "").trim();
     setIsLoadingModels(true);
     try {
       const models = await AiClient.fetchModelsForProvider(aiProvider, key, aiApiUrl);
+      // Bỏ qua kết quả của provider cũ nếu người dùng đã đổi provider trong lúc đang tải
+      if (isStale()) return;
+      // Luôn ghi đè (kể cả rỗng) để không giữ lại danh sách model của provider trước đó
+      setProviderModels(models || []);
       if (models && models.length > 0) {
-        setProviderModels(models);
         logger.info("SETTINGS", `Đã tự động tải ${models.length} model hợp lệ trực tiếp từ API của [${aiProvider}].`);
         // Nếu model hiện tại chưa được chọn hoặc rỗng, tự động chọn model đầu tiên
         if (!aiModelName || !models.some(m => m.value === aiModelName)) {
@@ -65,15 +81,20 @@ export function useSettings() {
         }
       }
     } catch (err: any) {
+      if (isStale()) return;
+      setProviderModels([]);
       console.warn(`Lỗi tải danh sách models từ API ${aiProvider}:`, err);
     } finally {
-      setIsLoadingModels(false);
+      if (!isStale()) setIsLoadingModels(false);
     }
   };
 
   useEffect(() => {
-    fetchProviderModels();
-  }, [aiProvider, aiApiKey, googleApiKey, aiApiUrl]);
+    let cancelled = false;
+    setProviderModels([]);
+    fetchProviderModels(() => cancelled);
+    return () => { cancelled = true; };
+  }, [aiProvider, aiApiKey, aiApiUrl]);
 
   useEffect(() => {
     setAiProvider(config.aiProvider);
@@ -88,6 +109,8 @@ export function useSettings() {
     setSupabaseAnonKey(config.supabaseAnonKey);
     setSupabasePat(config.supabasePat || "");
     setGoogleApiKey(config.googleApiKey || "");
+    setGradingScaleState(config.gradingScale || "10");
+    setStrictnessLevelState(config.strictnessLevel || "Bình thường");
     setExerciseSource(config.exerciseSource || "local");
     setExerciseApiUrl(config.exerciseApiUrl || "");
     setExerciseApiToken(config.exerciseApiToken || "");
@@ -125,6 +148,7 @@ export function useSettings() {
       try {
         await updateConfig({
           aiApiKey: aiApiKey.trim(),
+          aiApiKeys: { ...(config.aiApiKeys || {}), [aiProvider]: aiApiKey.trim() },
           aiApiUrl: aiApiUrl.trim(),
           aiModelName: aiModelName.trim(),
           githubToken: githubToken.trim(),
@@ -146,7 +170,7 @@ export function useSettings() {
     }, 1200); // 1.2 seconds debounce
 
     return () => clearTimeout(timer);
-  }, [aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat, googleApiKey, exerciseSource, exerciseApiUrl, exerciseApiToken]);
+  }, [aiProvider, aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat, googleApiKey, exerciseSource, exerciseApiUrl, exerciseApiToken]);
 
   const loadSystemLogs = async () => {
     const logs = await logger.getLogs();
@@ -275,9 +299,12 @@ export function useSettings() {
     });
   };
 
-  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const provider = e.target.value;
+  const handleProviderChange = (provider: string) => {
+    // Lưu key của provider hiện tại và nạp key riêng của provider mới
+    const nextKeys = { ...(config.aiApiKeys || {}), [aiProvider]: aiApiKey.trim() };
+    const nextKey = nextKeys[provider] || "";
     setAiProvider(provider);
+    setAiApiKey(nextKey);
 
     let defaultModel = aiModelName;
     const nextApiUrl = aiApiUrl;
@@ -287,8 +314,12 @@ export function useSettings() {
       defaultModel = AI_DEFAULTS.openAiModel;
     } else if (provider === "deepseek") {
       defaultModel = AI_DEFAULTS.deepSeekModel;
+    } else if (provider === "groq") {
+      defaultModel = AI_DEFAULTS.groqModel;
     } else if (provider === "openrouter") {
       defaultModel = AI_DEFAULTS.openRouterModel;
+    } else if (provider === "grok") {
+      defaultModel = AI_DEFAULTS.grokModel;
     } else if (provider === "local") {
       defaultModel = AI_DEFAULTS.localModel;
     }
@@ -296,6 +327,8 @@ export function useSettings() {
 
     updateConfig({
       aiProvider: provider,
+      aiApiKey: nextKey,
+      aiApiKeys: nextKeys,
       aiModelName: defaultModel,
       aiApiUrl: nextApiUrl
     }).then(() => {
@@ -422,6 +455,10 @@ export function useSettings() {
     verifyDatabaseSchema,
     googleApiKey,
     setGoogleApiKey,
+    gradingScale,
+    setGradingScale,
+    strictnessLevel,
+    setStrictnessLevel,
     exerciseSource,
     setExerciseSource,
     exerciseApiUrl,

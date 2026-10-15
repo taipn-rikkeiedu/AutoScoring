@@ -31,7 +31,9 @@ export function buildGradingPrompt(
   assignment: string,
   criteria: string,
   codeContent: string,
-  imageCount: number = 0
+  imageCount: number = 0,
+  gradingScale: string = "10",
+  strictness: string = "Bình thường"
 ): string {
   const compressed = compressCode(codeContent);
   const { language, metrics } = analyzeCode(compressed);
@@ -42,10 +44,12 @@ export function buildGradingPrompt(
     : GRADING_TEXT.defaultSystemPrompt;
 
   let prompt = template
-    .replace("{{assignment}}", assignment)
-    .replace("{{criteria}}", criteria)
-    .replace("{{ast_summary}}", astSummary)
-    .replace("{{code}}", compressed);
+    .replace(/{{assignment}}/g, assignment)
+    .replace(/{{criteria}}/g, criteria)
+    .replace(/{{ast_summary}}/g, astSummary)
+    .replace(/{{code}}/g, compressed)
+    .replace(/{{grading_scale}}/g, gradingScale)
+    .replace(/{{strictness}}/g, strictness);
 
   if (imageCount > 0) {
     prompt += `\n\nLưu ý: bài nộp có đính kèm ${imageCount} ảnh sơ đồ (có thể là ảnh nộp trực tiếp hoặc trích từ file .docx, bao gồm sơ đồ UML/ERD/kiến trúc) — hãy phân tích các ảnh này khi đánh giá phần thiết kế/sơ đồ nếu tiêu chí có yêu cầu.`;
@@ -61,11 +65,13 @@ export interface AiCredentials {
   apiUrl: string;
 }
 
-/** Resolve base URL của các provider tương thích OpenAI (openai/deepseek/openrouter dùng URL cố định, custom dùng URL người dùng nhập). */
+/** Resolve base URL của các provider tương thích OpenAI (openai/deepseek/openrouter/grok dùng URL cố định, custom dùng URL người dùng nhập). */
 export function resolveOpenAiCompatibleBaseUrl(provider: string, configuredUrl: string): string {
   if (provider === "openai") return API_BASE_URLS.openAi;
   if (provider === "deepseek") return API_BASE_URLS.deepSeek;
   if (provider === "openrouter") return API_BASE_URLS.openRouter;
+  if (provider === "grok") return API_BASE_URLS.grok;
+  if (provider === "groq") return API_BASE_URLS.groq;
   return configuredUrl;
 }
 
@@ -74,33 +80,12 @@ function isRateLimitError(message: string): boolean {
   return message === "RATE_LIMIT" || lower.includes("quota") || lower.includes("rate limit") || lower.includes("429") || lower.includes("exhausted") || lower.includes("too many requests");
 }
 
-const FALLBACK_MODELS: Record<string, string[]> = {
-  gemini: ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash-8b"],
-  openai: ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4o"],
-  deepseek: ["deepseek-chat", "deepseek-coder"],
-  openrouter: ["google/gemini-1.5-flash", "openai/gpt-4o-mini", "anthropic/claude-3-haiku"]
-};
-
-// Cấu hình dự phòng riêng biệt cho từng model cụ thể
-const SPECIFIC_FALLBACK_MAP: Record<string, string[]> = {
-  "gemini-3.5-flash-lite": ["gemini-3.1-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"],
-};
-
-function getNextFallbackModel(provider: string, currentModel: string, attempt: number): string | null {
-  const fallbacks = SPECIFIC_FALLBACK_MAP[currentModel] || FALLBACK_MODELS[provider] || [];
-  const availableFallbacks = fallbacks.filter(m => m !== currentModel);
-  if (attempt - 1 < availableFallbacks.length) {
-    return availableFallbacks[attempt - 1];
-  }
-  return null;
-}
-
 /** Gọi thẳng AI Provider (BYOK) theo config.aiProvider, không retry. Dùng chung cho mọi luồng chấm điểm. */
 async function callAiProvider(prompt: string, { provider, modelName, apiKey, apiUrl }: AiCredentials, images?: ImageAttachment[]): Promise<string> {
   if (provider === "gemini") {
     return await AiClient.generateGemini(prompt, modelName, apiKey, 0.0, images);
   }
-  if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "custom") {
+  if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "grok" || provider === "custom" || provider === "groq") {
     const baseUrl = resolveOpenAiCompatibleBaseUrl(provider, apiUrl);
     return await AiClient.generateOpenAiCompatible(prompt, modelName, baseUrl, apiKey, 0.0, images);
   }
@@ -121,11 +106,10 @@ export async function callAiWithRateLimitRetry(
   images?: ImageAttachment[]
 ): Promise<string> {
   let attempt = 0;
-  const currentCredentials = { ...credentials };
 
   while (attempt <= maxRetries) {
     try {
-      return await callAiProvider(prompt, currentCredentials, images);
+      return await callAiProvider(prompt, credentials, images);
     } catch (err: any) {
       if (!isRateLimitError(err.message || "")) throw err;
 
@@ -134,18 +118,10 @@ export async function callAiWithRateLimitRetry(
         throw new Error(`Bị giới hạn lưu lượng (Rate Limit) và đã thử lại ${maxRetries} lần thất bại. Vui lòng đợi và thử lại.`);
       }
 
-      // Thử đổi sang model dự phòng (fallback)
-      const fallbackModel = getNextFallbackModel(currentCredentials.provider, credentials.modelName, attempt);
-      if (fallbackModel) {
-        currentCredentials.modelName = fallbackModel;
-        onStatusUpdate?.(`Bị giới hạn lưu lượng. Tự động chuyển sang model dự phòng: ${fallbackModel} (${attempt}/${maxRetries})...`);
-        // Đợi 1 chút để tránh spam API
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } else {
-        const delay = initialDelayMs * Math.pow(2, attempt - 1);
-        onStatusUpdate?.(`Đợi ${Math.round(delay / 1000)}s do hết hạn mức AI (${attempt}/${maxRetries})...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
+      // Giữ nguyên model người dùng đã chọn, chỉ chờ rồi thử lại (không tự đổi sang model khác).
+      const delay = initialDelayMs * Math.pow(2, attempt - 1);
+      onStatusUpdate?.(`Đợi ${Math.round(delay / 1000)}s do hết hạn mức AI (${attempt}/${maxRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
   throw new Error("Không thể tạo báo cáo chấm điểm.");
@@ -154,6 +130,7 @@ export async function callAiWithRateLimitRetry(
 export class AIService {
   private readonly credentials: AiCredentials;
   private readonly systemPrompt: string;
+  private readonly config: AppConfig;
 
   constructor(config: AppConfig) {
     this.credentials = {
@@ -163,10 +140,11 @@ export class AIService {
       apiUrl: config.aiApiUrl
     };
     this.systemPrompt = config.systemPrompt;
+    this.config = config;
   }
 
   private buildPrompt(assignment: string, criteria: string, codeContent: string, imageCount: number): string {
-    return buildGradingPrompt(this.systemPrompt, assignment, criteria, codeContent, imageCount);
+    return buildGradingPrompt(this.systemPrompt, assignment, criteria, codeContent, imageCount, this.config.gradingScale, this.config.strictnessLevel);
   }
 
   async generateGradingReport(

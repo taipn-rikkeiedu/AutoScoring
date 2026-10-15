@@ -1,5 +1,8 @@
 import React from 'react';
-import { QuickAccessBar } from '~/src/components/QuickAccessBar';
+import { Layout, Typography, Space } from 'antd';
+
+const { Header: AntHeader } = Layout;
+const { Title, Text } = Typography;
 
 interface HeaderProps {
   activeTab: string;
@@ -9,6 +12,10 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
   "tab-auto": {
     title: "Chấm bài tự động",
     subtitle: "Tải mã nguồn và chấm điểm theo tiêu chí bài tập",
+  },
+  "tab-miniproject": {
+    title: "Chấm Mini Project",
+    subtitle: "Chấm điểm chung 1 đề cho toàn bộ học viên",
   },
   "tab-drive-scanner": {
     title: "Quét Google Drive",
@@ -25,6 +32,10 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
   "tab-exercises": {
     title: "Kho đề bài",
     subtitle: "Quản lý đề bài và thang điểm chấm",
+  },
+  "tab-exam-analysis": {
+    title: "Phân tích BTVN & điểm thi",
+    subtitle: "So sánh mức độ làm BTVN với điểm thi để tìm SV cần rà soát",
   },
   "tab-shortcuts": {
     title: "Lối tắt nhanh",
@@ -47,35 +58,42 @@ export const Header: React.FC<HeaderProps> = ({ activeTab }) => {
   };
 
   const [rateLimit, setRateLimit] = React.useState<{ req: string, tokens: string } | null>(null);
+  const [globalStatus, setGlobalStatus] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const handleRateLimit = (e: any) => {
       setRateLimit(e.detail);
     };
+    const handleGlobalStatus = (e: any) => {
+      setGlobalStatus(e.detail);
+    };
     window.addEventListener('aiRateLimit', handleRateLimit);
-    return () => window.removeEventListener('aiRateLimit', handleRateLimit);
+    window.addEventListener('appGlobalStatus', handleGlobalStatus);
+    return () => {
+      window.removeEventListener('aiRateLimit', handleRateLimit);
+      window.removeEventListener('appGlobalStatus', handleGlobalStatus);
+    };
   }, []);
 
   return (
-    <header className="flex flex-col topbar px-4 py-2.5 select-none w-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-sm font-bold text-heading leading-tight">
+    <AntHeader style={{ background: '#fff', padding: '8px 16px', height: 'auto', lineHeight: 'normal', borderBottom: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', width: '100%', zIndex: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+          <Title level={5} style={{ margin: 0, fontSize: '14px' }}>
             {currentTabInfo.title}
-          </h1>
-          <p className="text-[12.5px] text-muted font-normal mt-0.5">
-            {currentTabInfo.subtitle}
-          </p>
+          </Title>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {globalStatus || currentTabInfo.subtitle}
+          </Text>
         </div>
         {rateLimit && (
-          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500 border border-slate-200 rounded px-2 py-1 bg-white shadow-sm mt-1">
-            <span title="Requests Limit">Req: <strong className="text-sky-600">{rateLimit.req}</strong></span>
-            <span className="w-[1px] h-3 bg-slate-200"></span>
-            <span title="Tokens Limit">Token: <strong className="text-emerald-600">{rateLimit.tokens}</strong></span>
-          </div>
+          <Space size="small" style={{ fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '4px', padding: '2px 8px', background: '#fafafa' }}>
+            <span title="Requests Limit">Req: <strong style={{ color: '#0958d9' }}>{rateLimit.req}</strong></span>
+            <span style={{ width: '1px', height: '12px', background: '#d9d9d9', display: 'inline-block' }}></span>
+            <span title="Tokens Limit">Token: <strong style={{ color: '#389e0d' }}>{rateLimit.tokens}</strong></span>
+          </Space>
         )}
       </div>
-      <QuickAccessBar />
-    </header>
+    </AntHeader>
   );
 };

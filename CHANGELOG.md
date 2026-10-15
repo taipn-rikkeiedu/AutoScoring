@@ -4,6 +4,147 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.4.1] - 2026-10-15
+
+### ✨ Cải thiện
+- **Giám sát học tập** tô nền đỏ các ô vi phạm: nghỉ học từ 10%, thiếu bài tập từ 10%, chậm E-learning từ 1 bài.
+- **Giám sát học tập** và **Phân tích BTVN & điểm thi** dùng được ở mọi trang, không cần đang mở QLĐT: extension tự tìm tab QLĐT ở bất kỳ cửa sổ nào và lưu lại phiên đăng nhập; khi phiên hết hạn sẽ báo đăng nhập lại.
+
+---
+
+## [5.4.0] - 2026-10-15
+
+### ✨ Cải thiện
+- **Giám sát học tập lấy dữ liệu qua API QLĐT** thay cho quét trang: chọn lớp + môn ngay trong extension (không cần mở đúng trang Thống kê học tập). Hiển thị tỷ lệ nghỉ học, tỷ lệ thiếu bài tập, số lần không chuẩn bị bài, điểm Hackathon / cuối môn tách riêng trắc nghiệm và tự luận, R-Points; bảng sắp xếp được theo từng cột.
+- Bỏ các cột không có trong API (Auto R-Points, trạng thái chốt điểm, trạng thái E-learning / số bài chậm, điều kiện project) và bỏ lưu lịch sử các lượt quét.
+
+### 🐛 Sửa lỗi
+- **Phân tích BTVN & điểm thi**: SV không nộp bài thi bị tính 0 điểm và bị gắn "Nghi vấn cao". Nay ghi là **Vắng thi**, không tính vào điểm; vắng thi cuối môn thì xét theo điểm Hackathon.
+- **Phân tích BTVN & điểm thi**: Chỉ số "Chuyên cần" thực ra là tỷ lệ nghỉ học — đã đổi tên thành "Nghỉ học".
+
+---
+
+## [5.3.0] - 2026-10-15
+
+### 🚀 Tính năng mới
+- **Phân tích BTVN & điểm thi** (mục mới trong nhóm "Quản lý LMS"): Gọi API Quản lý đào tạo bằng phiên đăng nhập của tab QLĐT đang mở để so sánh tỉ lệ nộp BTVN với điểm Hackathon / cuối môn, tìm sinh viên cần rà soát.
+  - Chọn nhiều lớp cùng lúc và một môn học; điểm thi tính theo công thức của môn, ưu tiên điểm tự luận.
+  - Gắn cờ **Nghi vấn cao** / **Cần rà soát** theo ngưỡng chỉnh được; thêm cờ khi trắc nghiệm cao hơn hẳn tự luận hoặc điểm AI bài tập cao mà điểm thi thấp.
+  - Phát hiện **trùng link bài nộp** giữa các sinh viên (bài thi và bài tập), chuẩn hoá theo repo GitHub hoặc ID Google Docs.
+  - **+ Điểm AI bài tập**: tải điểm AI hệ thống trung bình của từng sinh viên (1 request / sinh viên).
+  - **Danh sách cần rà soát**: dán danh sách tên để đánh dấu, so khớp cả tên không dấu và báo tên không tìm thấy.
+  - Lọc, tìm kiếm, sắp xếp; bấm vào một dòng để xem chi tiết điểm từng bài thi, nhận xét của giảng viên chấm, link bài làm, danh sách bài tập và gợi ý vấn đáp.
+  - Xuất Excel theo bộ lọc hiện tại. Quy tắc gắn cờ, danh sách rà soát và lớp/môn đã chọn được lưu lại.
+
+---
+
+## [5.2.14] - 2026-10-06
+
+### ✨ Cải thiện
+- **Chấm hàng loạt lần lượt từng bài**: Giảm số bài chấm song song từ 3 xuống 1 (Chấm hàng loạt và Mini Project) để tránh vượt giới hạn token/phút của các nhà cung cấp AI có quota thấp như Groq.
+
+---
+
+## [5.2.13] - 2026-10-06
+
+### 🐛 Sửa lỗi
+- **Lỗi "The model `llama-3.3-70b-versatile` does not exist" dù đã chọn model Groq khác**: Khi model đã chọn bị giới hạn lưu lượng (rate limit), hệ thống tự động đổi sang danh sách model dự phòng cố định, trong đó có model Groq mà tài khoản không có quyền truy cập (và nhiều model đã ngừng hỗ trợ). Đã bỏ cơ chế tự đổi model ngầm, chỉ chờ và thử lại đúng model người dùng đã chọn.
+
+---
+
+## [5.2.12] - 2026-10-06
+
+### ✨ Cải thiện
+- **Rút gọn System Prompt nhận xét**: Nhận xét tối đa 3 câu, mỗi lỗi chỉ một câu ngắn gồm vị trí, lỗi gì và cách sửa; không mô tả lại phần đã làm đúng. Giữ kết luận chưa đạt ở cuối khi dưới 50% thang điểm, bài đạt không ghi kết luận. System Prompt tùy chỉnh cũ được tự động đặt lại về mặc định mới.
+
+---
+
+## [5.2.11] - 2026-10-06
+
+### 🐛 Sửa lỗi
+- **Chọn Groq nhưng danh sách model vẫn của Google**: Khi tải danh sách model của nhà cung cấp mới không có kết quả (chưa nhập API Key hoặc lỗi mạng), ứng dụng giữ lại danh sách của nhà cung cấp trước đó. Ngoài ra kết quả tải trễ của provider cũ có thể ghi đè danh sách của provider mới. Đã xóa danh sách ngay khi đổi provider và bỏ qua phản hồi của provider không còn được chọn.
+
+---
+
+## [5.2.10] - 2026-10-06
+
+### ✨ Cải thiện
+- **Tinh chỉnh System Prompt nhận xét**: Nhận xét ngắn gọn (3-4 câu) như giảng viên viết nhận xét, chỉ rõ sai ở đâu và sửa thế nào. Bỏ kết luận ĐẠT/CHƯA ĐẠT ở đầu; chỉ khi bài chưa đạt (dưới 50 điểm) mới thêm câu kết luận ở cuối (ví dụ: "Em làm chưa đủ yêu cầu nên bài làm chưa đạt."), bài đạt thì không ghi gì. System Prompt tùy chỉnh cũ được tự động đặt lại về mặc định mới.
+
+---
+
+## [5.2.9] - 2026-10-06
+
+### 🐛 Sửa lỗi
+- **Thang điểm & mức độ khắt khe không khớp giữa Cài đặt và Chấm hàng loạt**: Chấm bài đọc giá trị từ cấu hình đã lưu, trong khi các ô chọn dùng state riêng và lưu trễ 1,2 giây; đồng thời `gradingScale`/`strictnessLevel` không được nạp lại từ bộ nhớ khi mở tiện ích nên luôn rơi về mặc định. Đã lưu ngay khi đổi lựa chọn, nạp đúng khi khởi động và dùng chung một nguồn cấu hình cho mọi tab.
+- **Hiển thị điểm ghi cứng "/100"**: Nhãn điểm, báo cáo sao chép và popup báo cáo (chấm đơn, hàng loạt, Mini Project) nay hiển thị theo thang điểm đã chọn; màu huy hiệu điểm tính theo tỷ lệ phần trăm thay vì ngưỡng 80/50 cố định.
+- **Lỗi cú pháp regex trong tab Chấm đơn**: Sửa chuỗi escape đôi (`\/`) khiến `tsc` báo lỗi.
+
+---
+
+## [5.2.8] - 2026-10-06
+
+### 🐛 Sửa lỗi
+- **Lỗi dùng nhầm API Key khi đổi AI Provider**: Khi chuyển từ Google sang Groq (hoặc nhà cung cấp khác), ứng dụng vẫn dùng API Key của Google. Nguyên nhân: toàn bộ nhà cung cấp dùng chung một `aiApiKey`, và danh sách model luôn ưu tiên `googleApiKey`. Đã chuyển sang lưu API Key riêng theo từng nhà cung cấp (`aiApiKeys`), tự nạp đúng key khi đổi provider, tự động chuyển đổi key cũ cho người dùng hiện tại và bỏ việc ưu tiên `googleApiKey` khi tải danh sách model.
+
+---
+
+## [5.2.7] - 2026-10-05
+
+### ✨ Cải thiện
+- **Tinh chỉnh Prompt AI**: Yêu cầu AI tuyệt đối không sử dụng dấu backtick (\`) để bọc tên file, biến hoặc hàm khi nhận xét, giúp nội dung trả về mang tính tự nhiên, giống một con người hơn thay vì văn phong chuẩn Markdown.
+
+---
+
+## [5.2.6] - 2026-10-05
+
+### ✨ Cải thiện
+- **Tinh chỉnh Prompt AI (Chấm điểm khắt khe)**: Nâng cao mức độ khắt khe trong việc chấm bài. Bắt buộc nhận xét phải mở đầu bằng kết luận bài làm ĐẠT (>= 50 điểm) hoặc CHƯA ĐẠT (< 50 điểm), đồng thời yêu cầu AI phải chỉ rõ cụ thể phần nào đã thực hiện được và phần nào còn thiếu sót/sai logic so với đề bài.
+
+---
+
+## [5.2.5] - 2026-10-05
+
+### ✨ Cải thiện
+- **Tinh chỉnh Prompt AI**: Yêu cầu AI xưng hô "tôi" và gọi người nộp bài là "em", tuyệt đối không dùng các từ "bạn", "học viên" hay "sinh viên", giúp nhận xét sát với thực tế giảng đường hơn.
+
+---
+
+## [5.2.4] - 2026-10-05
+
+### ✨ Cải thiện
+- **Cải thiện Prompt AI**: Điều chỉnh System Prompt của AI, loại bỏ các từ ngữ khen ngợi, chuyển sang giọng điệu đánh giá khách quan, nghiêm túc chỉ tập trung vào việc liệt kê những phần đạt được và những điểm còn thiếu sót so với tiêu chí, phù hợp hơn với vai trò giảng viên chấm điểm thực tế.
+
+---
+
+## [5.2.3] - 2026-10-05
+
+### ✨ Tính năng mới
+- **Cải thiện Prompt AI**: Điều chỉnh System Prompt của AI để đóng vai một giảng viên thực thụ khi đưa ra nhận xét, giúp phản hồi mang tính sư phạm, chuyên nghiệp, tự nhiên và gần gũi với học viên hơn.
+
+---
+
+## [5.2.2] - 2026-10-04
+
+### 🐛 Sửa lỗi
+- **Lỗi không thể chọn AI Provider**: Khắc phục lỗi khi chọn nhà cung cấp AI trong Settings không có phản hồi do xung đột kiểu dữ liệu sự kiện (Event) của component Ant Design Select.
+
+---
+
+## [5.2.1] - 2026-10-04
+
+### ✨ Tính năng mới
+- **Trải nghiệm người dùng**: Bổ sung liên kết truy cập nhanh "Lấy API Key tại đây" ứng với từng nhà cung cấp AI trực tiếp trên màn hình Cài đặt, giúp thao tác tiện lợi hơn mà không cần tìm kiếm thủ công.
+
+---
+
+## [5.2.0] - 2026-10-04
+
+### ✨ Tính năng mới
+- **Thêm AI Provider**: Hỗ trợ Groq (Fast Llama, Mixtral) vào cấu hình AI trực tiếp từ Settings.
+
+---
+
 ## [4.20.0] - 2026-09-20
 
 ### 🎨 Tối ưu Trải nghiệm người dùng (UI/UX)

@@ -1,6 +1,7 @@
 export interface AppConfig {
   aiProvider: string;
   aiApiKey: string;
+  aiApiKeys?: Record<string, string>;
   aiApiUrl: string;
   aiModelName: string;
   githubToken: string;
@@ -15,6 +16,8 @@ export interface AppConfig {
   supabaseAnonKey: string;
   supabasePat: string;
   googleApiKey: string;
+  gradingScale: string;
+  strictnessLevel: string;
 }
 
 export interface Student {
@@ -62,6 +65,8 @@ export interface Submission {
     chapter: string;
     session: string;
     assignmentName: string;
+    /** true khi người dùng tự chọn đề; khi quét lại sẽ giữ nguyên thay vì so khớp lại. */
+    isManual?: boolean;
   } | null;
   error?: string;
 }
@@ -88,36 +93,4 @@ export interface LmsSession {
   type: string;
   mindmap: string | null;
   homework: LmsHomework[];
-}
-
-export interface LearningStatRow {
-  no: number;
-  studentName: string;
-  studentEmail: string;
-  absentRatio: number | null;
-  missingHomeworkRatio: number | null;
-  elearningStatus: string;
-  lateAssignmentsText: string;
-  hackathonTN: number | null;
-  hackathonTL: number | null;
-  rPoints: string;
-  autoRPoints: number | null;
-  scoreLockStatus: string;
-  projectEligibility: string;
-}
-
-export interface LearningStatsSnapshot {
-  className: string;
-  subjectName: string;
-  scannedAt: string;
-  missingColumns: string[];
-  summary: {
-    absentOverTenPercentRatio: number | null;
-    absentOverTenPercentText: string;
-    homeworkViolationRatio: number | null;
-    homeworkViolationText: string;
-    unpreparedViolationRatio: number | null;
-    unpreparedViolationText: string;
-  };
-  rows: LearningStatRow[];
 }

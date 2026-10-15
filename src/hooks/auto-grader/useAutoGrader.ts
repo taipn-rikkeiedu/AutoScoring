@@ -11,7 +11,7 @@ import { GitHubService } from '~/src/services/githubService';
 import { AIService, compressCode } from '~/src/services/aiService';
 import { analyzeCode } from '~/src/services/codeAnalysis';
 
-const BULK_GRADING_CONCURRENCY = 3;
+const BULK_GRADING_CONCURRENCY = 1;
 
 async function runWithConcurrencyLimit<T, R>(
   items: T[],
@@ -99,7 +99,7 @@ export function useAutoGrader() {
               studentName: item.studentName || cachedItem?.studentName || '',
               githubUrl: item.githubUrl,
               checked: cachedItem?.checked !== undefined ? cachedItem.checked : true,
-              matchedTemplate: cachedItem?.matchedTemplate || match,
+              matchedTemplate: cachedItem?.matchedTemplate?.isManual ? cachedItem.matchedTemplate : match,
               status: cachedItem?.status || 'pending',
               score: cachedItem?.score !== undefined ? cachedItem.score : null,
               report: cachedItem?.report || undefined,
@@ -307,7 +307,7 @@ export function useAutoGrader() {
           return next;
         });
 
-        setBulkProgressText(`Đang chấm ${items.length} bài tập (tối đa ${BULK_GRADING_CONCURRENCY} song song)...`);
+        setBulkProgressText(`Đang chấm ${items.length} bài tập (lần lượt từng bài)...`);
         const ai = new AIService(config);
         // Cùng repo cho cả nhóm nên chỉ cần phân tích AST một lần, dùng chung cho mọi bài trong nhóm.
         const { language: repoLanguage, metrics: repoAstMetrics } = analyzeCode(compressCode(repoData.content));
@@ -335,7 +335,7 @@ export function useAutoGrader() {
           if (!score) throw new Error("Không bóc tách được điểm.");
 
           gradedSoFar++;
-          setBulkProgressText(`Đang chấm ${gradedSoFar}/${items.length} bài tập (tối đa ${BULK_GRADING_CONCURRENCY} song song)...`);
+          setBulkProgressText(`Đang chấm ${gradedSoFar}/${items.length} bài tập (lần lượt từng bài)...`);
 
           return {
             originalIndex: item.originalIndex,
@@ -466,7 +466,7 @@ export function useAutoGrader() {
   const handleCopySingleSubmission = (sub: Submission) => {
     if (!sub || !sub.githubUrl) return;
     const studentPart = sub.studentName ? `[${sub.studentName}] ` : '';
-    const scorePart = sub.score !== null && sub.score !== undefined ? ` (Điểm: ${sub.score}/100)` : '';
+    const scorePart = sub.score !== null && sub.score !== undefined ? ` (Điểm: ${sub.score}/${config.gradingScale})` : '';
     const text = `${studentPart}${sub.exerciseName}: ${sub.githubUrl}${scorePart}`;
     
     navigator.clipboard.writeText(text).then(() => {
@@ -498,7 +498,7 @@ export function useAutoGrader() {
       const body = targetSubs.map((s, idx) => {
         const studentPart = s.studentName ? `[${s.studentName}] ` : '';
         const templatePart = s.matchedTemplate ? `\n   - Đề liên kết: ${s.matchedTemplate.session} - ${s.matchedTemplate.assignmentName}` : '';
-        const scorePart = s.score !== null && s.score !== undefined ? `\n   - Điểm số: ${s.score}/100` : '';
+        const scorePart = s.score !== null && s.score !== undefined ? `\n   - Điểm số: ${s.score}/${config.gradingScale}` : '';
         const statusPart = s.status === 'success' ? ' (Đã chấm)' : s.status === 'error' ? ' (Lỗi)' : '';
         return `${idx + 1}. ${studentPart}${s.exerciseName}${statusPart}\n   - Link: ${s.githubUrl}${templatePart}${scorePart}`;
       }).join('\n\n');
@@ -568,7 +568,7 @@ export function useAutoGrader() {
       const updated = [...submissions];
       if (val) {
         const parts = val.split('||');
-        updated[index].matchedTemplate = { chapter: parts[0], session: parts[1], assignmentName: parts[2] };
+        updated[index].matchedTemplate = { chapter: parts[0], session: parts[1], assignmentName: parts[2], isManual: true };
       } else {
         updated[index].matchedTemplate = undefined;
       }

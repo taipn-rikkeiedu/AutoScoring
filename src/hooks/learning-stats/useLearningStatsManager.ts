@@ -1,162 +1,131 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useToast } from '~/src/core/ToastContext';
-import { getAllSnapshots, saveSnapshot, deleteSnapshot, makeSnapshotKey } from '~/src/core/learningStatsStorage';
-import { LearningStatsSnapshot, LearningStatRow } from '~/src/types';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { STORAGE_KEYS } from '~/src/core/constants';
 import { logger } from '~/src/core/logger';
-import { queryActiveLmsTab } from '~/src/core/utils';
+import { exportToExcel } from '~/src/core/excelExporter';
+import { LearningStatsData, LearningStatRow, ExamCell, parseLearningStats } from '~/src/core/learningStats';
+import { plainText, round1 } from '~/src/core/examAnalysis';
+import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
+import { QldtOption, listQldtClasses, listQldtCourses, fetchClassDashboard } from '~/src/services/lms/examAnalysisService';
 
-export type SortColumn = keyof LearningStatRow;
-export type SortDirection = 'asc' | 'desc';
+interface LearningStatsSelection {
+  classId?: string;
+  courseId?: string;
+}
+
+const LOG_MODULE = 'LEARNING_STATS';
 
 export function useLearningStatsManager() {
-  const { showToast } = useToast();
-
-  const [snapshots, setSnapshots] = useState<Record<string, LearningStatsSnapshot>>({});
-  const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [statusText, setStatusText] = useState("🔍 Mở trang Thống kê học tập trên LMS và bấm \"Quét chỉ số\".");
-  const [statusType, setStatusType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
-  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [classes, setClasses] = useState<QldtOption[]>([]);
+  const [classId, setClassId] = useState('');
+  const [courses, setCourses] = useState<QldtOption[]>([]);
+  const [courseId, setCourseId] = useState('');
+  const [data, setData] = useState<LearningStatsData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [filterText, setFilterText] = useState('');
+  const [statusText, setStatusText] = useState('Chọn lớp + môn học. Cần đăng nhập QLĐT (qldt.rikkei.edu.vn) ít nhất một lần.');
+  const [statusType, setStatusType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
+  const selectionLoaded = useRef(false);
+  // Lựa chọn đã lưu: giữ lại để "tải lại" khi lần đầu chưa lấy được danh sách lớp (chưa mở tab QLĐT)
+  const savedSelection = useRef<LearningStatsSelection>({});
 
+  const setStatus = (text: string, type: typeof statusType = 'info') => { setStatusText(text); setStatusType(type); };
+
+  /* ---------- Lớp / môn (nhớ lựa chọn lần trước) ---------- */
   useEffect(() => {
-    getAllSnapshots().then(all => {
-      setSnapshots(all);
-      const keys = Object.keys(all);
-      if (keys.length > 0) {
-        setActiveKey(keys[keys.length - 1]);
-        setStatusText(`📋 Đã tải ${keys.length} lượt quét đã lưu.`);
-        setStatusType('success');
-      }
+    chrome.storage.local.get(STORAGE_KEYS.learningStatsSelection, (res) => {
+      const saved: LearningStatsSelection = res[STORAGE_KEYS.learningStatsSelection] || {};
+      savedSelection.current = saved;
+      loadClasses(saved).finally(() => { selectionLoaded.current = true; });
     });
   }, []);
 
-  const handleScan = () => {
-    setIsScanning(true);
-    setStatusText("🔍 Đang quét chỉ số học tập...");
-    setStatusType('info');
+  useEffect(() => {
+    if (!selectionLoaded.current || !classes.length) return;
+    chrome.storage.local.set({ [STORAGE_KEYS.learningStatsSelection]: { classId, courseId } });
+  }, [classId, courseId, classes]);
 
-    queryActiveLmsTab((tab) => {
-      const activeTab = tab;
-      if (!activeTab || !activeTab.url?.includes('/learning-statistics')) {
-        setIsScanning(false);
-        setStatusText("💡 Hãy mở trang Thống kê học tập (learning-statistics) trên LMS để quét.");
-        setStatusType('warning');
-        logger.warn("LEARNING_STATS", "Quét thất bại: sai trang web LMS.");
-        return;
-      }
-
-      chrome.scripting.executeScript({
-        target: { tabId: activeTab.id! },
-        files: ['/learningStatsScraper.js']
-      }, (results) => {
-        setIsScanning(false);
-        if (chrome.runtime.lastError) {
-          setStatusText("❌ Không thể quét: " + chrome.runtime.lastError.message);
-          setStatusType('error');
-          logger.error("LEARNING_STATS", "Lỗi scripting khi quét trang.", chrome.runtime.lastError.message);
-          return;
-        }
-
-        const scraped = results && results[0]?.result as LearningStatsSnapshot | undefined;
-        if (!scraped || scraped.rows.length === 0) {
-          setStatusText("❓ Không tìm thấy dữ liệu bảng chỉ số trên trang.");
-          setStatusType('warning');
-          logger.warn("LEARNING_STATS", "Quét hoàn tất nhưng không có dữ liệu.");
-          return;
-        }
-
-        const snapshot: LearningStatsSnapshot = { ...scraped, scannedAt: new Date().toISOString() };
-        saveSnapshot(snapshot).then((key) => {
-          setSnapshots(prev => ({ ...prev, [key]: snapshot }));
-          setActiveKey(key);
-          setStatusText(`✅ Đã quét ${snapshot.rows.length} sinh viên (${snapshot.className} - ${snapshot.subjectName}).`);
-          setStatusType('success');
-          logger.success("LEARNING_STATS", `Quét thành công lớp "${snapshot.className}" môn "${snapshot.subjectName}": ${snapshot.rows.length} sinh viên.`);
-
-          if (snapshot.missingColumns.length > 0) {
-            showToast(`LMS đã đổi cấu trúc cột: ${snapshot.missingColumns.join(', ')}. Dữ liệu các cột này có thể thiếu.`, "warning");
-          }
-        });
-      });
-    });
-  };
-
-  const handleDeleteSnapshot = (key: string) => {
-    if (!window.confirm("Xoá dữ liệu đã quét cho lớp/môn này?")) return;
-    deleteSnapshot(key).then(() => {
-      setSnapshots(prev => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-      setActiveKey(prev => (prev === key ? null : prev));
-      showToast("Đã xoá dữ liệu.", "success");
-    });
-  };
-
-  const handleSwitchSnapshot = (key: string) => {
-    setActiveKey(key);
-  };
-
-  const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
+  const loadClasses = async (want: LearningStatsSelection = {}) => {
+    try {
+      const auth = await getQldtAuth();
+      const list = await listQldtClasses(auth);
+      setClasses(list);
+      const keep = list.some(c => c.value === want.classId) ? want.classId! : '';
+      setClassId(keep);
+      if (keep) await loadCourses(keep, want.courseId || '', auth);
+      setStatus(`Đã tải ${list.length} lớp. Chọn lớp và môn học rồi bấm "Tải dữ liệu".`);
+    } catch (e: any) {
+      setStatus('Không tải được danh sách lớp: ' + e.message, 'error');
+      logger.error(LOG_MODULE, 'Không tải được danh sách lớp QLĐT.', e.message);
     }
   };
 
-  const activeSnapshot = activeKey ? snapshots[activeKey] : null;
+  const loadCourses = async (id: string, wantCourseId: string, auth?: string) => {
+    setCourses([]);
+    setCourseId('');
+    if (!id) return;
+    try {
+      const list = await listQldtCourses(auth || await getQldtAuth(), id);
+      setCourses(list);
+      if (list.some(c => c.value === wantCourseId)) setCourseId(wantCourseId);
+    } catch (e: any) {
+      setStatus('Không tải được môn học: ' + e.message, 'error');
+    }
+  };
+
+  const handleClassChange = (id: string) => {
+    setClassId(id);
+    setData(null);
+    loadCourses(id, courseId);
+  };
+
+  const handleCourseChange = (id: string) => {
+    setCourseId(id);
+    setData(null);
+  };
+
+  /* ---------- Tải chỉ số ---------- */
+  const handleLoad = async () => {
+    if (isLoading || !classId || !courseId) return;
+    setIsLoading(true);
+    setStatus('Đang tải chỉ số học tập…');
+    try {
+      const auth = await getQldtAuth();
+      const parsed = parseLearningStats(await fetchClassDashboard(auth, classId, courseId));
+      setData(parsed);
+      setStatus(`Đã tải ${parsed.rows.length} sinh viên (${parsed.className} — ${parsed.courseName}).`, parsed.rows.length ? 'success' : 'warning');
+      logger.success(LOG_MODULE, `Tải chỉ số lớp "${parsed.className}" môn "${parsed.courseName}": ${parsed.rows.length} sinh viên.`);
+    } catch (e: any) {
+      setStatus('Không tải được chỉ số học tập: ' + e.message, 'error');
+      logger.error(LOG_MODULE, 'Không tải được chỉ số học tập.', e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const displayedRows = useMemo(() => {
-    if (!activeSnapshot) return [];
+    if (!data) return [];
+    const q = plainText(filterText);
+    if (!q) return data.rows;
+    return data.rows.filter(r => plainText(r.name).includes(q) || plainText(r.email).includes(q) || plainText(r.code).includes(q));
+  }, [data, filterText]);
 
-    let rows = activeSnapshot.rows;
-    const search = filterText.trim().toLowerCase();
-    if (search) {
-      rows = rows.filter(r =>
-        r.studentName.toLowerCase().includes(search) ||
-        r.studentEmail.toLowerCase().includes(search)
-      );
-    }
-
-    if (sortColumn) {
-      rows = [...rows].sort((a, b) => {
-        const va = a[sortColumn];
-        const vb = b[sortColumn];
-        if (va === null || va === undefined) return 1;
-        if (vb === null || vb === undefined) return -1;
-        if (typeof va === 'number' && typeof vb === 'number') {
-          return sortDirection === 'asc' ? va - vb : vb - va;
-        }
-        return sortDirection === 'asc'
-          ? String(va).localeCompare(String(vb))
-          : String(vb).localeCompare(String(va));
-      });
-    }
-
-    return rows;
-  }, [activeSnapshot, filterText, sortColumn, sortDirection]);
+  /* ---------- Xuất Excel theo bộ lọc hiện tại ---------- */
+  const handleExport = () => {
+    if (!data) return;
+    const cell = (v: ExamCell) => (v === 'absent' ? 'Vắng' : round1(v));
+    const records = displayedRows.map((r: LearningStatRow) => ({
+      'STT': r.no, 'MSSV': r.code, 'Học viên': r.name, 'Email': r.email, 'Trạng thái': r.studentStatus,
+      'Nghỉ học (%)': round1(r.absentRate), 'Thiếu bài tập (%)': round1(r.missingHomework), 'Chậm E-learning': r.unprepared,
+      'Hackathon TN': cell(r.hkTN), 'Hackathon TL': cell(r.hkTL), 'Cuối môn TN': cell(r.ckTN), 'Cuối môn TL': cell(r.ckTL),
+      'R-Points': r.rpoints
+    }));
+    exportToExcel(records, 'ChiSoHocTap', `ChiSoHocTap_${data.className}_${data.courseName}.xlsx`);
+  };
 
   return {
-    snapshots,
-    activeKey,
-    activeSnapshot,
-    displayedRows,
-    isScanning,
-    statusText,
-    statusType,
-    sortColumn,
-    sortDirection,
-    filterText,
-    setFilterText,
-    handleScan,
-    handleDeleteSnapshot,
-    handleSwitchSnapshot,
-    handleSort,
-    makeSnapshotKey
+    classes, classId, courses, courseId, data, displayedRows,
+    isLoading, filterText, setFilterText, statusText, statusType,
+    handleClassChange, handleCourseChange, handleLoad, handleExport,
+    reloadClasses: () => loadClasses(classes.length ? { classId, courseId } : savedSelection.current)
   };
 }

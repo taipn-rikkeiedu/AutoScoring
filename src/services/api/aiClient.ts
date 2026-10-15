@@ -116,11 +116,12 @@ export class AiClient {
       return [];
     }
 
-    // 4. OpenAI / DeepSeek / OpenRouter / Custom
-    if (cleanProvider === "openai" || cleanProvider === "deepseek" || cleanProvider === "openrouter" || cleanProvider === "custom") {
+    // 4. OpenAI / DeepSeek / OpenRouter / Custom / Groq
+    if (cleanProvider === "openai" || cleanProvider === "deepseek" || cleanProvider === "openrouter" || cleanProvider === "custom" || cleanProvider === "groq") {
       let baseUrl = apiUrl && apiUrl.trim() ? apiUrl.trim() : API_BASE_URLS.openAi;
       if (cleanProvider === "deepseek") baseUrl = API_BASE_URLS.deepSeek;
       if (cleanProvider === "openrouter") baseUrl = API_BASE_URLS.openRouter;
+      if (cleanProvider === "groq") baseUrl = API_BASE_URLS.groq;
 
       if (!apiKey && cleanProvider !== "custom") return [];
       const url = `${baseUrl.replace(/\/+$/, '')}/models`;

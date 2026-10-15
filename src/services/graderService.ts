@@ -1,6 +1,7 @@
 import { GitHubService } from '~/src/services/githubService';
 import { buildGradingPrompt, compressCode, callAiWithRateLimitRetry } from '~/src/services/aiService';
 import { analyzeCode, ASTMetrics } from '~/src/services/codeAnalysis';
+import { proxyFetchText } from '~/src/services/github/backgroundFetch';
 import { DEFAULT_CRITERIA, parseScore } from '~/src/core/utils';
 import { AppConfig } from '~/src/types';
 
@@ -27,8 +28,28 @@ export async function gradeSubmission(
   onStatusUpdate: ((status: string) => void) | null = null,
   onFilesDownloaded: ((fileList: string[]) => void) | null = null
 ): Promise<GradingResult> {
-  const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
-  const repoData = await github.getRepoContents(githubUrl, (msg) => onStatusUpdate?.(msg));
+  let repoData = { content: "", fileList: [] as string[], images: [] as any[], skippedImageCount: 0 };
+  
+  if (githubUrl.includes("docs.google.com/document/d/")) {
+    const docIdMatch = githubUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (docIdMatch) {
+      onStatusUpdate?.("Đang tải nội dung từ Google Docs...");
+      const docId = docIdMatch[1];
+      const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+      try {
+        const text = await proxyFetchText(exportUrl);
+        repoData.content = "[NỘI DUNG TÀI LIỆU GOOGLE DOCS]\n" + text;
+        repoData.fileList = ["google_doc.txt"];
+      } catch (err: any) {
+        throw new Error("Lỗi đọc Google Docs (Đảm bảo tài liệu được chia sẻ công khai): " + err.message);
+      }
+    } else {
+      throw new Error("URL Google Docs không hợp lệ.");
+    }
+  } else {
+    const github = new GitHubService(config.githubToken, config.graderIgnoreItems);
+    repoData = await github.getRepoContents(githubUrl, (msg) => onStatusUpdate?.(msg));
+  }
 
   if (onFilesDownloaded && repoData.fileList.length > 0) {
     onFilesDownloaded(repoData.fileList);
@@ -40,7 +61,9 @@ export async function gradeSubmission(
     assignmentText,
     criteriaText || DEFAULT_CRITERIA,
     repoData.content,
-    repoData.images.length
+    repoData.images.length,
+    config.gradingScale,
+    config.strictnessLevel
   );
   const credentials = {
     provider: config.aiProvider,

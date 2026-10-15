@@ -25,7 +25,8 @@ export function useShortcuts() {
         setShortcuts(res[STORAGE_KEYS.customShortcuts] as Shortcut[]);
       } else {
         const defaults: Shortcut[] = [
-          { id: '1', name: 'Lớp học mẫu (Trang chủ QLDT)', url: 'https://qldt.rikkei.edu.vn/', isPinned: true }
+          { id: '1', name: 'Lớp học mẫu (Trang chủ QLDT)', url: 'https://qldt.rikkei.edu.vn/', isPinned: true },
+          { id: '1b', name: 'LMS Admin (Mới)', url: 'https://lms-admin.rikkei.edu.vn/', isPinned: true }
         ];
         chrome.storage.local.set({ [STORAGE_KEYS.customShortcuts]: defaults });
         setShortcuts(defaults);
