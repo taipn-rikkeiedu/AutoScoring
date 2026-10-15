@@ -4,6 +4,21 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.6.0] - 2026-10-15
+
+### 🚀 Tính năng mới
+- **Biểu đồ thống kê trong Giám sát học tập**: nút chuyển **Danh sách | Biểu đồ** cạnh ô chọn lớp / môn.
+  - **Mức rủi ro**: thanh tỉ lệ Báo động / Cảnh báo / Sắp vượt ngưỡng / Bình thường.
+  - **Phân bố** nghỉ học, thiếu bài tập, chậm E-learning, điểm Hackathon và điểm thi cuối môn theo khoảng; các mốc lấy đúng ngưỡng đang cài đặt.
+  - Chỉ khoảng có vấn đề mới tô màu (vàng sắp vượt → cam cảnh báo → đỏ báo động, đã kiểm tra phân biệt được cả với người mù màu); mỗi cột có số SV và tên khoảng.
+  - **Bấm vào một cột / một đoạn** để mở danh sách đúng các sinh viên đó.
+
+### ✨ Cải thiện
+- Danh sách gọn hơn: tổng quan lớp và nút AI tổng quan chuyển sang chế độ Biểu đồ; nhãn Báo động đỏ đậm nổi nhất, Cảnh báo cam, Sắp vượt vàng — cùng bộ màu với biểu đồ.
+- Thư viện biểu đồ chỉ tải khi mở chế độ Biểu đồ, không làm chậm lúc mở extension.
+
+---
+
 ## [5.5.0] - 2026-10-15
 
 ### 🚀 Tính năng mới

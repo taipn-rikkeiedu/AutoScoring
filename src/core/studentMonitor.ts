@@ -271,6 +271,92 @@ export function summarizeClass(rows: MonitorRow[]): ClassOverview {
   };
 }
 
+/* ---------- Phân bố cho biểu đồ ---------- */
+/** Trạng thái của 1 khoảng: quyết định màu cột (chỉ khoảng có vấn đề mới tô màu). */
+export type BinStatus = 'normal' | 'early' | 'warning' | 'alarm' | 'absent';
+
+export interface DistributionBin {
+  label: string;
+  status: BinStatus;
+  count: number;
+  keys: string[]; // SV thuộc khoảng này — bấm cột để mở danh sách
+}
+
+export interface Distribution {
+  key: 'absent' | 'homework' | 'elearning' | 'hk' | 'ck';
+  title: string;
+  subtitle: string;
+  bins: DistributionBin[];
+}
+
+const n1 = (v: number) => String(Math.round(v * 10) / 10);
+
+function binRows(rows: MonitorRow[], defs: { label: string; status: BinStatus; test: (r: MonitorRow) => boolean }[]): DistributionBin[] {
+  return defs.map(d => {
+    const keys = rows.filter(d.test).map(r => r.key);
+    return { label: d.label, status: d.status, count: keys.length, keys };
+  });
+}
+
+/** Phân bố theo % (nghỉ học / thiếu bài tập), các mốc lấy từ ngưỡng đang cài đặt. */
+function percentBins(rows: MonitorRow[], get: (r: MonitorRow) => number | null, early: number, warn: number, alarm: number) {
+  const has = (r: MonitorRow) => get(r) != null;
+  const v = (r: MonitorRow) => get(r) as number;
+  return binRows(rows, [
+    { label: '0%', status: 'normal', test: r => has(r) && v(r) === 0 },
+    { label: `<${n1(early)}%`, status: 'normal', test: r => has(r) && v(r) > 0 && v(r) < early },
+    { label: `${n1(early)}–${n1(warn)}%`, status: 'early', test: r => has(r) && v(r) >= early && v(r) < warn },
+    { label: `${n1(warn)}–${n1(alarm)}%`, status: 'warning', test: r => has(r) && v(r) >= warn && v(r) <= alarm },
+    { label: `>${n1(alarm)}%`, status: 'alarm', test: r => has(r) && v(r) > alarm }
+  ]);
+}
+
+/** Phân bố điểm thi tổng hợp 1 đợt (30% TN + 70% TL theo công thức môn). */
+function examBins(rows: MonitorRow[], phase: 'hk' | 'ck', rules: MonitorRules) {
+  const score = (r: MonitorRow) => (phase === 'hk' ? r.hk : r.ck);
+  const absent = (r: MonitorRow) => r.absentPhases.includes(phase);
+  const has = (r: MonitorRow) => !absent(r) && score(r) != null;
+  const s = (r: MonitorRow) => score(r) as number;
+  return binRows(rows, [
+    { label: 'Vắng', status: 'absent', test: absent },
+    { label: `<${rules.examPass}`, status: 'warning', test: r => has(r) && s(r) < rules.examPass },
+    { label: `${rules.examPass}–${rules.earlyExamTo}`, status: 'early', test: r => has(r) && s(r) >= rules.examPass && s(r) <= rules.earlyExamTo },
+    { label: `${rules.earlyExamTo}–80`, status: 'normal', test: r => has(r) && s(r) > rules.earlyExamTo && s(r) < 80 },
+    { label: '≥80', status: 'normal', test: r => has(r) && s(r) >= 80 }
+  ]);
+}
+
+export function buildDistributions(rows: MonitorRow[], rules: MonitorRules): Distribution[] {
+  const avgOf = (vals: (number | null)[]) => avg(vals);
+  const dists: Distribution[] = [
+    {
+      key: 'absent', title: 'Nghỉ học', subtitle: `TB ${fmtPercent(avgOf(rows.map(r => r.absentRate)))}`,
+      bins: percentBins(rows, r => r.absentRate, rules.earlyAbsentFrom, rules.absentWarn, rules.absentAlarm)
+    },
+    {
+      key: 'homework', title: 'Thiếu bài tập', subtitle: `TB ${fmtPercent(avgOf(rows.map(r => r.missingHomework)))}`,
+      bins: percentBins(rows, r => r.missingHomework, rules.earlyHomeworkFrom, rules.homeworkWarn, rules.homeworkAlarm)
+    },
+    {
+      key: 'elearning', title: 'Chậm E-learning', subtitle: `${rows.filter(r => (r.unprepared ?? 0) > 0).length} SV chậm`,
+      bins: binRows(rows, [
+        { label: 'Đúng hạn', status: 'normal', test: r => r.unprepared != null && r.unprepared < rules.elearningWarn },
+        { label: `${rules.elearningWarn} bài`, status: 'warning', test: r => r.unprepared != null && r.unprepared >= rules.elearningWarn && r.unprepared < rules.elearningAlarm },
+        { label: `≥${rules.elearningAlarm} bài`, status: 'alarm', test: r => r.unprepared != null && r.unprepared >= rules.elearningAlarm }
+      ])
+    }
+  ];
+  const hkScores = rows.filter(r => !r.absentPhases.includes('hk')).map(r => r.hk);
+  const ckScores = rows.filter(r => !r.absentPhases.includes('ck')).map(r => r.ck);
+  if (rows.some(r => r.hk != null || r.absentPhases.includes('hk'))) {
+    dists.push({ key: 'hk', title: 'Điểm Hackathon', subtitle: `TB ${fmtScore(avg(hkScores))}`, bins: examBins(rows, 'hk', rules) });
+  }
+  if (rows.some(r => r.ck != null || r.absentPhases.includes('ck'))) {
+    dists.push({ key: 'ck', title: 'Điểm thi cuối môn', subtitle: `TB ${fmtScore(avg(ckScores))}`, bins: examBins(rows, 'ck', rules) });
+  }
+  return dists;
+}
+
 /* ---------- Prompt cho AI ---------- */
 const describeStudent = (r: MonitorRow) => [
   `Nghỉ học ${fmtPercent(r.absentRate)}, thiếu bài tập ${fmtPercent(r.missingHomework)}, chậm e-learning ${r.unprepared ?? '—'} bài`,

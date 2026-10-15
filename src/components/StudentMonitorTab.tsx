@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import {
   Table, Button, Select, Input, InputNumber, Tag, Card, Progress, Modal, Drawer, Descriptions,
-  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Space, Dropdown, Checkbox
+  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Space, Dropdown, Checkbox, Segmented
 } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
-  CloudDownloadOutlined, DownloadOutlined, SettingOutlined, RobotOutlined, FileSearchOutlined, FilterOutlined
+  CloudDownloadOutlined, DownloadOutlined, SettingOutlined, RobotOutlined, FileSearchOutlined, FilterOutlined,
+  UnorderedListOutlined, BarChartOutlined
 } from '@ant-design/icons';
-import { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
+import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
   MonitorRow, MonitorRules, MONITOR_FILTERS, RISK_LEVELS, DEFAULT_MONITOR_RULES, EXAM_CELLS, fmtPercent, fmtExamCell
 } from '~/src/core/studentMonitor';
@@ -18,12 +19,16 @@ const { TextArea } = Input;
 
 type Monitor = ReturnType<typeof useStudentMonitor>;
 
+// Thư viện biểu đồ khá nặng → chỉ tải khi mở chế độ Biểu đồ
+const StudentMonitorCharts = lazy(() =>
+  import('~/src/components/StudentMonitorCharts').then(mod => ({ default: mod.StudentMonitorCharts })));
+
 const DISCLAIMER = 'Nghi vấn chỉ là dấu hiệu cần rà soát (vd vấn đáp lại bài tập), không phải bằng chứng gian lận.';
 
 const RiskTag: React.FC<{ row: MonitorRow }> = ({ row }) => {
   const label = RISK_LEVELS[row.risk].label;
-  if (row.risk === 'alarm') return <Tag color="error" variant="solid">{label}</Tag>;
-  if (row.risk === 'warning') return <Tag color="warning" variant="solid">{label}</Tag>;
+  if (row.risk === 'alarm') return <Tag color="#cf1322" variant="solid">{label}</Tag>;
+  if (row.risk === 'warning') return <Tag color="orange" variant="solid">{label}</Tag>;
   if (row.risk === 'early') return <Tag color="gold" variant="filled">{label}</Tag>;
   return <Text type="secondary">{label}</Text>;
 };
@@ -35,7 +40,7 @@ const IssueTags: React.FC<{ row: MonitorRow }> = ({ row }) => {
   const tags: React.ReactNode[] = [
     ...[...row.issues]
       .sort((x, y) => Number(y.severity === 'alarm') - Number(x.severity === 'alarm'))
-      .map(i => <Tag key={i.kind} color={i.severity === 'alarm' ? 'error' : 'warning'} variant="filled" style={{ margin: 0 }}>{i.label}</Tag>),
+      .map(i => <Tag key={i.kind} color={i.severity === 'alarm' ? 'red' : 'orange'} variant="filled" style={{ margin: 0 }}>{i.label}</Tag>),
     ...row.early.map(e => <Tag key={`early-${e.kind}`} color="gold" variant="outlined" style={{ margin: 0 }}>Sắp: {e.label}</Tag>),
     ...(row.suspect || row.dups.length
       ? [<Tooltip key="suspect" title={[row.suspect ? ANALYSIS_LEVELS[row.level].label : '', row.dups.length ? 'trùng link bài nộp' : ''].filter(Boolean).join(', ')}>
@@ -119,6 +124,15 @@ export const StudentMonitorTab: React.FC = () => {
         <Button type="primary" icon={<CloudDownloadOutlined />} onClick={m.handleLoad} loading={m.busy} disabled={!m.selectedClassIds.length || !m.courseId}>
           Tải dữ liệu
         </Button>
+        <Segmented<MonitorView>
+          value={m.view}
+          onChange={m.setView}
+          disabled={!m.rows.length}
+          options={[
+            { value: 'list', icon: <Tooltip title="Danh sách sinh viên"><UnorderedListOutlined /></Tooltip> },
+            { value: 'chart', icon: <Tooltip title="Biểu đồ thống kê"><BarChartOutlined /></Tooltip> }
+          ]}
+        />
         <Tooltip title="Ngưỡng cảnh báo, nghi vấn & danh sách rà soát">
           <Badge dot={settingsChanged}>
             <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} />
@@ -134,10 +148,22 @@ export const StudentMonitorTab: React.FC = () => {
         />
       )}
 
-      {m.rows.length > 0 && <Overview m={m} />}
+      {m.rows.length > 0 && m.view === 'chart' && (
+        <Flex vertical gap={12} style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <Overview m={m} />
+          <Suspense fallback={<Flex justify="center" style={{ padding: 24 }}><Text type="secondary">Đang tải biểu đồ…</Text></Flex>}>
+            <StudentMonitorCharts
+              byRisk={m.overview.byRisk}
+              distributions={m.distributions}
+              onPickRisk={m.openRiskLevel}
+              onPickBin={m.openChartBin}
+            />
+          </Suspense>
+        </Flex>
+      )}
 
       {/* Bộ lọc thông minh (chọn nhiều, khớp bất kỳ) + tìm kiếm + xuất Excel */}
-      {m.rows.length > 0 && (
+      {m.rows.length > 0 && m.view === 'list' && (
         <Flex justify="space-between" align="center" gap={8}>
           <Flex gap={4} align="center" style={{ minWidth: 0 }}>
             {levelFilters.map(f => {
@@ -171,7 +197,10 @@ export const StudentMonitorTab: React.FC = () => {
                 Lọc thêm{otherActive ? ` (${otherActive})` : ''}
               </Button>
             </Dropdown>
-            {m.filters.length > 0 && <Button size="small" type="link" onClick={m.clearFilters}>Bỏ lọc</Button>}
+            {m.chartFilter && (
+              <Tag color="blue" closable onClose={m.clearChartFilter} style={{ margin: 0 }}>{m.chartFilter.label}</Tag>
+            )}
+            {(m.filters.length > 0 || m.chartFilter) && <Button size="small" type="link" onClick={m.clearFilters}>Bỏ lọc</Button>}
           </Flex>
           <Flex gap={8} style={{ flexShrink: 0 }}>
             <Input.Search
@@ -188,7 +217,7 @@ export const StudentMonitorTab: React.FC = () => {
         </Flex>
       )}
 
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#fff', borderRadius: 8 }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#fff', borderRadius: 8, display: m.view === 'list' || !m.rows.length ? undefined : 'none' }}>
         <Table<MonitorRow>
           rowKey="key"
           dataSource={m.visibleRows}

@@ -9,7 +9,8 @@ import {
 } from '~/src/core/examAnalysis';
 import {
   MonitorBase, MonitorRow, MonitorRules, MonitorFilter, DEFAULT_MONITOR_RULES, MONITOR_FILTERS, RISK_LEVELS,
-  parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS
+  parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS,
+  buildDistributions, DistributionBin
 } from '~/src/core/studentMonitor';
 import { callAiWithRateLimitRetry } from '~/src/services/aiService';
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
@@ -26,6 +27,9 @@ interface MonitorPrefs {
 }
 
 export interface AiResult { loading: boolean; text?: string; error?: string }
+export type MonitorView = 'list' | 'chart';
+/** Lọc theo 1 cột biểu đồ: đúng nhóm SV của cột đó. */
+export interface ChartFilter { label: string; keys: Set<string> }
 
 const LOG_MODULE = 'STUDENT_MONITOR';
 const STUDENT_FETCH_CONCURRENCY = 4;
@@ -42,6 +46,8 @@ export function useStudentMonitor() {
   const [rules, setRules] = useState<AnalysisRules>(DEFAULT_ANALYSIS_RULES);
   const [watchText, setWatchText] = useState('');
   const [filters, setFilters] = useState<MonitorFilter[]>([]);
+  const [chartFilter, setChartFilter] = useState<ChartFilter | null>(null);
+  const [view, setView] = useState<MonitorView>('list');
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; text: string } | null>(null);
@@ -114,6 +120,7 @@ export function useStudentMonitor() {
     setBusy(true);
     setClassAi(null);
     setStudentAi({});
+    setChartFilter(null);
     try {
       const auth = await getQldtAuth();
       const cols = new Map<string, TestColumn>();
@@ -146,6 +153,7 @@ export function useStudentMonitor() {
     () => evaluateMonitor(baseRows, monitorRules, rules, watchList),
     [baseRows, monitorRules, rules, watchList]);
   const overview = useMemo(() => summarizeClass(rows), [rows]);
+  const distributions = useMemo(() => buildDistributions(rows, monitorRules), [rows, monitorRules]);
   const filterCounts = useMemo(() => {
     const counts = {} as Record<MonitorFilter, number>;
     MONITOR_FILTERS.forEach(f => { counts[f.key] = rows.filter(r => matchesFilter(r, f.key)).length; });
@@ -155,9 +163,23 @@ export function useStudentMonitor() {
   const visibleRows = useMemo(() => {
     const q = plainText(query);
     return rows.filter(r =>
-      (!filters.length || filters.some(f => matchesFilter(r, f)))
+      (!chartFilter || chartFilter.keys.has(r.key))
+      && (!filters.length || filters.some(f => matchesFilter(r, f)))
       && (!q || plainText(r.name).includes(q) || plainText(r.code).includes(q) || plainText(r.email).includes(q)));
-  }, [rows, filters, query]);
+  }, [rows, filters, chartFilter, query]);
+
+  /** Bấm 1 cột / 1 đoạn trên biểu đồ → mở danh sách đúng các SV đó. */
+  const openChartBin = (title: string, bin: DistributionBin) => {
+    if (!bin.count) return;
+    setFilters([]);
+    setChartFilter({ label: `${title}: ${bin.label}`, keys: new Set(bin.keys) });
+    setView('list');
+  };
+  const openRiskLevel = (level: MonitorFilter) => {
+    setChartFilter(null);
+    setFilters([level]);
+    setView('list');
+  };
 
   useEffect(() => {
     if (!rows.length) return;
@@ -257,7 +279,8 @@ export function useStudentMonitor() {
     classes, selectedClassIds, courses, courseId, setCourseId, courseName,
     rows, visibleRows, testCols, overview, filterCounts, watchList, watchMissing,
     monitorRules, setMonitorRules, rules, setRules, watchText, setWatchText,
-    filters, toggleFilter, clearFilters: () => setFilters([]), query, setQuery,
+    filters, toggleFilter, clearFilters: () => { setFilters([]); setChartFilter(null); }, query, setQuery,
+    view, setView, distributions, chartFilter, clearChartFilter: () => setChartFilter(null), openChartBin, openRiskLevel,
     busy, progress, statusText, classAi, studentAi,
     handleClassChange, handleLoad, handleLoadExerciseAi, handleClassAi, handleStudentAi, handleExport,
     reloadClasses: () => loadClasses(classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current)
