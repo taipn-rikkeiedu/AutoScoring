@@ -33,9 +33,9 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
     title: "Kho đề bài",
     subtitle: "Quản lý đề bài và thang điểm chấm",
   },
-  "tab-learning-stats": {
-    title: "Giám sát học tập",
-    subtitle: "Cảnh báo vi phạm học tập và nghi vấn BTVN theo lớp, môn",
+  "tab-students": {
+    title: "Quản lý sinh viên",
+    subtitle: "Giám sát học tập, tra cứu sinh viên và danh sách lớp",
   },
   "tab-shortcuts": {
     title: "Lối tắt nhanh",

@@ -3,7 +3,7 @@ import { Drawer, Button, Tag, Typography, Flex, Alert, Collapse, Descriptions, T
 import { LeftOutlined, RightOutlined, RobotOutlined } from '@ant-design/icons';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
-  MonitorRow, MonitorRules, ExamCell, RISK_LEVELS, STATUS_COLORS, fmtPercent
+  MonitorRow, MonitorRules, ExamCell, RISK_LEVELS, STATUS_COLORS, fmtPercent, fmtDate
 } from '~/src/core/studentMonitor';
 import { TestColumn, ANALYSIS_LEVELS, fmtScore } from '~/src/core/examAnalysis';
 
@@ -257,6 +257,8 @@ export const StudentMonitorDrawer: React.FC<{
             items={[
               { key: 'code', label: 'MSSV', children: <Text copyable>{r.code}</Text> },
               { key: 'email', label: 'Email', children: r.email ? <Text copyable>{r.email}</Text> : '—' },
+              { key: 'phone', label: 'SĐT', children: r.phone ? <Text copyable>{r.phone}</Text> : '—' },
+              { key: 'dob', label: 'Ngày sinh', children: fmtDate(r.dateOfBirth) },
               { key: 'class', label: 'Lớp', children: r.classLabel }
             ]}
           />

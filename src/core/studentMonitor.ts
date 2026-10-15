@@ -73,6 +73,9 @@ export interface EarlySignal {
 
 export interface MonitorBase extends AnalysisRow {
   email: string;
+  phone: string;
+  dateOfBirth: string;            // yyyy-mm-dd
+
   missingHomework: number | null; // tỉ lệ thiếu bài tập (%) — 100 − submissionRate
   unprepared: number | null;      // số bài e-learning chậm — elearningProgress
   rpoints: number | null;
@@ -117,6 +120,10 @@ export function matchesFilter(r: MonitorRow, f: MonitorFilter): boolean {
 }
 
 export const fmtPercent = (v: number | null) => (v == null ? '—' : `${v.toFixed(2)}%`);
+export const fmtDate = (iso: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '—';
+};
 export const fmtExamCell = (v: ExamCell) => (v === 'absent' ? 'Vắng' : fmtScore(v));
 
 /* ---------- Đọc dữ liệu 1 lớp ---------- */
@@ -137,6 +144,8 @@ export function parseMonitorClass(d: any, classLabel: string, testCols: Map<stri
     return {
       ...a,
       email: it.student?.email || '',
+      phone: it.student?.phone || '',
+      dateOfBirth: it.student?.dateOfBirth || '',
       missingHomework: submission != null ? Math.max(0, 100 - submission) : null,
       unprepared: it.elearningProgress != null ? Number(it.elearningProgress) : null,
       rpoints: it.rpoints != null ? Number(it.rpoints) : null,

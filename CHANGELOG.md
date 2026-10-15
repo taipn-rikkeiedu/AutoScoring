@@ -4,6 +4,18 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.7.0] - 2026-10-15
+
+### 🚀 Tính năng mới
+- **Tra cứu sinh viên**: tìm theo tên (gõ không dấu cũng được), MSSV, email hoặc số điện thoại trong các lớp đã tải ở Giám sát học tập. Mỗi kết quả hiện lớp, MSSV, email, SĐT (có nút sao chép), ngày sinh, mức cảnh báo và các vấn đề; bấm vào để mở chi tiết đầy đủ.
+- Chi tiết sinh viên bổ sung SĐT và ngày sinh ở mục Liên hệ.
+
+### ✨ Cải thiện
+- **Sắp xếp lại sidebar theo công việc**: nhóm **Chấm điểm** (Chấm hàng loạt, Chấm Mini Project, Kho đề bài) và nhóm **Quản lý sinh viên** (Quản lý sinh viên, Chăm sóc học viên).
+- **Quản lý sinh viên** gộp 3 tab con: Giám sát học tập | Tra cứu sinh viên | Danh sách lớp. Dữ liệu các lớp đã tải dùng chung cho Giám sát và Tra cứu. Mở extension ở trang homework-checking hoặc learning-statistics sẽ tự vào đúng tab con.
+
+---
+
 ## [5.6.1] - 2026-10-15
 
 ### ✨ Cải thiện

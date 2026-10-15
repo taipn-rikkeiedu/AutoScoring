@@ -5,12 +5,11 @@ import { NavigationSidebar } from '~/src/components/NavigationSidebar';
 import { Header } from '~/src/components/Header';
 import { AutoGraderTab } from '~/src/components/AutoGraderTab';
 import { MiniProjectTab } from '~/src/components/MiniProjectTab';
-import { ClassListTab } from '~/src/components/ClassListTab';
 import { CareTab } from '~/src/components/CareTab';
 import { ExercisesTab } from '~/src/components/ExercisesTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
 import { ReportModal } from '~/src/components/ReportModal';
-import { StudentMonitorTab } from '~/src/components/StudentMonitorTab';
+import { StudentManagementTab, StudentSubTab } from '~/src/components/StudentManagementTab';
 import { queryActiveLmsTab } from '~/src/core/utils';
 import { ConfigProvider, Layout, Spin, Result, Button, App as AntdApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
@@ -36,6 +35,7 @@ const UnsupportedPageWarning: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("tab-auto");
+  const [studentSubTab, setStudentSubTab] = useState<StudentSubTab>("monitor");
   const [activeTabUrl, setActiveTabUrl] = useState<string>("");
   const { isLoading } = useApp();
   const [reportModalData, setReportModalData] = useState<{
@@ -82,11 +82,13 @@ const AppContent: React.FC = () => {
         if (url.includes("/class/") && url.includes("/take-care")) {
           targetTab = "tab-care";
         } else if (url.includes("/homework-checking/")) {
-          targetTab = "tab-class-list";
+          targetTab = "tab-students";
+          setStudentSubTab("class-list");
         } else if (url.includes("/type/elMajor/") && url.includes("/view/")) {
           targetTab = "tab-exercises";
         } else if (url.includes("/learning-statistics")) {
-          targetTab = "tab-learning-stats";
+          targetTab = "tab-students";
+          setStudentSubTab("monitor");
         } else if (url.includes("/practice-result/")) {
           targetTab = "tab-miniproject";
         }
@@ -115,16 +117,23 @@ const AppContent: React.FC = () => {
         <Header activeTab={activeTab} />
         
         <Content style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {!isLmsPage && ["tab-auto", "tab-miniproject", "tab-class-list", "tab-care", "tab-exercises"].includes(activeTab) ? (
+          {!isLmsPage && ["tab-auto", "tab-miniproject", "tab-care", "tab-exercises"].includes(activeTab) ? (
             <UnsupportedPageWarning />
           ) : (
             <>
               {activeTab === "tab-auto" && <AutoGraderTab />}
               {activeTab === "tab-miniproject" && <MiniProjectTab />}
-              {activeTab === "tab-class-list" && <ClassListTab setActiveTab={setActiveTab} />}
               {activeTab === "tab-care" && <CareTab />}
               {activeTab === "tab-exercises" && <ExercisesTab />}
-              {activeTab === "tab-learning-stats" && <StudentMonitorTab />}
+              {activeTab === "tab-students" && (
+                <StudentManagementTab
+                  subTab={studentSubTab}
+                  setSubTab={setStudentSubTab}
+                  setActiveTab={setActiveTab}
+                  isLmsPage={isLmsPage}
+                  unsupportedPage={<UnsupportedPageWarning />}
+                />
+              )}
               {activeTab === "tab-settings" && <SettingsTab />}
             </>
           )}
