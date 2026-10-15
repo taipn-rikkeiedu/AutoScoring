@@ -1,18 +1,19 @@
 import React, { Suspense, lazy, useState } from 'react';
 import {
-  Table, Button, Select, Input, InputNumber, Tag, Card, Progress, Modal, Drawer, Descriptions,
+  Table, Button, Select, Input, InputNumber, Tag, Card, Progress, Drawer,
   Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Space, Dropdown, Checkbox, Segmented
 } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
-  CloudDownloadOutlined, DownloadOutlined, SettingOutlined, RobotOutlined, FileSearchOutlined, FilterOutlined,
+  CloudDownloadOutlined, DownloadOutlined, SettingOutlined, RobotOutlined, FilterOutlined,
   UnorderedListOutlined, BarChartOutlined
 } from '@ant-design/icons';
 import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
+import { StudentMonitorDrawer, RiskTag } from '~/src/components/StudentMonitorDrawer';
 import {
-  MonitorRow, MonitorRules, MONITOR_FILTERS, RISK_LEVELS, DEFAULT_MONITOR_RULES, EXAM_CELLS, fmtPercent, fmtExamCell
+  MonitorRow, MonitorRules, MONITOR_FILTERS, DEFAULT_MONITOR_RULES, fmtPercent
 } from '~/src/core/studentMonitor';
-import { AnalysisRules, TestColumn, ANALYSIS_LEVELS, DEFAULT_ANALYSIS_RULES, fmtScore } from '~/src/core/examAnalysis';
+import { AnalysisRules, ANALYSIS_LEVELS, DEFAULT_ANALYSIS_RULES } from '~/src/core/examAnalysis';
 
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -23,15 +24,6 @@ type Monitor = ReturnType<typeof useStudentMonitor>;
 const StudentMonitorCharts = lazy(() =>
   import('~/src/components/StudentMonitorCharts').then(mod => ({ default: mod.StudentMonitorCharts })));
 
-const DISCLAIMER = 'Nghi vấn chỉ là dấu hiệu cần rà soát (vd vấn đáp lại bài tập), không phải bằng chứng gian lận.';
-
-const RiskTag: React.FC<{ row: MonitorRow }> = ({ row }) => {
-  const label = RISK_LEVELS[row.risk].label;
-  if (row.risk === 'alarm') return <Tag color="#cf1322" variant="solid">{label}</Tag>;
-  if (row.risk === 'warning') return <Tag color="orange" variant="solid">{label}</Tag>;
-  if (row.risk === 'early') return <Tag color="gold" variant="filled">{label}</Tag>;
-  return <Text type="secondary">{label}</Text>;
-};
 
 const MAX_ISSUE_TAGS = 3;
 
@@ -60,8 +52,7 @@ const IssueTags: React.FC<{ row: MonitorRow }> = ({ row }) => {
 export const StudentMonitorTab: React.FC = () => {
   const m = useStudentMonitor();
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [detail, setDetail] = useState<MonitorRow | null>(null);
-  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   React.useEffect(() => {
     window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: m.statusText }));
@@ -72,8 +63,10 @@ export const StudentMonitorTab: React.FC = () => {
   const settingsChanged = m.watchList.length > 0
     || (Object.keys(DEFAULT_MONITOR_RULES) as (keyof MonitorRules)[]).some(k => m.monitorRules[k] !== DEFAULT_MONITOR_RULES[k])
     || (Object.keys(DEFAULT_ANALYSIS_RULES) as (keyof AnalysisRules)[]).some(k => m.rules[k] !== DEFAULT_ANALYSIS_RULES[k]);
-  const toggleExpand = (key: string) =>
-    setExpandedKeys(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
+  // SV đang xem: duyệt trước / sau theo đúng thứ tự danh sách đang lọc
+  const selectedIndex = selectedKey ? m.visibleRows.findIndex(r => r.key === selectedKey) : -1;
+  const selectedRow = selectedIndex >= 0 ? m.visibleRows[selectedIndex] : null;
+  const goTo = (i: number) => { const r = m.visibleRows[i]; if (r) setSelectedKey(r.key); };
 
   const columns: TableColumnsType<MonitorRow> = [
     {
@@ -225,23 +218,29 @@ export const StudentMonitorTab: React.FC = () => {
           pagination={false}
           size="small"
           sticky
-          expandable={{
-            showExpandColumn: false,
-            expandedRowKeys: expandedKeys,
-            onExpand: (_, r) => toggleExpand(r.key),
-            expandedRowRender: (r) => <StudentDetails row={r} m={m} onOpenExams={() => setDetail(r)} />
-          }}
-          onRow={(r) => ({ onClick: () => toggleExpand(r.key), style: { cursor: 'pointer' } })}
+          onRow={(r) => ({
+            onClick: () => setSelectedKey(r.key),
+            style: { cursor: 'pointer', background: r.key === selectedKey ? '#e6f4ff' : undefined }
+          })}
           locale={{
             emptyText: <Empty description={m.rows.length
               ? 'Không có sinh viên nào khớp bộ lọc.'
-              : 'Chọn lớp và môn học rồi bấm "Tải dữ liệu". Bấm vào một sinh viên để xem đầy đủ thông tin.'} />
+              : 'Chọn lớp và môn học rồi bấm "Tải dữ liệu". Bấm vào một sinh viên để xem chi tiết.'} />
           }}
         />
       </div>
 
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} m={m} />
-      <ExamDetailModal row={detail} testCols={m.testCols} onClose={() => setDetail(null)} />
+      <StudentMonitorDrawer
+        row={selectedRow}
+        index={selectedIndex}
+        total={m.visibleRows.length}
+        testCols={m.testCols}
+        m={m}
+        onPrev={() => goTo(selectedIndex - 1)}
+        onNext={() => goTo(selectedIndex + 1)}
+        onClose={() => setSelectedKey(null)}
+      />
     </Flex>
   );
 };
@@ -266,47 +265,6 @@ const Overview: React.FC<{ m: Monitor }> = ({ m }) => {
           title={<Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3, expandable: 'collapsible' }}>{m.classAi.text}</Paragraph>}
         />
       )}
-    </Flex>
-  );
-};
-
-/* ---------- Thông tin đầy đủ khi mở 1 SV ---------- */
-const StudentDetails: React.FC<{ row: MonitorRow; m: Monitor; onOpenExams: () => void }> = ({ row: r, m, onOpenExams }) => {
-  const ai = m.studentAi[r.key];
-  return (
-    <Flex vertical gap={8} onClick={(e) => e.stopPropagation()}>
-      <Descriptions
-        size="small"
-        column={4}
-        items={[
-          { key: 'absent', label: 'Nghỉ học', children: fmtPercent(r.absentRate) },
-          { key: 'hw', label: 'Thiếu BT', children: fmtPercent(r.missingHomework) },
-          { key: 'el', label: 'Chậm EL', children: r.unprepared ?? '—' },
-          { key: 'rp', label: 'R-Points', children: r.rpoints ?? '—' },
-          ...EXAM_CELLS.map(c => ({ key: c.key, label: c.label, children: fmtExamCell(r[c.key]) })),
-          { key: 'code', label: 'MSSV', children: r.code },
-          { key: 'email', label: 'Email', children: r.email || '—', span: 2 },
-          { key: 'ai', label: 'AI BT TB', children: fmtScore(r.aiAvg) }
-        ]}
-      />
-      {r.actions.length > 0 && (
-        <div>
-          <Text strong>Gợi ý hành động</Text>
-          <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>{r.actions.map(a => <li key={a}>{a}</li>)}</ul>
-        </div>
-      )}
-      {r.reasons.length > 0 && (
-        <div>
-          <Text strong>Dấu hiệu nghi vấn</Text> <Text type="secondary">— {DISCLAIMER}</Text>
-          <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>{r.reasons.map(x => <li key={x}>{x}</li>)}</ul>
-        </div>
-      )}
-      <Space>
-        <Button size="small" icon={<FileSearchOutlined />} onClick={onOpenExams}>Điểm thi & nhận xét GV</Button>
-        <Button size="small" icon={<RobotOutlined />} onClick={() => m.handleStudentAi(r)} loading={ai?.loading}>AI nhận xét</Button>
-      </Space>
-      {ai?.error && <Alert type="error" showIcon title={ai.error} />}
-      {ai?.text && <Alert type="info" title={<span style={{ whiteSpace: 'pre-wrap' }}>{ai.text}</span>} />}
     </Flex>
   );
 };
@@ -379,48 +337,5 @@ const SettingsDrawer: React.FC<{ open: boolean; onClose: () => void; m: Monitor 
         )}
       </Flex>
     </Drawer>
-  );
-};
-
-/* ---------- Điểm thi, nhận xét GV chấm, bài tập ---------- */
-const ExamDetailModal: React.FC<{ row: MonitorRow | null; testCols: TestColumn[]; onClose: () => void }> = ({ row: r, testCols, onClose }) => {
-  if (!r) return null;
-  const tests = testCols.map(c => r.tests[c.key]).filter(Boolean);
-  const section = (title: string) => <Text strong style={{ display: 'block', margin: '16px 0 6px' }}>{title}</Text>;
-  return (
-    <Modal open onCancel={onClose} footer={null} width={640} title={`${r.name} — ${r.code}`}>
-      {section('Điểm thi & nhận xét của giảng viên chấm')}
-      {tests.length ? tests.map((t, i) => (
-        <div key={i} style={{ marginBottom: 8 }}>
-          <Flex justify="space-between" gap={8}>
-            <span>
-              {t.name} <Text type="secondary">· {t.kind === 'TL' ? 'tự luận' : 'trắc nghiệm'}</Text>
-              {t.link && <> · <a href={t.link} target="_blank" rel="noopener noreferrer">bài làm</a></>}
-            </span>
-            {t.absent ? <Text type="secondary">Vắng thi</Text> : <Text strong>{fmtScore(t.point)}</Text>}
-          </Flex>
-          {t.comment && (
-            <div style={{ whiteSpace: 'pre-wrap', color: '#595959', background: '#fafafa', padding: '4px 8px', borderRadius: 4, marginTop: 4 }}>
-              {t.comment}
-            </div>
-          )}
-        </div>
-      )) : <Text type="secondary">Chưa có điểm thi.</Text>}
-
-      {section('Bài tập về nhà')}
-      {r.exercises ? (
-        <Table
-          size="small"
-          pagination={false}
-          rowKey={(_, i) => String(i)}
-          dataSource={r.exercises}
-          columns={[
-            { title: 'Bài tập', dataIndex: 'title' },
-            { title: 'Điểm AI', key: 'ai', width: 80, align: 'right', render: (_, e) => fmtScore(e.ai) },
-            { title: '', key: 'link', width: 70, render: (_, e) => e.link ? <a href={e.link} target="_blank" rel="noopener noreferrer">mở link</a> : null }
-          ]}
-        />
-      ) : <Text type="secondary">Mở ⚙ Cài đặt → "Tải điểm AI bài tập" để xem danh sách bài tập và điểm AI.</Text>}
-    </Modal>
   );
 };

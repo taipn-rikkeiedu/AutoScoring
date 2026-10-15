@@ -55,13 +55,19 @@ export type IssueKind = 'absent' | 'homework' | 'elearning' | 'examLow' | 'examA
 export interface Issue {
   kind: IssueKind;
   severity: 'warning' | 'alarm';
-  label: string;   // nhãn ngắn hiện trên dòng, vd "Nghỉ 12.50%"
-  action: string;  // gợi ý hành động
+  label: string;     // nhãn ngắn hiện trên dòng, vd "Nghỉ 12.50%"
+  title: string;     // tên vấn đề, vd "Nghỉ học"
+  value: string;     // giá trị hiện tại, vd "30.95%"
+  threshold: string; // ngưỡng đã vượt, vd "trên 20%"
+  action: string;    // gợi ý hành động
 }
 
 export interface EarlySignal {
   kind: 'absent' | 'homework' | 'exam';
   label: string;
+  title: string;
+  value: string;
+  threshold: string;
   action: string;
 }
 
@@ -144,14 +150,15 @@ export function parseMonitorClass(d: any, classLabel: string, testCols: Map<stri
 function percentIssue(kind: 'absent' | 'homework', v: number | null, warn: number, alarm: number): Issue | null {
   if (v == null || v < warn) return null;
   const severity = v > alarm ? 'alarm' : 'warning';
+  const threshold = severity === 'alarm' ? `trên ${alarm}%` : `từ ${warn}%`;
   if (kind === 'absent') {
     return {
-      kind, severity, label: `Nghỉ ${fmtPercent(v)}`,
+      kind, severity, label: `Nghỉ ${fmtPercent(v)}`, title: 'Nghỉ học', value: fmtPercent(v), threshold,
       action: severity === 'alarm' ? 'Liên hệ ngay, nhắc quy định chuyên cần' : 'Nhắc nhở chuyên cần, hỏi lý do nghỉ'
     };
   }
   return {
-    kind, severity, label: `Thiếu BT ${fmtPercent(v)}`,
+    kind, severity, label: `Thiếu BT ${fmtPercent(v)}`, title: 'Thiếu bài tập', value: fmtPercent(v), threshold,
     action: severity === 'alarm' ? 'Liên hệ ngay, lập kế hoạch nộp bù bài tập' : 'Nhắc nộp bù bài tập còn thiếu'
   };
 }
@@ -163,23 +170,28 @@ function evaluateIssues(r: MonitorBase, rules: MonitorRules): Issue[] {
   const homework = percentIssue('homework', r.missingHomework, rules.homeworkWarn, rules.homeworkAlarm);
   if (homework) issues.push(homework);
   if (r.unprepared != null && r.unprepared >= rules.elearningWarn) {
+    const alarm = r.unprepared >= rules.elearningAlarm;
     issues.push({
-      kind: 'elearning', severity: r.unprepared >= rules.elearningAlarm ? 'alarm' : 'warning',
-      label: `Chậm EL ${r.unprepared}`, action: 'Nhắc hoàn thành E-learning trước buổi học'
+      kind: 'elearning', severity: alarm ? 'alarm' : 'warning',
+      label: `Chậm EL ${r.unprepared}`, title: 'Chậm E-learning', value: `${r.unprepared} bài`,
+      threshold: `từ ${alarm ? rules.elearningAlarm : rules.elearningWarn} bài`,
+      action: 'Nhắc hoàn thành E-learning trước buổi học'
     });
   }
   const low = EXAM_CELLS.filter(c => typeof r[c.key] === 'number' && (r[c.key] as number) < rules.examPass);
   if (low.length) {
+    const label = low.map(c => `${c.label} ${fmtScore(r[c.key] as number)}`).join(', ');
     issues.push({
-      kind: 'examLow', severity: 'warning',
-      label: low.map(c => `${c.label} ${fmtScore(r[c.key] as number)}`).join(', '),
+      kind: 'examLow', severity: 'warning', label, title: 'Điểm thi thấp', value: label,
+      threshold: `dưới ${rules.examPass} điểm`,
       action: `Hỗ trợ ôn tập phần thi dưới ${rules.examPass} điểm`
     });
   }
   if (r.absentPhases.length) {
+    const phases = r.absentPhases.map(ph => PHASE_LABELS[ph]).join(', ');
     issues.push({
-      kind: 'examAbsent', severity: 'alarm',
-      label: `Vắng thi ${r.absentPhases.map(ph => PHASE_LABELS[ph]).join(', ')}`,
+      kind: 'examAbsent', severity: 'alarm', label: `Vắng thi ${phases}`, title: 'Vắng thi', value: phases,
+      threshold: 'không nộp bài thi',
       action: 'Xác minh lý do vắng thi, hướng dẫn thi bù / thi lại'
     });
   }
@@ -190,19 +202,26 @@ function evaluateEarly(r: MonitorBase, rules: MonitorRules, issues: Issue[]): Ea
   const has = (k: IssueKind) => issues.some(i => i.kind === k);
   const early: EarlySignal[] = [];
   if (!has('absent') && r.absentRate != null && r.absentRate >= rules.earlyAbsentFrom && r.absentRate < rules.absentWarn) {
-    early.push({ kind: 'absent', label: `Nghỉ ${fmtPercent(r.absentRate)}`, action: `Nhắc sớm: sắp chạm ngưỡng nghỉ ${rules.absentWarn}%` });
+    early.push({
+      kind: 'absent', label: `Nghỉ ${fmtPercent(r.absentRate)}`, title: 'Nghỉ học', value: fmtPercent(r.absentRate),
+      threshold: `sắp chạm ${rules.absentWarn}%`, action: `Nhắc sớm: sắp chạm ngưỡng nghỉ ${rules.absentWarn}%`
+    });
   }
   if (!has('homework') && r.missingHomework != null && r.missingHomework >= rules.earlyHomeworkFrom && r.missingHomework < rules.homeworkWarn) {
-    early.push({ kind: 'homework', label: `Thiếu BT ${fmtPercent(r.missingHomework)}`, action: `Nhắc sớm: sắp chạm ngưỡng thiếu ${rules.homeworkWarn}% bài tập` });
+    early.push({
+      kind: 'homework', label: `Thiếu BT ${fmtPercent(r.missingHomework)}`, title: 'Thiếu bài tập', value: fmtPercent(r.missingHomework),
+      threshold: `sắp chạm ${rules.homeworkWarn}%`, action: `Nhắc sớm: sắp chạm ngưỡng thiếu ${rules.homeworkWarn}% bài tập`
+    });
   }
   const borderline = EXAM_CELLS.filter(c => {
     const v = r[c.key];
     return typeof v === 'number' && v >= rules.examPass && v <= rules.earlyExamTo;
   });
   if (borderline.length) {
+    const label = borderline.map(c => `${c.label} ${fmtScore(r[c.key] as number)}`).join(', ');
     early.push({
-      kind: 'exam', label: borderline.map(c => `${c.label} ${fmtScore(r[c.key] as number)}`).join(', '),
-      action: 'Điểm thi sát ngưỡng đạt, nên theo dõi thêm'
+      kind: 'exam', label, title: 'Điểm thi sát ngưỡng', value: label,
+      threshold: `${rules.examPass}–${rules.earlyExamTo} điểm`, action: 'Điểm thi sát ngưỡng đạt, nên theo dõi thêm'
     });
   }
   return early;
@@ -274,6 +293,18 @@ export function summarizeClass(rows: MonitorRow[]): ClassOverview {
 /* ---------- Phân bố cho biểu đồ ---------- */
 /** Trạng thái của 1 khoảng: quyết định màu cột (chỉ khoảng có vấn đề mới tô màu). */
 export type BinStatus = 'normal' | 'early' | 'warning' | 'alarm' | 'absent';
+
+/**
+ * Màu trạng thái dùng chung cho biểu đồ và chi tiết SV (đã kiểm tra phân biệt được cả với người mù màu).
+ * Luôn đi kèm chữ / nhãn nên màu không phải kênh thông tin duy nhất.
+ */
+export const STATUS_COLORS: Record<BinStatus, string> = {
+  normal: '#bfbfbf',
+  early: '#fadb14',
+  warning: '#fa8c16',
+  alarm: '#cf1322',
+  absent: '#cf1322'
+};
 
 export interface DistributionBin {
   label: string;

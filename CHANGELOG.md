@@ -4,6 +4,19 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.6.1] - 2026-10-15
+
+### ✨ Cải thiện
+- **Chi tiết sinh viên mở trong ngăn kéo bên phải** thay cho mở rộng dưới dòng: danh sách vẫn giữ phía sau (dòng đang xem được tô sáng), chuyển sinh viên trước / sau bằng nút ‹ › hoặc phím ← →.
+- Nội dung chi tiết sắp xếp theo mức ưu tiên:
+  - **Cần xử lý**: mỗi vấn đề ghi giá trị so với ngưỡng, mức (Báo động / Cảnh báo / Sắp vượt) và hành động đi kèm ngay bên dưới.
+  - **Chỉ số học tập**: thanh nghỉ học / thiếu bài tập có vạch ngưỡng cảnh báo và báo động.
+  - **Điểm thi**: bảng Hackathon / Cuối môn × Trắc nghiệm / Tự luận / Tổng, điểm dưới ngưỡng tô đỏ; nhận xét của giảng viên chấm thu gọn ngay bên dưới.
+  - **Nghi vấn BTVN** thu gọn; **Liên hệ** (MSSV, email) có nút sao chép.
+- Nút **AI nhận xét** luôn nằm ở đầu chi tiết.
+
+---
+
 ## [5.6.0] - 2026-10-15
 
 ### 🚀 Tính năng mới

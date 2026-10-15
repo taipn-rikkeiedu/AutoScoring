@@ -1,22 +1,10 @@
 import React from 'react';
 import { Card, Flex, Typography } from 'antd';
 import { Bar, Column } from '@ant-design/plots';
-import type { Distribution, DistributionBin, BinStatus, MonitorFilter, RiskLevel } from '~/src/core/studentMonitor';
-import { RISK_LEVELS } from '~/src/core/studentMonitor';
+import type { Distribution, DistributionBin, MonitorFilter, RiskLevel } from '~/src/core/studentMonitor';
+import { RISK_LEVELS, STATUS_COLORS } from '~/src/core/studentMonitor';
 
 const { Text } = Typography;
-
-/**
- * Màu trạng thái (đã kiểm tra phân biệt được cả với người mù màu): chỉ khoảng có vấn đề mới tô màu,
- * khoảng bình thường để xám. Mỗi cột luôn có số + tên khoảng nên màu không phải kênh thông tin duy nhất.
- */
-export const STATUS_COLORS: Record<BinStatus, string> = {
-  normal: '#bfbfbf',
-  early: '#fadb14',
-  warning: '#fa8c16',
-  alarm: '#cf1322',
-  absent: '#cf1322'
-};
 
 const RISK_COLORS: Record<RiskLevel, string> = {
   alarm: STATUS_COLORS.alarm, warning: STATUS_COLORS.warning, early: STATUS_COLORS.early, normal: '#d9d9d9'
