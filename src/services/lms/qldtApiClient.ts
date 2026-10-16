@@ -9,6 +9,20 @@ import { STORAGE_KEYS } from '~/src/core/constants';
  */
 
 const QLDT_TAB_PATTERN = 'https://qldt.rikkei.edu.vn/*';
+/** Tab bị trình duyệt cho "ngủ" (Edge Sleeping tabs) bị đóng băng: chạy script vào đó có thể treo mãi → bỏ qua sau chừng này. */
+const TAB_SCRIPT_TIMEOUT_MS = 2500;
+/** Request qua background proxy không phản hồi (service worker treo / mạng) → báo lỗi thay vì chờ mãi. */
+const FETCH_TIMEOUT_MS = 45_000;
+
+/** Promise kèm hạn chờ: quá hạn thì reject với thông báo cho trước. */
+export function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })
+  ]).finally(() => clearTimeout(timer));
+}
+const fetchTimeoutMsg = (path: string) => `QLĐT không phản hồi sau ${FETCH_TIMEOUT_MS / 1000}s (${path}). Kiểm tra mạng rồi thử lại; nếu vẫn treo, tắt / bật lại extension.`;
 
 export class QldtAuthError extends Error {}
 
@@ -46,7 +60,7 @@ async function readTokensFromQldtTabs(): Promise<string[]> {
   for (const tab of tabs) {
     if (!tab.id || tab.discarded || (tab.status as string) === 'unloaded') continue;
     try {
-      const [res] = await chrome.scripting.executeScript({
+      const [res] = await withTimeout(chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
           const found: string[] = [];
@@ -60,9 +74,9 @@ async function readTokensFromQldtTabs(): Promise<string[]> {
           }
           return found;
         }
-      });
+      }), TAB_SCRIPT_TIMEOUT_MS, 'Tab QLĐT không phản hồi (đang ngủ)');
       if (Array.isArray(res?.result)) out.push(...(res.result as string[]));
-    } catch { /* tab chưa tải xong / bị chặn → thử tab khác */ }
+    } catch { /* tab chưa tải xong / đang ngủ / bị chặn → thử tab khác, cuối cùng dùng token đã lưu */ }
   }
   return out;
 }
@@ -85,7 +99,7 @@ export async function getQldtAuth(): Promise<string> {
 
 export function qldtGet<T = any>(path: string, auth: string): Promise<T> {
   const url = new URL(path, API_BASE_URLS.lmsPortal).href;
-  return new Promise((resolve, reject) => {
+  return withTimeout(new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
       { type: 'FETCH', url, options: { method: 'GET', headers: { Authorization: auth, Accept: 'application/json' } } },
       (response) => {
@@ -110,13 +124,13 @@ export function qldtGet<T = any>(path: string, auth: string): Promise<T> {
         resolve(json && typeof json === 'object' && 'data' in json ? json.data : json);
       }
     );
-  });
+  }), FETCH_TIMEOUT_MS, fetchTimeoutMsg(path));
 }
 
 /** GET thô (không tách `data`, không ném lỗi theo statusCode) — dùng để thu thập nguyên response. */
 export function qldtGetRaw(path: string, auth: string): Promise<{ url: string; status: number; text: string }> {
   const url = new URL(path, API_BASE_URLS.lmsPortal).href;
-  return new Promise((resolve, reject) => {
+  return withTimeout(new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
       { type: 'FETCH', url, options: { method: 'GET', headers: { Authorization: auth, Accept: 'application/json' } } },
       (response) => {
@@ -129,13 +143,13 @@ export function qldtGetRaw(path: string, auth: string): Promise<{ url: string; s
         resolve({ url, status: response.status ?? 0, text: response.text ?? '' });
       }
     );
-  });
+  }), FETCH_TIMEOUT_MS, fetchTimeoutMsg(path));
 }
 
 /** Gửi request ghi (chỉ các endpoint background cho phép, vd PATCH /take-care-students/:id). Trả `data` của response. */
 export function qldtWrite<T = any>(method: 'PATCH', path: string, auth: string, body: unknown): Promise<T> {
   const url = new URL(path, API_BASE_URLS.lmsPortal).href;
-  return new Promise((resolve, reject) => {
+  return withTimeout(new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
       {
         type: 'FETCH', url,
@@ -158,5 +172,5 @@ export function qldtWrite<T = any>(method: 'PATCH', path: string, auth: string, 
         resolve(json && typeof json === 'object' && 'data' in json ? json.data : json);
       }
     );
-  });
+  }), FETCH_TIMEOUT_MS, fetchTimeoutMsg(path));
 }

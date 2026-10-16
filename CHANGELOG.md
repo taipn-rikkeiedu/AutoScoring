@@ -4,6 +4,15 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.25.4] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- **Treo ở "Chưa tải được danh sách lớp", phải tắt / mở lại Edge mới được**: khi tab QLĐT bị Edge cho "ngủ" (Sleeping tabs), tab bị đóng băng nên việc đọc token trong tab chờ mãi không xong — không báo lỗi, không dùng token đã lưu. Nay chờ tối đa 2,5 giây rồi bỏ qua tab đó và dùng token đã lưu (lấy từ request QLĐT gần nhất).
+- Mọi request tới QLĐT qua proxy nền có hạn chờ 45 giây — quá hạn thì báo lỗi rõ ràng thay vì treo.
+- Chẩn đoán QLĐT báo tab "có thể đang ngủ" khi tab không phản hồi.
+
+---
+
 ## [5.25.3] - 2026-10-16
 
 ### 🚀 Tính năng mới

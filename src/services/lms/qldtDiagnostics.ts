@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '~/src/core/constants';
-import { getQldtAuth, jwtExp, qldtGetRaw } from './qldtApiClient';
+import { getQldtAuth, jwtExp, qldtGetRaw, withTimeout } from './qldtApiClient';
 
 /**
  * Chẩn đoán kết nối QLĐT từng bước (tab → token → API) để tìm chỗ hỏng.
@@ -35,7 +35,7 @@ export async function diagnoseQldt(): Promise<string> {
   for (const t of rikkei.filter(x => /^https:\/\/qldt\.rikkei\.edu\.vn\//.test(x.url || ''))) {
     if (!t.id) continue;
     try {
-      const [res] = await chrome.scripting.executeScript({
+      const [res] = await withTimeout(chrome.scripting.executeScript({
         target: { tabId: t.id },
         func: () => {
           const out: { store: string; key: string; jwt: string; len: number }[] = [];
@@ -48,7 +48,7 @@ export async function diagnoseQldt(): Promise<string> {
           }
           return { out, cookieNames: document.cookie.split(';').map(c => c.split('=')[0].trim()).filter(Boolean) };
         }
-      });
+      }), 2500, 'không phản hồi sau 2,5s — tab có thể đang ngủ (Sleeping tabs), bấm vào tab hoặc F5');
       const r = res?.result as any;
       lines.push(`   Tab ${t.id}: ${r.out.length} khoá storage; cookie đọc được: ${r.cookieNames.join(', ') || '(không có)'}`);
       r.out.forEach((x: any) => lines.push(`     · ${x.store}.${x.key}: ${x.jwt ? `JWT, ${fmtExp(x.jwt)}` : `${x.len} ký tự`}`));
