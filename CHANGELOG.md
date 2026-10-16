@@ -4,6 +4,14 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.25.2] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- **Danh sách lớp trống ("Chưa tải được danh sách lớp — cần đăng nhập QLĐT") dù đã đăng nhập**: QLĐT nay lấy lớp theo từng hệ đào tạo (`/systems/me` → `/classes/system/:id`) thay vì `/classes/system/0`. Extension lấy lớp theo từng hệ của tài khoản (vẫn gọi kèm cách cũ), gộp và bỏ trùng — áp dụng cho Chấm hàng loạt, Giám sát, Chăm sóc học viên và Thu thập API.
+- Tab Chấm hàng loạt / Chăm sóc báo rõ khi tài khoản không có lớp nào thay vì giữ nguyên dòng hướng dẫn.
+
+---
+
 ## [5.25.1] - 2026-10-16
 
 ### 🐛 Sửa lỗi

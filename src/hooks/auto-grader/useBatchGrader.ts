@@ -98,6 +98,7 @@ export function useBatchGrader() {
       const auth = await getQldtAuth();
       const list = await listQldtClasses(auth);
       setClasses(list);
+      if (!list.length) setStatusText('Tài khoản QLĐT đang đăng nhập không có lớp nào (đã tìm theo từng hệ đào tạo).');
       if (want.classId && list.some(c => c.value === want.classId)) {
         setClassId(want.classId);
         await loadCourses(want.classId, want, auth);

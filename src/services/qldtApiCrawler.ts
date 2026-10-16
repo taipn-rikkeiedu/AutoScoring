@@ -84,8 +84,7 @@ export async function crawlQldt(opts: {
     });
   };
 
-  add('/systems/me', 'Tài khoản đang đăng nhập');
-  add('/classes/system/0', 'Danh sách lớp', (classes) => {
+  const onClasses = (classes: any) => {
     (Array.isArray(classes) ? classes : []).forEach((c: any) => {
       const classId = String(c.id);
       const className = c.name || classId;
@@ -95,7 +94,12 @@ export async function crawlQldt(opts: {
           (sem.courses || []).forEach((x: any) => addCourse(classId, className, String(x.id), x.name || String(x.id))));
       });
     });
+  };
+  // Lớp theo từng hệ đào tạo của tài khoản (cách QLĐT hiện dùng) + /classes/system/0 (tất cả hệ, cách cũ)
+  add('/systems/me', 'Tài khoản đang đăng nhập', (systems) => {
+    (Array.isArray(systems) ? systems : []).forEach((s: any) => add(`/classes/system/${s.id}`, `Danh sách lớp · ${s.name || s.id}`, onClasses));
   });
+  add('/classes/system/0', 'Danh sách lớp', onClasses);
 
   const flush = async () => {
     const batch = buffer.splice(0, buffer.length);

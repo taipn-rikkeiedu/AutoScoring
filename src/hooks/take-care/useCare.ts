@@ -34,6 +34,7 @@ export function useCare() {
     try {
       const list = await listQldtClasses(await getQldtAuth());
       setClasses(list);
+      if (!list.length) setStatusText('Tài khoản QLĐT đang đăng nhập không có lớp nào (đã tìm theo từng hệ đào tạo).');
       if (want && list.some(c => c.value === want)) setClassId(want);
     } catch (e: any) {
       setStatusText('Không tải được danh sách lớp: ' + e.message);

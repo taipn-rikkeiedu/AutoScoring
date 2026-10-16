@@ -1,4 +1,4 @@
-import { qldtGet } from './qldtApiClient';
+import { QldtAuthError, qldtGet } from './qldtApiClient';
 
 export interface QldtOption {
   value: string;
@@ -14,9 +14,19 @@ export interface QldtClass {
 
 let classCache: QldtClass[] = [];
 
-/** Danh sách lớp mà tài khoản đang đăng nhập được xem. */
+/**
+ * Danh sách lớp mà tài khoản đang đăng nhập được xem.
+ * QLĐT (từ 16/10/2026) lấy lớp theo từng hệ đào tạo: /systems/me → /classes/system/:id; /classes/system/0
+ * (tất cả hệ, cách cũ) vẫn gọi kèm để không mất lớp nếu còn dùng được. Gộp, bỏ trùng theo id.
+ */
 export async function listQldtClasses(auth: string): Promise<QldtOption[]> {
-  classCache = (await qldtGet<QldtClass[]>('/classes/system/0', auth)) || [];
+  const tolerant = <T,>(p: Promise<T>, empty: T) => p.catch((e) => { if (e instanceof QldtAuthError) throw e; return empty; });
+  const systems = (await tolerant(qldtGet<{ id: number | string }[]>('/systems/me', auth), [])) || [];
+  const ids = ['0', ...systems.map(s => String(s.id))];
+  const lists = await Promise.all(ids.map(id => tolerant(qldtGet<QldtClass[]>(`/classes/system/${id}`, auth), [] as QldtClass[])));
+  const byId = new Map<string, QldtClass>();
+  lists.flat().forEach(c => { if (c && !byId.has(String(c.id))) byId.set(String(c.id), c); });
+  classCache = [...byId.values()];
   return classCache.map(c => ({
     value: String(c.id),
     label: `${c.name}${c.studentCount != null ? ` (${c.studentCount} SV)` : ''}`
