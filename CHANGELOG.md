@@ -4,6 +4,24 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.12.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Chấm hàng loạt lấy bài nộp qua API QLĐT**, không cần mở trang bài nộp:
+  - Chọn **lớp → môn → buổi** (nhớ lựa chọn lần trước; đang mở trang kiểm tra bài tập của một lớp trên QLĐT thì chọn sẵn lớp đó) rồi bấm **Tải bài nộp**.
+  - Bài nộp **khớp đúng đề theo ID** trên QLĐT (đề + hướng dẫn + tiêu chí chấm của buổi) — hết cảnh khớp sai theo tên.
+  - Danh sách **nhóm theo sinh viên**: trạng thái buổi trên QLĐT, số bài đã nộp, điểm trung bình; bấm vào sinh viên để xem từng bài. Hiện cả sinh viên chưa nộp.
+  - **Lọc theo trạng thái buổi** (Đang chờ kiểm tra / Hoàn thành / Chưa hoàn thành / Chưa nộp bài) và tìm theo tên, MSSV.
+  - Các bài có link được chọn sẵn; bấm **Chấm N bài đã chọn** (dừng được giữa chừng). Luôn chấm lại bằng AI của extension; điểm AI hệ thống và nhận xét đang có trên QLĐT chỉ hiện để tham khảo.
+  - Bấm vào điểm để sao chép nhận xét + điểm; ngăn chi tiết xem đề, tiêu chí, nhận xét, tệp đã đọc. Sao chép báo cáo cả buổi (văn bản, Excel, Markdown).
+  - Kết quả chấm lưu theo lớp + buổi (10 buổi gần nhất); sinh viên nộp lại link khác thì bài đó về "Chưa chấm".
+
+### 🗑 Gỡ bỏ
+- **Tab Kho đề bài** và xuất Markdown kho đề: đề được lấy trực tiếp theo buổi khi chấm. Chấm Mini Project tạm thời vẫn dùng đề đã tải trước đó.
+- Quét trang bài nộp và so khớp đề theo tên trong Chấm hàng loạt.
+
+---
+
 ## [5.11.0] - 2026-10-16
 
 ### 🚀 Tính năng mới

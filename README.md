@@ -11,11 +11,11 @@ Vượt trội hơn một công cụ chấm điểm thông thường, **REduX** 
 ## 🎨 Các Tính Năng Nổi Bật Của REduX
 
 ### 1. ⚡ Chấm Hàng Loạt Theo Học Viên & Gom Nhóm Thông Minh (Student-based Parallel Bulk Grading)
-* **Tự động quét trang:** Chỉ với 1-click, REduX sẽ quét toàn bộ danh sách nộp bài của học sinh chứa liên kết GitHub trên trang LMS.
+* **Lấy bài nộp qua API QLĐT:** Chọn lớp → môn → buổi, REduX tự lấy danh sách sinh viên (kèm trạng thái buổi), bài đã nộp và đề của buổi — không cần mở trang bài nộp.
 * **Gom nhóm & Tải mã nguồn tối ưu:** Tự động gom nhóm các bài nộp theo tài khoản học viên (`githubUrl`). Hệ thống chỉ tải mã nguồn học viên **1 lần duy nhất** cho toàn bộ các bài tập trong nhóm.
 * **Bộ nhớ đệm mã nguồn (GitHub Code Cache):** Lưu trữ mã nguồn đã nén vào bộ nhớ cục bộ (`chrome.storage.local`) tối đa 100 bài cache hoạt động (LRU eviction), tự động hết hạn sau 24 giờ. Extension sẽ tự động đối chiếu commit SHA mới nhất qua GitHub API trước khi chấm để đảm bảo mã nguồn luôn được cập nhật. Giáo viên cũng có thể xóa cache thủ công trong tab Cài đặt.
 * **Tải song song đa luồng (Parallel File Fetching):** Nâng cấp hàm tải Git Trees API thủ công chạy đa luồng giới hạn song song tối đa 5 tệp cùng lúc (`concurrencyLimit = 5`), cải thiện tốc độ tải mã nguồn lên gấp 3-5 lần khi tải ZIP gặp sự cố.
-* **Fuzzy Matching thông minh:** So sánh tương đối tên bài nộp của học sinh với cơ sở dữ liệu để tự động liên kết (map) đúng đề bài & tiêu chí chấm điểm tương ứng.
+* **Khớp đề theo ID:** Mỗi bài nộp trên QLĐT gắn sẵn ID đề, nên luôn chấm đúng đề và tiêu chí chấm của buổi (đề chưa có tiêu chí dùng tiêu chí mặc định).
 * **Nén mã nguồn thông minh theo Ngôn ngữ:** Tự động nén mã nguồn để tối ưu token AI gửi đi. Giữ nguyên thụt dòng đối với Python (`.py`) và YAML (`.yml`, `.yaml`) để tránh lỗi cú pháp, các ngôn ngữ khác sẽ lược bỏ thụt dòng hoàn toàn để tiết kiệm tokens tối đa.
 * **Duy trì điểm số:** Tiến trình chấm hàng loạt tự động cập nhật điểm số trực quan cho từng bài tập ngay sau khi chấm xong mà không bị ghi đè hay mất trạng thái.
 
@@ -104,19 +104,9 @@ Nhấp vào biểu tượng **REduX** trên thanh công cụ trình duyệt ho�
 
 ## 📈 Hướng Dẫn Sử Dụng
 
-### Bước 1: Quét Đề Bài & Rubric Chấm
-1. Mở trang bài tập chi tiết trên LMS (trang hiển thị đề bài dành cho giáo viên).
-2. Mở Extension REduX, chuyển sang tab **📚 Đề Bài**.
-3. Extension sẽ tự động cào tiêu đề bài tập, nội dung và bóc tách tiêu chí Rubric. Nhấp các nút lưu lại vào cơ sở dữ liệu.
-
-### Bước 2: Quét Danh Sách Lớp Học
-1. Truy cập trang chấm bài của LMS (có dạng `.../homework-checking/...`).
-2. Mở Extension REduX, chuyển sang tab **👥 Quản Lý Lớp Học**.
-3. Nhấp nút **📥 Quét Danh Sách Lớp**. Dữ liệu học viên cùng trạng thái nộp bài tập sẽ được cào tự động và lưu trữ an toàn trong Local Storage.
-
-### Bước 3: Chấm Hàng Loạt
-1. Trong trang chấm bài LMS chứa danh sách các bài nộp link GitHub của sinh viên.
-2. Mở Extension REduX, chuyển sang tab **⚡ Chấm Hàng Loạt**.
-3. Nhấp **📥 Quét danh sách bài nộp**. Extension hiển thị danh sách các bài tập đã nộp.
-4. Đánh dấu chọn các bài muốn chấm, khớp đề bài tương ứng và nhấn nút **⚡ Chấm Hàng Loạt**.
-5. Theo dõi tiến trình chấm bài và quan sát điểm số hiển thị trực tiếp. Khi hoàn tất, hệ thống tự động điền điểm và nhận xét vào LMS. Bạn có thể nhấp vào điểm số của học viên trong tab **Quản Lý Lớp Học** để xem chi tiết nhận xét báo cáo và xuất file Excel kết quả.
+### Chấm Hàng Loạt
+1. Đăng nhập QLĐT (qldt.rikkei.edu.vn) ít nhất một lần để extension lấy được token.
+2. Mở Extension REduX, chuyển sang tab **⚡ Chấm Hàng Loạt**, chọn **lớp → môn → buổi** rồi bấm **Tải bài nộp**.
+3. Danh sách nhóm theo sinh viên: trạng thái buổi, số bài đã nộp; bấm vào sinh viên để xem từng bài. Lọc theo trạng thái buổi hoặc "Chưa nộp bài".
+4. Các bài có link được chọn sẵn — bỏ bớt nếu cần rồi bấm **Chấm N bài đã chọn**.
+5. Bấm vào điểm để sao chép nhận xét + điểm, dán vào QLĐT. Bấm 👁 để xem đề, tiêu chí và nhận xét đầy đủ. Kết quả chấm được lưu theo lớp + buổi, mở lại vẫn còn.

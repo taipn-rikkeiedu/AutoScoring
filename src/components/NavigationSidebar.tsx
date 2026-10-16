@@ -8,7 +8,6 @@ import {
   FolderIcon,
   ChartBarIcon,
   PhoneIcon,
-  BookOpenIcon,
   PinIcon,
   TerminalIcon,
   SettingsIcon,
@@ -84,7 +83,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
             </div>
           ),
         },
-        { key: 'tab-exercises', icon: <BookOpenIcon className="w-4 h-4" />, label: 'Kho đề bài' },
       ],
     },
     {

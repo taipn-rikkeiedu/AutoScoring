@@ -6,7 +6,6 @@ import { Header } from '~/src/components/Header';
 import { AutoGraderTab } from '~/src/components/AutoGraderTab';
 import { MiniProjectTab } from '~/src/components/MiniProjectTab';
 import { CareTab } from '~/src/components/CareTab';
-import { ExercisesTab } from '~/src/components/ExercisesTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
 import { ReportModal } from '~/src/components/ReportModal';
 import { StudentMonitorTab } from '~/src/components/StudentMonitorTab';
@@ -80,8 +79,6 @@ const AppContent: React.FC = () => {
 
         if (url.includes("/class/") && url.includes("/take-care")) {
           targetTab = "tab-care";
-        } else if (url.includes("/type/elMajor/") && url.includes("/view/")) {
-          targetTab = "tab-exercises";
         } else if (url.includes("/learning-statistics")) {
           targetTab = "tab-learning-stats";
         } else if (url.includes("/practice-result/")) {
@@ -112,14 +109,13 @@ const AppContent: React.FC = () => {
         <Header activeTab={activeTab} />
         
         <Content style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {!isLmsPage && ["tab-auto", "tab-miniproject", "tab-care"].includes(activeTab) ? (
+          {!isLmsPage && ["tab-miniproject", "tab-care"].includes(activeTab) ? (
             <UnsupportedPageWarning />
           ) : (
             <>
               {activeTab === "tab-auto" && <AutoGraderTab />}
               {activeTab === "tab-miniproject" && <MiniProjectTab />}
               {activeTab === "tab-care" && <CareTab />}
-              {activeTab === "tab-exercises" && <ExercisesTab />}
               {activeTab === "tab-learning-stats" && <StudentMonitorTab />}
               {activeTab === "tab-settings" && <SettingsTab />}
             </>

@@ -66,3 +66,15 @@ export async function fetchCourseSessions(auth: string, courseId: string): Promi
 export async function fetchSessionHomework(auth: string, sessionId: string): Promise<any[]> {
   return (await qldtGet<any[]>(`/homework/session/${sessionId}`, auth)) || [];
 }
+
+/** SV của lớp kèm trạng thái làm bài từng buổi (sessionStudent: status, completedExercises). */
+export async function fetchSessionStudents(auth: string, classId: string, sessionId: string): Promise<any[]> {
+  return (await qldtGet<any[]>(`/students/homeworkProcess/class/${classId}/session/${sessionId}`, auth)) || [];
+}
+
+/** Bài đã nộp của 1 SV trong 1 buổi — mỗi bài có homework.id nên khớp đúng đề theo ID. */
+export async function fetchSessionExercises(auth: string, sessionId: string, studentId: string | number): Promise<any[]> {
+  return (await qldtGet<any[]>(
+    `/exercise?classId=&courseId=&sessionId=${sessionId}&studentName=&page=1&limit=100&studentId=${studentId}`, auth
+  )) || [];
+}

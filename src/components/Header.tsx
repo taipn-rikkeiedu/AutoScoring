@@ -10,8 +10,8 @@ interface HeaderProps {
 
 const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
   "tab-auto": {
-    title: "Chấm bài tự động",
-    subtitle: "Tải mã nguồn và chấm điểm theo tiêu chí bài tập",
+    title: "Chấm hàng loạt",
+    subtitle: "Lấy bài nộp theo buổi từ QLĐT, khớp đúng đề và chấm bằng AI",
   },
   "tab-miniproject": {
     title: "Chấm Mini Project",
@@ -24,10 +24,6 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
   "tab-care": {
     title: "Chăm sóc học viên",
     subtitle: "Nhật ký liên hệ và hỗ trợ học viên",
-  },
-  "tab-exercises": {
-    title: "Kho đề bài",
-    subtitle: "Quản lý đề bài và thang điểm chấm",
   },
   "tab-learning-stats": {
     title: "Giám sát học tập",
