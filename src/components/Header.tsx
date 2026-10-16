@@ -21,10 +21,6 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
     title: "Quét Google Drive",
     subtitle: "Trích xuất bài nộp từ thư mục Google Drive",
   },
-  "tab-class-list": {
-    title: "Quản lý lớp học",
-    subtitle: "Tiến độ học tập và xuất bảng điểm Excel",
-  },
   "tab-care": {
     title: "Chăm sóc học viên",
     subtitle: "Nhật ký liên hệ và hỗ trợ học viên",
@@ -33,9 +29,9 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
     title: "Kho đề bài",
     subtitle: "Quản lý đề bài và thang điểm chấm",
   },
-  "tab-students": {
-    title: "Quản lý sinh viên",
-    subtitle: "Giám sát học tập, tra cứu sinh viên và danh sách lớp",
+  "tab-learning-stats": {
+    title: "Giám sát học tập",
+    subtitle: "Cảnh báo vi phạm học tập và nghi vấn BTVN theo lớp, môn",
   },
   "tab-shortcuts": {
     title: "Lối tắt nhanh",

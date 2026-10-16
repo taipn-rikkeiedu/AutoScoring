@@ -1,5 +1,4 @@
 import { highlightLmsTableRows, scrollToElementBelowPopup } from '~/src/core/contentHighlighter';
-import { STORAGE_KEYS } from '~/src/core/constants';
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -21,73 +20,6 @@ export default defineContentScript({
         }
         highlightLmsTableRows();
       }, 1500);
-    }
-
-    if (window === window.top) {
-      setupAutoDetectionObserver();
-    }
-
-    const clickHandler = (event: MouseEvent) => {
-      // If extension context was invalidated, detach this listener to avoid dead calls
-      if (!chrome.runtime?.id || !chrome.storage?.local) {
-        document.removeEventListener('click', clickHandler);
-        return;
-      }
-
-      // Only monitor clicks on the class list / homework checking page or practice result page
-      const isHomeworkChecking = window.location.pathname.includes('/homework-checking');
-      const isPracticeResult = window.location.pathname.includes('/practice-result');
-      if (!isHomeworkChecking && !isPracticeResult) {
-        return;
-      }
-      
-      let target = event.target as HTMLElement | null;
-      while (target && target !== document.body) {
-        const text = target.textContent || '';
-        const isButton = target.tagName === 'BUTTON' || 
-                         target.tagName === 'A' || 
-                         target.classList.contains('btn') || 
-                         target.tagName === 'SPAN';
-                         
-        if (isButton && (text.trim().toLowerCase() === 'chi tiết' || text.trim().toLowerCase() === 'chấm điểm')) {
-          let row: HTMLElement | null = target;
-          while (row && row.tagName !== 'TR') {
-            row = row.parentElement;
-          }
-          
-          if (row) {
-            const cells = Array.from(row.querySelectorAll('td'));
-            if (cells.length >= 4) {
-              let studentName = '';
-              let studentId = '';
-              if (isPracticeResult) {
-                studentName = cells[2] ? cells[2].textContent?.trim().split('\n')[0] || '' : '';
-                studentId = cells[1] ? cells[1].textContent?.trim().split('\n')[0] || '' : '';
-              } else {
-                studentName = cells[1] ? cells[1].textContent?.trim().split('\n')[0] || '' : '';
-                studentId = cells[3] ? cells[3].textContent?.trim().split('\n')[0] || '' : '';
-              }
-              
-              if (studentName || studentId) {
-                const transitionData = {
-                  studentId: studentId,
-                  studentName: studentName,
-                  timestamp: Date.now()
-                };
-                chrome.storage.local.set({ [STORAGE_KEYS.activeStudentTransition]: transitionData }, () => {
-                  console.log("REduX: Saved transition student:", transitionData);
-                });
-              }
-            }
-          }
-          break;
-        }
-        target = target.parentElement;
-      }
-    };
-
-    if (isLmsPage) {
-      document.addEventListener('click', clickHandler);
     }
 
     // Listener for messages from extension popup/sidepanel
@@ -182,8 +114,6 @@ export default defineContentScript({
   }
 });
 
-let lastStudentId = '';
-let lastStudentName = '';
 let lastFilledScore = '';
 let lastFilledComment = '';
 
@@ -264,60 +194,4 @@ function updateLmsPageInputs(score: string, comment: string): boolean {
   }
 
   return isChanged;
-}
-
-function autoDetectStudentAndNotify() {
-  const isLmsPage = window.location.hostname.includes('rikkei.edu.vn');
-  if (!isLmsPage) return;
-
-  let studentId = '';
-  let studentName = '';
-
-  const pageText = document.body.innerText || '';
-  const idMatch = pageText.match(/PTIT[-_\s]?[A-Z]+[-_\s]?\d+/i);
-  if (idMatch) {
-    studentId = idMatch[0].trim().replace(/[\s_]/g, '-').toUpperCase();
-  }
-
-  const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, .student-name, [class*="student-name"], [class*="user-name"], .breadcrumb, [class*="title"], [class*="header"]'));
-  for (const el of elements) {
-    const text = el.textContent?.trim() || '';
-    if (text && text.length > 2 && text.length < 50 && !text.includes('http') && !text.includes('/') && /^[A-ZÀ-Ỹ]/.test(text.split(' ')[0])) {
-      studentName = text.split('\n')[0].trim();
-      break;
-    }
-  }
-
-  if (studentId && (studentId !== lastStudentId || studentName !== lastStudentName)) {
-    lastStudentId = studentId;
-    lastStudentName = studentName;
-
-    const transitionData = {
-      studentId: studentId,
-      studentName: studentName,
-      timestamp: Date.now()
-    };
-
-    chrome.storage.local.set({ [STORAGE_KEYS.activeStudentTransition]: transitionData }, () => {
-      console.log("REduX: Auto-detected active student change:", transitionData);
-    });
-  }
-}
-
-function setupAutoDetectionObserver() {
-  let observerTimer: any = null;
-  const observer = new MutationObserver(() => {
-    if (observerTimer) clearTimeout(observerTimer);
-    observerTimer = setTimeout(() => {
-      autoDetectStudentAndNotify();
-    }, 500);
-  });
-
-  if (window.location.hostname.includes('rikkei.edu.vn')) {
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-    setTimeout(autoDetectStudentAndNotify, 1000);
-  }
 }

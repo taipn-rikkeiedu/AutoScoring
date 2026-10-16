@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
-import { findMatchingTemplate, matchStudent, parseScore, queryActiveLmsTab } from '~/src/core/utils';
+import { findMatchingTemplate, parseScore, queryActiveLmsTab } from '~/src/core/utils';
 import { STORAGE_KEYS } from '~/src/core/constants';
-import { SupabaseService } from '~/src/services/supabaseService';
-import { getClassStudents, saveClassStudents } from '~/src/core/classStudentStorage';
 import { Submission } from '~/src/types';
 import { gradeSubmission } from '~/src/services/graderService';
 import { GitHubService } from '~/src/services/githubService';
@@ -38,7 +36,7 @@ async function runWithConcurrencyLimit<T, R>(
 }
 
 export function useAutoGrader() {
-  const { config, exerciseTemplates, activeClassId, aiStatus } = useApp();
+  const { config, exerciseTemplates, aiStatus } = useApp();
   const { showToast } = useToast();
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -198,29 +196,6 @@ export function useAutoGrader() {
         return next;
       });
 
-      if (sub.studentName) {
-        let pageId = null, pageName = sub.studentName;
-        const parenMatch = sub.studentName.match(/(.*?)\s*\((.*?)\)/);
-        if (parenMatch) { pageName = parenMatch[1].trim(); pageId = parenMatch[2].trim(); }
-
-        const studentList = await getClassStudents(activeClassId);
-        const matched = matchStudent(studentList, "", pageId, pageName, null);
-        if (matched) {
-          if (!matched.submissions) matched.submissions = {};
-          matched.submissions[`${chapter}_${session}_${assignmentName}`] = { score: result.score, report: result.report, githubUrl: sub.githubUrl, gradedAt: new Date().toISOString() };
-          const classIdMatch = (matched.submissionUrl || "").match(/\/homework-checking\/(\d+)/);
-          const classId = activeClassId || (classIdMatch ? classIdMatch[1] : null);
-          await saveClassStudents(classId, studentList);
-
-          if (SupabaseService.isEnabled(config) && classId) {
-            try {
-              await SupabaseService.upsertSubmission(config, classId, matched.studentId, matched.studentName, chapter, session, assignmentName, sub.githubUrl, result.score, result.report);
-            } catch (err: any) {
-              showToast("Đồng bộ lên Cloud thất bại. Vui lòng kiểm tra lại kết nối mạng hoặc cấu hình Supabase.", "warning");
-            }
-          }
-        }
-      }
       return true;
     } catch (e: any) {
       setSubmissions(prev => {
@@ -389,49 +364,6 @@ export function useAutoGrader() {
             updateContentScriptCache(next);
             return next;
           });
-        }
-
-        // Sync to local student list and Supabase (only when at least one item succeeded)
-        if (gradedResults.length > 0) {
-          const classId = activeClassId;
-          const studentList = await getClassStudents(classId);
-
-          const sampleSub = items[0].sub;
-          if (sampleSub.studentName) {
-            let pageId = null, pageName = sampleSub.studentName;
-            const parenMatch = sampleSub.studentName.match(/(.*?)\s*\((.*?)\)/);
-            if (parenMatch) {
-              pageName = parenMatch[1].trim();
-              pageId = parenMatch[2].trim();
-            }
-
-            const matched = matchStudent(studentList, "", pageId, pageName, null);
-            if (matched) {
-              if (!matched.submissions) matched.submissions = {};
-              const submissionsMap = matched.submissions;
-
-              gradedResults.forEach(res => {
-                const { chapter, session, assignmentName } = res.sub.matchedTemplate!;
-                submissionsMap[`${chapter}_${session}_${assignmentName}`] = {
-                  score: res.score,
-                  report: res.report,
-                  githubUrl: url,
-                  gradedAt: new Date().toISOString()
-                };
-              });
-              await saveClassStudents(classId, studentList);
-
-              if (SupabaseService.isEnabled(config) && classId) {
-                await Promise.all(gradedResults.map(res => {
-                  const { chapter, session, assignmentName } = res.sub.matchedTemplate!;
-                  return SupabaseService.upsertSubmission(
-                    config, classId, matched.studentId, matched.studentName,
-                    chapter, session, assignmentName, url, res.score, res.report
-                  ).catch(err => console.warn("Supabase sync failed:", err));
-                }));
-              }
-            }
-          }
         }
 
         success += gradedResults.length;

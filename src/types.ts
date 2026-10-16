@@ -16,26 +16,6 @@ export interface AppConfig {
   strictnessLevel: string;
 }
 
-export interface Student {
-  studentId: string;
-  studentName: string;
-  submissionUrl?: string;
-  dbId?: string;
-  lmsStatus?: string;
-  submittedCount?: number;
-  completedCount?: number;
-  githubUrl?: string;
-  score?: string | null;
-  comments?: string | null;
-  assignmentName?: string;
-  submissions?: Record<string, {
-    score: string;
-    report: string;
-    githubUrl: string;
-    gradedAt: string;
-  }>;
-}
-
 export interface CareStudent {
   studentId: string;
   studentName: string;

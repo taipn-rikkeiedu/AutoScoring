@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { AppConfig, Student, CareStudent, Submission } from '~/src/types';
+import { AppConfig, CareStudent, Submission } from '~/src/types';
 import { ExerciseBank, bankToTemplates } from '../exerciseBank';
 import { SupabaseService } from '~/src/services/supabaseService';
 import { testConnection } from '~/src/services/connectionTester';
-import { getClassStudents } from '../classStudentStorage';
 import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS, STORAGE_KEYS, UI_MESSAGES } from '../constants';
 import { logger } from '../logger';
 import { queryActiveLmsTab } from '../utils';
@@ -35,10 +34,8 @@ export function useAppInitializer() {
   const [supabaseStatus, setSupabaseStatus] = useState<string>(UI_MESSAGES.statuses.supabaseInactive);
   const [aiStatus, setAiStatus] = useState<"success" | "error" | "testing">("testing");
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [classStudents, setClassStudents] = useState<Student[]>([]);
   const [careStudents, setCareStudents] = useState<CareStudent[]>([]);
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
-  const [activeStudentTransition, setActiveStudentTransition] = useState<any>(null);
   const [currentTabUrl, setCurrentTabUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -66,7 +63,7 @@ export function useAppInitializer() {
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiKeys, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseBank,
       STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey, STORAGE_KEYS.gradingScale, STORAGE_KEYS.strictnessLevel,
-      STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
+      STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
       if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>") || !systemPrompt.includes("KHÔNG đưa các thông số kỹ thuật khô khan") || !systemPrompt.includes("CHỈ RA LỖI + GỢI Ý SỬA NGẮN NHẤT"))) {
@@ -111,9 +108,6 @@ export function useAppInitializer() {
         setSupabaseStatus(stored[STORAGE_KEYS.cachedSupabaseStatus]);
       }
       
-      if (stored[STORAGE_KEYS.activeStudentTransition]) {
-        setActiveStudentTransition(stored[STORAGE_KEYS.activeStudentTransition]);
-      }
 
       queryActiveLmsTab((tab) => {
         if (tab) {
@@ -135,27 +129,15 @@ export function useAppInitializer() {
 
     const handleStorageChange = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
       if (areaName === 'local') {
-        if (changes[STORAGE_KEYS.activeStudentTransition]) {
-          setActiveStudentTransition(changes[STORAGE_KEYS.activeStudentTransition].newValue || null);
-        }
         if (changes[STORAGE_KEYS.careStudents] && activeClassId) {
           const allCare = (changes[STORAGE_KEYS.careStudents].newValue as Record<string, CareStudent[]>) || {};
           setCareStudents(allCare[activeClassId] || []);
-        }
-        if (changes[STORAGE_KEYS.classStudentLists] && activeClassId) {
-          const allClasses = (changes[STORAGE_KEYS.classStudentLists].newValue as Record<string, Student[]>) || {};
-          setClassStudents(allClasses[activeClassId] || []);
         }
       }
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
     return () => chrome.storage.onChanged.removeListener(handleStorageChange);
-  }, [activeClassId]);
-
-  useEffect(() => {
-    if (!activeClassId) return;
-    getClassStudents(activeClassId).then(setClassStudents);
   }, [activeClassId]);
 
   const testAiConnection = async (cfg: AppConfig, silent = false) => {
@@ -229,13 +211,10 @@ export function useAppInitializer() {
     saveExerciseBank,
     submissions,
     setSubmissions,
-    classStudents,
-    setClassStudents,
     careStudents,
     setCareStudents,
     activeClassId,
     setActiveClassId,
-    activeStudentTransition,
     currentTabUrl,
     setCurrentTabUrl,
     isLoading

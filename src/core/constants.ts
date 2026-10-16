@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "5.8.0",
+  version: "5.9.0",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -38,10 +38,7 @@ export const STORAGE_KEYS = {
   googleApiKey: "googleApiKey",
   gradingScale: "gradingScale",
   strictnessLevel: "strictnessLevel",
-  activeStudentTransition: "activeStudentTransition",
   careStudents: "careStudents",
-  classStudentLists: "classStudentLists",
-  legacyClassStudentList: "classStudentList",
   detectedSubmissions: "detectedSubmissions",
   customShortcuts: "customShortcuts",
   uiWindowMode: "uiWindowMode",

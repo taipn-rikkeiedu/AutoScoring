@@ -6,7 +6,7 @@ import type { MenuProps } from 'antd';
 import {
   SparklesIcon,
   FolderIcon,
-  UsersIcon,
+  ChartBarIcon,
   PhoneIcon,
   BookOpenIcon,
   PinIcon,
@@ -91,7 +91,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
       type: 'group',
       label: !isCollapsed && 'Quản lý sinh viên',
       children: [
-        { key: 'tab-students', icon: <UsersIcon className="w-4 h-4" />, label: 'Quản lý sinh viên' },
+        { key: 'tab-learning-stats', icon: <ChartBarIcon className="w-4 h-4" />, label: 'Giám sát học tập' },
         { key: 'tab-care', icon: <PhoneIcon className="w-4 h-4" />, label: 'Chăm sóc học viên' },
       ],
     },

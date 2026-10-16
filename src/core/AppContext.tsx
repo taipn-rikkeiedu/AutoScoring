@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { useAppInitializer } from './hooks/useAppInitializer';
-import { AppConfig, Student, CareStudent, Submission } from '~/src/types';
+import { AppConfig, CareStudent, Submission } from '~/src/types';
 import { ExerciseBank } from './exerciseBank';
 
 interface AppContextType {
@@ -16,13 +16,10 @@ interface AppContextType {
   saveExerciseBank: (bank: ExerciseBank) => Promise<void>;
   submissions: Submission[];
   setSubmissions: React.Dispatch<React.SetStateAction<Submission[]>>;
-  classStudents: Student[];
-  setClassStudents: React.Dispatch<React.SetStateAction<Student[]>>;
   careStudents: CareStudent[];
   setCareStudents: React.Dispatch<React.SetStateAction<CareStudent[]>>;
   activeClassId: string | null;
   setActiveClassId: React.Dispatch<React.SetStateAction<string | null>>;
-  activeStudentTransition: { studentId?: string; studentName?: string; timestamp: number } | null;
   currentTabUrl: string;
   setCurrentTabUrl: React.Dispatch<React.SetStateAction<string>>;
   isLoading: boolean;

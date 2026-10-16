@@ -8,7 +8,7 @@ import {
   CloudDownloadOutlined, DownloadOutlined, SettingOutlined, RobotOutlined, FilterOutlined,
   UnorderedListOutlined, BarChartOutlined
 } from '@ant-design/icons';
-import type { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
+import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
 import { StudentMonitorDrawer, RiskTag } from '~/src/components/StudentMonitorDrawer';
 import {
   MonitorRow, MonitorRules, MONITOR_FILTERS, DEFAULT_MONITOR_RULES, fmtPercent
@@ -18,7 +18,7 @@ import { AnalysisRules, ANALYSIS_LEVELS, DEFAULT_ANALYSIS_RULES } from '~/src/co
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-export type Monitor = ReturnType<typeof useStudentMonitor>;
+type Monitor = ReturnType<typeof useStudentMonitor>;
 
 // Thư viện biểu đồ khá nặng → chỉ tải khi mở chế độ Biểu đồ
 const StudentMonitorCharts = lazy(() =>
@@ -28,7 +28,7 @@ const StudentMonitorCharts = lazy(() =>
 const MAX_ISSUE_TAGS = 3;
 
 /** Các vấn đề chính của SV (nặng nhất trước), tối đa 3 nhãn — bấm vào dòng để xem đủ. */
-export const IssueTags: React.FC<{ row: MonitorRow }> = ({ row }) => {
+const IssueTags: React.FC<{ row: MonitorRow }> = ({ row }) => {
   const tags: React.ReactNode[] = [
     ...[...row.issues]
       .sort((x, y) => Number(y.severity === 'alarm') - Number(x.severity === 'alarm'))
@@ -49,8 +49,8 @@ export const IssueTags: React.FC<{ row: MonitorRow }> = ({ row }) => {
   );
 };
 
-/** Dữ liệu (m) do tab "Quản lý sinh viên" giữ, dùng chung với Tra cứu sinh viên. */
-export const StudentMonitorTab: React.FC<{ m: Monitor }> = ({ m }) => {
+export const StudentMonitorTab: React.FC = () => {
+  const m = useStudentMonitor();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 

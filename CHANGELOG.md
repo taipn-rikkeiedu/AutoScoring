@@ -4,6 +4,15 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.9.0] - 2026-10-16
+
+### 🗑 Gỡ bỏ
+- **Tra cứu sinh viên** và **Danh sách lớp**: thông tin sinh viên đã có đầy đủ trong Giám sát học tập. Sidebar nhóm Quản lý sinh viên chỉ còn **Giám sát học tập** và **Chăm sóc học viên**.
+- Cùng với Danh sách lớp: bỏ **xuất Excel bảng điểm lớp**, bỏ **lưu điểm vừa chấm theo từng sinh viên và đồng bộ điểm lên Supabase** (Chấm hàng loạt / Mini Project vẫn chấm và hiển thị kết quả như cũ).
+- Bỏ phần Chấm đơn không còn sử dụng và việc tự theo dõi sinh viên đang xem trên trang LMS (trang LMS nhẹ hơn vì không còn quét nội dung liên tục).
+
+---
+
 ## [5.8.0] - 2026-10-16
 
 ### 🚀 Tính năng mới

@@ -1,4 +1,3 @@
-import { Student } from '~/src/types';
 import { GRADING_TEXT } from './constants';
 
 export function parseScore(reportText: string | null): string | null {
@@ -203,38 +202,6 @@ export function extractCriteriaFromAssignment(assignmentText: string | null): { 
     assignment: assignmentText,
     criteria: null
   };
-}
-
-export function matchStudent(
-  studentList: Student[],
-  normalizedTabUrl: string,
-  pageId: string | null,
-  pageName: string | null,
-  transition: { studentId?: string; studentName?: string; timestamp: number } | null
-): Student | undefined {
-  return studentList.find(st => {
-    if (st.submissionUrl === normalizedTabUrl) return true;
-    if (st.dbId && normalizedTabUrl.includes(st.dbId)) return true;
-    if (st.studentId && st.studentId !== 'N/A' && normalizedTabUrl.includes(st.studentId)) return true;
-    
-    if (pageId && st.studentId && st.studentId !== 'N/A') {
-      const cleanStId = st.studentId.replace(/[\s_-]/g, '').toUpperCase();
-      const cleanPageId = pageId.replace(/[\s_-]/g, '').toUpperCase();
-      if (cleanStId === cleanPageId) return true;
-    }
-    
-    if (pageName && st.studentName) {
-      const cleanStName = st.studentName.toLowerCase();
-      const cleanPageName = pageName.toLowerCase();
-      if (cleanStName.includes(cleanPageName) || cleanPageName.includes(cleanStName)) return true;
-    }
-    
-    if (transition && Date.now() - transition.timestamp < 300000) {
-      if (st.studentId && st.studentId !== 'N/A' && transition.studentId && st.studentId.toLowerCase() === transition.studentId.toLowerCase()) return true;
-      if (st.studentName && transition.studentName && st.studentName.toLowerCase() === transition.studentName.toLowerCase()) return true;
-    }
-    return false;
-  });
 }
 
 /**

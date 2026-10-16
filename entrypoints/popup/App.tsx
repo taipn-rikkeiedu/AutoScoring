@@ -9,7 +9,7 @@ import { CareTab } from '~/src/components/CareTab';
 import { ExercisesTab } from '~/src/components/ExercisesTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
 import { ReportModal } from '~/src/components/ReportModal';
-import { StudentManagementTab, StudentSubTab } from '~/src/components/StudentManagementTab';
+import { StudentMonitorTab } from '~/src/components/StudentMonitorTab';
 import { queryActiveLmsTab } from '~/src/core/utils';
 import { ConfigProvider, Layout, Spin, Result, Button, App as AntdApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
@@ -35,7 +35,6 @@ const UnsupportedPageWarning: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("tab-auto");
-  const [studentSubTab, setStudentSubTab] = useState<StudentSubTab>("monitor");
   const [activeTabUrl, setActiveTabUrl] = useState<string>("");
   const { isLoading } = useApp();
   const [reportModalData, setReportModalData] = useState<{
@@ -81,14 +80,10 @@ const AppContent: React.FC = () => {
 
         if (url.includes("/class/") && url.includes("/take-care")) {
           targetTab = "tab-care";
-        } else if (url.includes("/homework-checking/")) {
-          targetTab = "tab-students";
-          setStudentSubTab("class-list");
         } else if (url.includes("/type/elMajor/") && url.includes("/view/")) {
           targetTab = "tab-exercises";
         } else if (url.includes("/learning-statistics")) {
-          targetTab = "tab-students";
-          setStudentSubTab("monitor");
+          targetTab = "tab-learning-stats";
         } else if (url.includes("/practice-result/")) {
           targetTab = "tab-miniproject";
         }
@@ -125,15 +120,7 @@ const AppContent: React.FC = () => {
               {activeTab === "tab-miniproject" && <MiniProjectTab />}
               {activeTab === "tab-care" && <CareTab />}
               {activeTab === "tab-exercises" && <ExercisesTab />}
-              {activeTab === "tab-students" && (
-                <StudentManagementTab
-                  subTab={studentSubTab}
-                  setSubTab={setStudentSubTab}
-                  setActiveTab={setActiveTab}
-                  isLmsPage={isLmsPage}
-                  unsupportedPage={<UnsupportedPageWarning />}
-                />
-              )}
+              {activeTab === "tab-learning-stats" && <StudentMonitorTab />}
               {activeTab === "tab-settings" && <SettingsTab />}
             </>
           )}
