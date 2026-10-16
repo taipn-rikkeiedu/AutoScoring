@@ -67,20 +67,22 @@ export class SupabaseService {
     }
   }
 
-  /** Chạy SQL bằng Supabase Management API (cần Personal Access Token). */
+  /** Chạy SQL bằng Supabase Management API (cần Personal Access Token) — POST /v1/projects/{ref}/database/query. */
   private static async runSql(config: AppConfig, pat: string, query: string): Promise<void> {
     const match = config.supabaseUrl.trim().match(/https:\/\/([a-z0-9]+)\.supabase\.(co|net)/i);
     const ref = match ? match[1] : null;
     if (!ref) throw new Error("Không thể trích xuất Project Ref từ Supabase URL.");
     if (!pat || !pat.trim()) throw new Error("Vui lòng nhập Supabase Personal Access Token (PAT).");
 
-    const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/db/query`, {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${pat.trim()}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ query })
+      // Làm mới schema cache của PostgREST để bảng vừa tạo dùng được ngay qua API
+      body: JSON.stringify({ query: `${query}
+NOTIFY pgrst, 'reload schema';` })
     });
 
     if (!res.ok) {

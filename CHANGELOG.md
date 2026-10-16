@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.22.1] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- **Khởi tạo DB / Tạo bảng báo "Lỗi 404: Cannot POST /v1/projects/…/db/query"**: sửa đường dẫn Supabase Management API thành `/v1/projects/{ref}/database/query`, và làm mới schema cache sau khi chạy để bảng mới (vd `monitor_templates`) dùng được ngay.
+
+---
+
 ## [5.22.0] - 2026-10-16
 
 ### 🗑 Gỡ bỏ
