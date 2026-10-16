@@ -6,9 +6,11 @@ import { extractComment, queryActiveLmsTab } from '~/src/core/utils';
 import { plainText } from '~/src/core/examAnalysis';
 import {
   BatchItem, BatchResult, BatchStudent, NOT_SUBMITTED_FILTER,
-  parseSessionStudents, parseSessionHomework, buildStudentItems, submittedCount, pickResult, criteriaOf
+  parseSessionStudents, parseSessionHomework, buildStudentItems, submittedCount, pickResult, criteriaOf,
+  SessionAiKind, buildSessionAiPrompt
 } from '~/src/core/batchGrading';
 import { gradeSubmission } from '~/src/services/graderService';
+import { callAiWithRateLimitRetry } from '~/src/services/aiService';
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
 import {
   QldtOption, listQldtClasses, listQldtCourses, fetchCourseSessions, fetchSessionHomework,
@@ -23,6 +25,7 @@ const STUDENT_FETCH_CONCURRENCY = 4;
 
 interface Prefs { classId?: string; courseId?: string; sessionId?: string }
 type SavedResult = BatchResult & { link: string };
+type AiResult = { loading: boolean; text?: string; error?: string };
 type SavedSessions = Record<string, { savedAt: string; items: Record<string, SavedResult> }>;
 
 async function mapLimit<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
@@ -53,6 +56,7 @@ export function useBatchGrader() {
   const [loadProgress, setLoadProgress] = useState<{ done: number; total: number } | null>(null);
   const [grading, setGrading] = useState<{ done: number; total: number; text: string } | null>(null);
   const [statusText, setStatusText] = useState('Chọn lớp → môn → buổi rồi bấm "Tải bài nộp". Cần đăng nhập QLĐT ít nhất một lần.');
+  const [sessionAi, setSessionAi] = useState<Partial<Record<SessionAiKind, AiResult>>>({});
   const abortRef = useRef<AbortController | null>(null);
   const prefsLoaded = useRef(false);
 
@@ -184,6 +188,7 @@ export function useBatchGrader() {
       setStudents(result);
       setLoadedKey(key);
       setStatusFilters([]);
+      setSessionAi({});
       // Mặc định chọn sẵn mọi bài có link (chưa chấm)
       setChecked(new Set(result.flatMap(s => s.items.filter(i => i.link && i.status !== 'success').map(i => i.key))));
       const total = result.reduce((n, s) => n + submittedCount(s), 0);
@@ -277,6 +282,26 @@ export function useBatchGrader() {
     setGrading(g => (g ? { ...g, text: 'Đang dừng sau bài hiện tại…' } : g));
   };
 
+  /* ---------- AI nhận xét tổng quan cả lớp trong buổi (chỉ chạy khi bấm) ---------- */
+  const handleSessionAi = async (kind: SessionAiKind) => {
+    if (!students.length || sessionAi[kind]?.loading) return;
+    setSessionAi(prev => ({ ...prev, [kind]: { loading: true } }));
+    try {
+      const prompt = buildSessionAiPrompt(kind, students, {
+        className: classes.find(c => c.value === classId)?.label || '',
+        courseName: courses.find(c => c.value === courseId)?.label || '',
+        sessionName: sessions.find(x => x.value === sessionId)?.label || '',
+        scale: config.gradingScale || '10'
+      });
+      const text = await callAiWithRateLimitRetry(prompt,
+        { provider: config.aiProvider, modelName: config.aiModelName, apiKey: config.aiApiKey, apiUrl: config.aiApiUrl });
+      setSessionAi(prev => ({ ...prev, [kind]: { loading: false, text: text.trim() } }));
+    } catch (e: any) {
+      setSessionAi(prev => ({ ...prev, [kind]: { loading: false, error: e.message } }));
+      logger.error(LOG_MODULE, 'AI không viết được nhận xét buổi.', e.message);
+    }
+  };
+
   /* ---------- Sao chép ---------- */
   const scale = config.gradingScale || '10';
   const copy = (text: string, msg: string) =>
@@ -318,6 +343,8 @@ export function useBatchGrader() {
     query, setQuery, checked, setChecked, checkedItems,
     loading, loadProgress, grading, statusText, aiStatus, scale,
     handleLoad, handleGradeOne, handleGradeChecked, handleCancel,
-    copyItemComment, handleCopyReport
+    copyItemComment, handleCopyReport,
+    sessionAi, handleSessionAi,
+    copySessionAi: (kind: SessionAiKind) => { const t = sessionAi[kind]?.text; if (t) copy(t, 'Đã sao chép nhận xét buổi.'); }
   };
 }

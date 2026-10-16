@@ -1,17 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Table, Button, Tag, Dropdown, Card, Select, Progress, Space, Typography, Tooltip, Empty, Flex, Input, Drawer, Alert,
-  Collapse, Popover, Segmented, ConfigProvider
+  Collapse, Popover, Segmented, ConfigProvider, Modal
 } from 'antd';
 import type { TableColumnsType, MenuProps } from 'antd';
 import {
   CloudDownloadOutlined, CopyOutlined, FileTextOutlined, TableOutlined, SyncOutlined, GithubOutlined, SearchOutlined,
-  ThunderboltOutlined, SettingOutlined, LeftOutlined, RightOutlined, DownOutlined, StopOutlined, ReloadOutlined
+  ThunderboltOutlined, SettingOutlined, LeftOutlined, RightOutlined, DownOutlined, StopOutlined, ReloadOutlined, RobotOutlined
 } from '@ant-design/icons';
 import { useBatchGrader } from '~/src/hooks/auto-grader/useBatchGrader';
 import { useSettings } from '~/src/hooks/settings/useSettings';
 import { extractComment } from '~/src/core/utils';
-import { BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, criteriaOf, studentAverage } from '~/src/core/batchGrading';
+import {
+  BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, SESSION_AI_KINDS, SessionAiKind, criteriaOf, itemFeedback, studentAverage
+} from '~/src/core/batchGrading';
 
 const { Text, Paragraph } = Typography;
 type Grader = ReturnType<typeof useBatchGrader>;
@@ -81,6 +83,7 @@ export const AutoGraderTab: React.FC = () => {
   const g = useBatchGrader();
   const { gradingScale, setGradingScale, strictnessLevel, setStrictnessLevel } = useSettings();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const busy = g.loading || !!g.grading;
 
   useEffect(() => {
@@ -268,6 +271,9 @@ export const AutoGraderTab: React.FC = () => {
               />
             </Flex>
             <Space size={8}>
+              <Tooltip title="AI viết nhận xét tổng quan bài tập của cả lớp trong buổi này">
+                <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)} disabled={g.loading}>Nhận xét buổi</Button>
+              </Tooltip>
               <Popover content={gradingSettings} title="Cách chấm" trigger="click" placement="bottomRight">
                 <Button icon={<SettingOutlined />} disabled={!!g.grading}>{strictLabel} · {gradingScale}</Button>
               </Popover>
@@ -352,6 +358,8 @@ export const AutoGraderTab: React.FC = () => {
         </ConfigProvider>
       </div>
 
+      <SessionAiModal open={aiOpen} onClose={() => setAiOpen(false)} g={g} graded={stats.graded} submitted={stats.submitted} />
+
       <StudentGradeDrawer
         student={openStudent}
         index={openIndex}
@@ -363,6 +371,68 @@ export const AutoGraderTab: React.FC = () => {
         onClose={() => setOpenId(null)}
       />
     </Flex>
+  );
+};
+
+/* ---------- AI nhận xét tổng quan buổi: gửi lớp / báo cáo ---------- */
+const SessionAiModal: React.FC<{ open: boolean; onClose: () => void; g: Grader; graded: number; submitted: number }> = ({
+  open, onClose, g, graded, submitted
+}) => {
+  const [kind, setKind] = useState<SessionAiKind>('class');
+  const current = g.sessionAi[kind];
+  const meta = SESSION_AI_KINDS.find(k => k.key === kind)!;
+  const withFeedback = useMemo(
+    () => (open ? g.students.flatMap(s => s.items).filter(i => i.link && itemFeedback(i)).length : 0),
+    [open, g.students]
+  );
+  const session = g.sessions.find(x => x.value === g.sessionId)?.label || '';
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      title={<Flex vertical><span>Nhận xét buổi</span><Text type="secondary" style={{ fontWeight: 'normal', fontSize: 13 }}>{session}</Text></Flex>}
+      width={560}
+      footer={(
+        <Flex justify="space-between" align="center">
+          <Text type="secondary" style={{ fontSize: 12 }}>Dựa trên {graded}/{submitted} bài đã chấm · {withFeedback} bài có nhận xét</Text>
+          <Space>
+            <Button icon={<CopyOutlined />} disabled={!current?.text || current.loading} onClick={() => g.copySessionAi(kind)}>Sao chép</Button>
+            <Tooltip title={g.aiStatus !== 'success' ? 'Chưa kết nối được AI — kiểm tra tab Cài đặt' : undefined}>
+              <Button
+                type="primary"
+                icon={current?.text ? <ReloadOutlined /> : <RobotOutlined />}
+                loading={current?.loading}
+                disabled={g.aiStatus !== 'success' || !g.students.length}
+                onClick={() => g.handleSessionAi(kind)}
+              >
+                {current?.text ? 'Viết lại' : 'AI viết nhận xét'}
+              </Button>
+            </Tooltip>
+          </Space>
+        </Flex>
+      )}
+    >
+      <Flex vertical gap={12}>
+        <Segmented
+          block
+          value={kind}
+          onChange={(v) => setKind(v as SessionAiKind)}
+          options={SESSION_AI_KINDS.map(k => ({ value: k.key, label: k.label }))}
+        />
+        <Text type="secondary">{meta.hint}</Text>
+        {!withFeedback && (
+          <Alert type="info" showIcon title="Chưa có bài nào có nhận xét — AI chỉ nhận xét theo tình hình nộp bài. Chấm bài trước để có lỗi phổ biến." />
+        )}
+        {current?.error && <Alert type="error" showIcon title={current.error} />}
+        {current?.loading && <Text type="secondary">Đang viết nhận xét…</Text>}
+        {current?.text && !current.loading && (
+          <div style={{ maxHeight: 380, overflowY: 'auto', background: '#fafafa', borderRadius: 6, padding: '10px 12px' }}>
+            <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{current.text}</Paragraph>
+          </div>
+        )}
+      </Flex>
+    </Modal>
   );
 };
 

@@ -4,6 +4,16 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.25.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Nhận xét buổi (tab Chấm hàng loạt)**: nút **Nhận xét buổi** cạnh nút chấm — AI viết nhận xét tổng quan bài tập về nhà của cả lớp trong buổi đang tải, 2 kiểu:
+  - **Gửi lớp**: lời nhắn đăng nhóm lớp — tình hình nộp bài, điểm làm tốt, 3–5 lỗi phổ biến kèm cách sửa, nhắc bạn chưa nộp; không nêu tên hay điểm từng người.
+  - **Báo cáo**: cho giảng viên / giáo vụ — tỉ lệ nộp, điểm từng bài, lỗi phổ biến theo bài, sinh viên cần chú ý (chưa nộp / nộp thiếu / điểm thấp) và sinh viên làm tốt.
+  - Dựa trên số liệu nộp bài, điểm và nhận xét từng bài (kết quả AI chấm của extension, chưa chấm thì lấy nhận xét đang có trên QLĐT). Có nút Sao chép; tải lại buổi thì nhận xét cũ được xoá để viết lại theo dữ liệu mới.
+
+---
+
 ## [5.24.0] - 2026-10-16
 
 ### 🚀 Tính năng mới
