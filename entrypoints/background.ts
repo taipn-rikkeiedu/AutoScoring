@@ -1,4 +1,5 @@
 import { BACKGROUND_FETCH_PROXY, STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
+import { saveApiRecords, describeApiUrl, parseBody } from '~/src/services/qldtApiStore';
 
 export default defineBackground(() => {
   const allowedFetchHosts = new Set<string>(BACKGROUND_FETCH_PROXY.allowedHosts);
@@ -198,6 +199,15 @@ export default defineBackground(() => {
         });
       }
       sendResponse({ success: true });
+      return false;
+    }
+
+    // Response API QLĐT do trang web gọi (bật "Ghi API" trong extension) → lưu vào kho API
+    if (message.type === "QLDT_API_RECORD") {
+      const { url, status, body } = message;
+      saveApiRecords([{
+        url, ...describeApiUrl(url), status, source: 'recorded', at: new Date().toISOString(), response: parseBody(body)
+      }]).catch((err) => console.error("REduX: không lưu được API QLĐT", err));
       return false;
     }
 

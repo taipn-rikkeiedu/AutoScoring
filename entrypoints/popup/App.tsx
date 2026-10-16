@@ -9,6 +9,7 @@ import { CareTab } from '~/src/components/CareTab';
 import { SettingsTab } from '~/src/components/SettingsTab';
 import { ReportModal } from '~/src/components/ReportModal';
 import { StudentMonitorTab } from '~/src/components/StudentMonitorTab';
+import { QldtApiTab } from '~/src/components/QldtApiTab';
 import { queryActiveLmsTab } from '~/src/core/utils';
 import { ConfigProvider, Layout, Spin, Result, Button, App as AntdApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
@@ -117,6 +118,7 @@ const AppContent: React.FC = () => {
               {activeTab === "tab-miniproject" && <MiniProjectTab />}
               {activeTab === "tab-care" && <CareTab />}
               {activeTab === "tab-learning-stats" && <StudentMonitorTab />}
+              {activeTab === "tab-qldt-api" && <QldtApiTab />}
               {activeTab === "tab-settings" && <SettingsTab />}
             </>
           )}

@@ -75,3 +75,22 @@ export function qldtGet<T = any>(path: string, auth: string): Promise<T> {
     );
   });
 }
+
+/** GET thô (không tách `data`, không ném lỗi theo statusCode) — dùng để thu thập nguyên response. */
+export function qldtGetRaw(path: string, auth: string): Promise<{ url: string; status: number; text: string }> {
+  const url = new URL(path, API_BASE_URLS.lmsPortal).href;
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: 'FETCH', url, options: { method: 'GET', headers: { Authorization: auth, Accept: 'application/json' } } },
+      (response) => {
+        if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+        if (!response || !response.success) return reject(new Error(response?.error || 'Không phản hồi từ background proxy'));
+        if (response.status === 401) {
+          chrome.storage.local.remove(STORAGE_KEYS.qldtAuthToken);
+          return reject(new QldtAuthError('Phiên đăng nhập QLĐT đã hết hạn. Hãy mở qldt.rikkei.edu.vn, đăng nhập lại rồi thử lại.'));
+        }
+        resolve({ url, status: response.status ?? 0, text: response.text ?? '' });
+      }
+    );
+  });
+}

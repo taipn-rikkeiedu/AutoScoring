@@ -25,6 +25,10 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
     title: "Chăm sóc học viên",
     subtitle: "Nhật ký liên hệ và hỗ trợ học viên",
   },
+  "tab-qldt-api": {
+    title: "Thu thập API QLĐT",
+    subtitle: "Ghi lại và quét các API của Quản lý đào tạo, xuất file JSON",
+  },
   "tab-learning-stats": {
     title: "Giám sát học tập",
     subtitle: "Cảnh báo vi phạm học tập và nghi vấn BTVN theo lớp, môn",

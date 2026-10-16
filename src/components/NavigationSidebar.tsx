@@ -13,6 +13,7 @@ import {
   SettingsIcon,
   WindowIcon,
   ChevronDownIcon,
+  ArchiveBoxIcon,
 } from '~/src/components/Icons';
 
 const { Sider } = Layout;
@@ -97,6 +98,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
       type: 'group',
       label: !isCollapsed && 'Hệ thống',
       children: [
+        { key: 'tab-qldt-api', icon: <ArchiveBoxIcon className="w-4 h-4" />, label: 'Thu thập API QLĐT' },
         { key: 'tab-settings', icon: <SettingsIcon className="w-4 h-4" />, label: 'Cài đặt' },
       ],
     },

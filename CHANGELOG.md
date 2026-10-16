@@ -4,6 +4,17 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.17.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Thu thập API QLĐT** (tab mới trong nhóm Hệ thống) — lưu trữ trên máy và xuất 1 file JSON:
+  - **Ghi lại khi duyệt QLĐT**: bật công tắc rồi dùng qldt.rikkei.edu.vn bình thường; mọi API GET mà trang gọi tới apiportal.rikkei.edu.vn đều được lưu kèm response (kể cả API extension chưa biết). Bỏ qua request đăng nhập / token / mật khẩu.
+  - **Quét chủ động tất cả lớp & môn** tài khoản xem được: tài khoản, danh sách lớp, chi tiết lớp, dashboard lớp × môn, buổi học, đề từng buổi, tiến độ BTVN theo buổi, và (tuỳ chọn) bài nộp từng sinh viên. Tối đa 3 request cùng lúc, có tiến độ và nút Dừng.
+  - **Xuất JSON**: 1 file nhóm theo API — danh mục API (mẫu đường dẫn, số URL, tham số, các trường dữ liệu) + toàn bộ response gốc. Xem danh sách API đã thu, xoá dữ liệu khi cần.
+  - Chỉ đọc (GET), không gửi request ghi / sửa / xoá nào. Dữ liệu gồm thông tin cá nhân sinh viên — lưu trên máy, không chia sẻ, không đưa lên git.
+
+---
+
 ## [5.16.0] - 2026-10-16
 
 ### ✨ Cải thiện
