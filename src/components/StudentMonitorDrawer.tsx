@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Drawer, Button, Tag, Typography, Flex, Alert, Collapse, Descriptions, Table, Tooltip, Space } from 'antd';
-import { LeftOutlined, RightOutlined, RobotOutlined } from '@ant-design/icons';
+import { LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
   MonitorRow, MonitorRules, ExamCell, ExamCellKey, RISK_LEVELS, STATUS_COLORS, fmtPercent, fmtDate, examCellLabel
@@ -18,6 +18,20 @@ const SEVERITY_TAG: Record<'alarm' | 'warning' | 'early', { label: string; color
   warning: { label: 'Cảnh báo', color: 'orange' },
   early: { label: 'Sắp vượt', color: 'gold' }
 };
+
+/** Bật / tắt sinh viên trong danh sách cần rà soát — bấm, không cần gõ tên. */
+export const WatchStar: React.FC<{ on: boolean; onToggle: () => void }> = ({ on, onToggle }) => (
+  <Tooltip title={on ? 'Bỏ khỏi danh sách rà soát' : 'Thêm vào danh sách rà soát'}>
+    <span
+      role="button"
+      aria-label={on ? 'Bỏ khỏi danh sách rà soát' : 'Thêm vào danh sách rà soát'}
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      style={{ cursor: 'pointer', color: on ? '#faad14' : '#bfbfbf', padding: '0 4px' }}
+    >
+      {on ? <StarFilled /> : <StarOutlined />}
+    </span>
+  </Tooltip>
+);
 
 export const RiskTag: React.FC<{ row: MonitorRow }> = ({ row }) => {
   const label = RISK_LEVELS[row.risk].label;
@@ -146,6 +160,11 @@ export const StudentMonitorDrawer: React.FC<{
     return () => { window.removeEventListener('keydown', onKey); };
   }, [r, onPrev, onNext]);
 
+  useEffect(() => {
+    if (r && !r.exercises) m.loadStudentExercises(r);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r?.key, r?.exercises]);
+
   if (!r) return null;
   const rules = m.monitorRules;
   const ai = m.studentAi[r.key];
@@ -160,8 +179,9 @@ export const StudentMonitorDrawer: React.FC<{
       size={540}
       title={
         <Flex vertical>
-          <Flex gap={8} align="center" wrap>
-            <span>{r.watch && '⭐ '}{r.name}</span>
+          <Flex gap={4} align="center" wrap>
+            <WatchStar on={r.watch} onToggle={() => m.toggleWatch(r.name)} />
+            <span>{r.name}</span>
             <RiskTag row={r} />
           </Flex>
           <Text type="secondary" style={{ fontWeight: 'normal' }}>{r.code} · {r.classLabel}</Text>
@@ -232,7 +252,31 @@ export const StudentMonitorDrawer: React.FC<{
           )}
         </Section>
 
-        {/* 4. Nghi vấn BTVN (thu gọn) */}
+        {/* 4. Bài tập về nhà + điểm AI của hệ thống (tự tải khi mở) */}
+        <Collapse
+          size="small"
+          items={[{
+            key: 'exercises',
+            label: m.exerciseLoading.has(r.key) ? 'Bài tập về nhà — đang tải…'
+              : r.exercises ? `Bài tập về nhà — ${r.exercises.length} bài · điểm AI TB ${fmtScore(r.aiAvg)}`
+              : 'Bài tập về nhà — chưa tải được',
+            children: r.exercises ? (
+              <Table
+                size="small"
+                pagination={false}
+                rowKey={(_, i) => String(i)}
+                dataSource={r.exercises}
+                columns={[
+                  { title: 'Bài tập', dataIndex: 'title' },
+                  { title: 'Điểm AI', key: 'ai', width: 80, align: 'right', render: (_, e) => fmtScore(e.ai) },
+                  { title: '', key: 'link', width: 70, render: (_, e) => e.link ? <a href={e.link} target="_blank" rel="noopener noreferrer">mở link</a> : null }
+                ]}
+              />
+            ) : <Text type="secondary">{m.exerciseLoading.has(r.key) ? 'Đang tải…' : 'Không tải được bài tập của sinh viên này.'}</Text>
+          }]}
+        />
+
+        {/* 5. Nghi vấn BTVN (thu gọn) */}
         {hasSuspicion && (
           <Collapse
             size="small"
@@ -247,26 +291,13 @@ export const StudentMonitorDrawer: React.FC<{
                     <div key={i}>{d.what} (<a href={d.link} target="_blank" rel="noopener noreferrer">mở link</a>) trùng với {d.others.join(', ')}</div>
                   ))}
                   <Text type="secondary">→ Vấn đáp lại 1–2 bài tập đã nộp để xác minh.</Text>
-                  {r.exercises && (
-                    <Table
-                      size="small"
-                      pagination={false}
-                      rowKey={(_, i) => String(i)}
-                      dataSource={r.exercises}
-                      columns={[
-                        { title: 'Bài tập', dataIndex: 'title' },
-                        { title: 'Điểm AI', key: 'ai', width: 80, align: 'right', render: (_, e) => fmtScore(e.ai) },
-                        { title: '', key: 'link', width: 70, render: (_, e) => e.link ? <a href={e.link} target="_blank" rel="noopener noreferrer">mở link</a> : null }
-                      ]}
-                    />
-                  )}
                 </Flex>
               )
             }]}
           />
         )}
 
-        {/* 5. Liên hệ */}
+        {/* 6. Liên hệ */}
         <Section title="Liên hệ">
           <Descriptions
             size="small"

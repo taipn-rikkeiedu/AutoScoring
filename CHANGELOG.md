@@ -4,6 +4,17 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.10.0] - 2026-10-16
+
+### ✨ Cải thiện
+- **Cài đặt giám sát gọn, ít nhập tay**:
+  - Chọn **mức giám sát Chuẩn / Chặt** là đặt sẵn toàn bộ ngưỡng (cảnh báo, báo động, sắp vượt, nghi vấn). Chuẩn: nghỉ học / thiếu bài tập từ 10%, báo động trên 20%. Chặt: từ 5%, báo động trên 15%, nhắc khi bài thi dưới 60, nghi vấn nhạy hơn.
+  - Vẫn **điều chỉnh bằng tay** từng ngưỡng (thu gọn), khi đó hiện nhãn "Đã chỉnh tay".
+- **Danh sách cần rà soát**: bấm ☆ cạnh tên sinh viên (trong danh sách hoặc chi tiết) để thêm / bỏ, không cần gõ tên; ô dán danh sách tên có sẵn được thu gọn. Tên có số thứ tự ở cuối (vd "Nguyễn Đức Huy 4") nay được nhận đúng.
+- **Điểm AI bài tập tự tải khi mở chi tiết sinh viên** (1 request), hiện ở mục "Bài tập về nhà"; bỏ nút tải hàng loạt trong Cài đặt.
+
+---
+
 ## [5.9.4] - 2026-10-16
 
 ### 🐛 Sửa lỗi

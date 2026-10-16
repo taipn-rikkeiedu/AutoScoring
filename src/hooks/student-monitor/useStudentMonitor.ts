@@ -10,7 +10,7 @@ import {
 import {
   MonitorBase, MonitorRow, MonitorRules, MonitorFilter, DEFAULT_MONITOR_RULES, MONITOR_FILTERS, RISK_LEVELS,
   parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS, examCellLabel,
-  buildDistributions, DistributionBin
+  buildDistributions, DistributionBin, MONITOR_PRESETS, MonitorPreset, detectPreset
 } from '~/src/core/studentMonitor';
 import { callAiWithRateLimitRetry } from '~/src/services/aiService';
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
@@ -32,7 +32,6 @@ export type MonitorView = 'list' | 'chart';
 export interface ChartFilter { label: string; keys: Set<string> }
 
 const LOG_MODULE = 'STUDENT_MONITOR';
-const STUDENT_FETCH_CONCURRENCY = 4;
 
 export function useStudentMonitor() {
   const { config } = useApp();
@@ -193,38 +192,35 @@ export function useStudentMonitor() {
   const toggleFilter = (f: MonitorFilter) =>
     setFilters(prev => (prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]));
 
-  /* ---------- Điểm AI bài tập của hệ thống (1 request / SV) ---------- */
-  const handleLoadExerciseAi = async () => {
-    if (busy || !baseRows.length) return;
-    const targetKeys = new Set(visibleRows.map(r => r.key));
-    const targets = baseRows.filter(r => targetKeys.has(r.key));
-    if (!window.confirm(`Tải bài tập + điểm AI hệ thống cho ${targets.length} sinh viên đang hiển thị (${targets.length} request)?`)) return;
-    setBusy(true);
+  /* ---------- Điểm AI bài tập của hệ thống: tự tải khi mở chi tiết 1 SV (1 request) ---------- */
+  const [exerciseLoading, setExerciseLoading] = useState<Set<string>>(new Set());
+  const loadStudentExercises = async (r: MonitorRow) => {
+    if (r.exercises || exerciseLoading.has(r.key) || !courseId) return;
+    setExerciseLoading(prev => new Set(prev).add(r.key));
     try {
-      const auth = await getQldtAuth();
-      const updates = new Map<string, Pick<MonitorBase, 'exercises' | 'aiAvg' | 'aiCount'>>();
-      let done = 0;
-      let next = 0;
-      setProgress({ done: 0, total: targets.length, text: 'Đang tải bài tập…' });
-      await Promise.all(Array.from({ length: Math.min(STUDENT_FETCH_CONCURRENCY, targets.length) }, async () => {
-        while (next < targets.length) {
-          const r = targets[next++];
-          try {
-            const exercises = toStudentExercises(await fetchStudentExercises(auth, r.studentId, courseId));
-            updates.set(r.key, { exercises, aiAvg: avg(exercises.map(e => e.ai)), aiCount: exercises.filter(e => e.ai != null).length });
-          } catch (e: any) {
-            logger.error(LOG_MODULE, `Không tải được bài tập của ${r.name}.`, e.message);
-          }
-          setProgress({ done: ++done, total: targets.length, text: 'Đang tải bài tập…' });
-        }
-      }));
-      setBaseRows(prev => prev.map(r => (updates.has(r.key) ? { ...r, ...updates.get(r.key)! } : r)));
+      const exercises = toStudentExercises(await fetchStudentExercises(await getQldtAuth(), r.studentId, courseId));
+      const update = { exercises, aiAvg: avg(exercises.map(e => e.ai)), aiCount: exercises.filter(e => e.ai != null).length };
+      setBaseRows(prev => prev.map(x => (x.key === r.key ? { ...x, ...update } : x)));
     } catch (e: any) {
-      setStatusText('Lỗi: ' + e.message);
+      logger.error(LOG_MODULE, `Không tải được bài tập của ${r.name}.`, e.message);
     } finally {
-      setProgress(null);
-      setBusy(false);
+      setExerciseLoading(prev => { const next = new Set(prev); next.delete(r.key); return next; });
     }
+  };
+
+  /* ---------- Danh sách rà soát: bấm ⭐ để thêm / bỏ ---------- */
+  const toggleWatch = (name: string) => setWatchText(prev => {
+    const list = parseWatchList(prev);
+    const key = plainText(name);
+    const has = list.some(w => plainText(w) === key);
+    return (has ? list.filter(w => plainText(w) !== key) : [...list, name]).join('\n');
+  });
+
+  /* ---------- Mức giám sát (Chuẩn / Chặt) ---------- */
+  const preset = detectPreset(monitorRules, rules);
+  const applyPreset = (p: MonitorPreset) => {
+    setMonitorRules(MONITOR_PRESETS[p].monitor);
+    setRules(MONITOR_PRESETS[p].analysis);
   };
 
   /* ---------- AI viết nhận xét (chỉ chạy khi bấm) ---------- */
@@ -288,7 +284,8 @@ export function useStudentMonitor() {
     filters, toggleFilter, clearFilters: () => { setFilters([]); setChartFilter(null); }, query, setQuery,
     view, setView, distributions, chartFilter, clearChartFilter: () => setChartFilter(null), openChartBin, openRiskLevel,
     busy, progress, statusText, classAi, studentAi,
-    handleClassChange, handleLoad, handleLoadExerciseAi, handleClassAi, handleStudentAi, handleExport,
+    handleClassChange, handleLoad, handleClassAi, handleStudentAi, handleExport,
+    exerciseLoading, loadStudentExercises, toggleWatch, preset, applyPreset,
     reloadClasses: () => loadClasses(classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current)
   };
 }

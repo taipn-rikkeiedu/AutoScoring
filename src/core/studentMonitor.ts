@@ -8,7 +8,7 @@
  */
 import {
   AnalysisRow, AnalysisRules, FlaggedRow, TestColumn, TestPhase, TestKind, ExamType,
-  parseClassDashboard, flagRows, avg, fmtScore, PHASE_LABELS
+  parseClassDashboard, flagRows, avg, fmtScore, PHASE_LABELS, DEFAULT_ANALYSIS_RULES
 } from './examAnalysis';
 
 /** Điểm 1 phần thi: số điểm, 'absent' khi SV vắng thi, null khi chưa có bài thi này. */
@@ -47,6 +47,37 @@ export const DEFAULT_MONITOR_RULES: MonitorRules = {
   elearningWarn: 1, elearningAlarm: 2, examPass: 50,
   earlyAbsentFrom: 7, earlyHomeworkFrom: 7, earlyExamTo: 55
 };
+
+/** 2 mức giám sát có sẵn; người dùng vẫn chỉnh tay từng ngưỡng được (khi đó là "tùy chỉnh"). */
+export type MonitorPreset = 'standard' | 'strict';
+
+export const MONITOR_PRESETS: Record<MonitorPreset, { label: string; description: string; monitor: MonitorRules; analysis: AnalysisRules }> = {
+  standard: {
+    label: 'Chuẩn',
+    description: 'Cảnh báo khi nghỉ học / thiếu bài tập từ 10%, báo động trên 20%; chậm E-learning từ 1 bài; bài thi dưới 50.',
+    monitor: DEFAULT_MONITOR_RULES,
+    analysis: DEFAULT_ANALYSIS_RULES
+  },
+  strict: {
+    label: 'Chặt',
+    description: 'Cảnh báo sớm hơn: nghỉ học / thiếu bài tập từ 5%, báo động trên 15%; nhắc khi bài thi dưới 60; nghi vấn BTVN nhạy hơn.',
+    monitor: {
+      absentWarn: 5, absentAlarm: 15, homeworkWarn: 5, homeworkAlarm: 15,
+      elearningWarn: 1, elearningAlarm: 2, examPass: 50,
+      earlyAbsentFrom: 3, earlyHomeworkFrom: 3, earlyExamTo: 60
+    },
+    analysis: { hwMin: 70, highBelow: 55, midBelow: 70, gapMin: 30, aiHigh: 75 }
+  }
+};
+
+const sameRules = <T extends object>(a: T, b: T) => (Object.keys(b) as (keyof T)[]).every(k => a[k] === b[k]);
+
+/** Mức đang dùng; chỉnh tay khác cả 2 mức thì là 'custom'. */
+export function detectPreset(monitor: MonitorRules, analysis: AnalysisRules): MonitorPreset | 'custom' {
+  const hit = (Object.keys(MONITOR_PRESETS) as MonitorPreset[])
+    .find(p => sameRules(monitor, MONITOR_PRESETS[p].monitor) && sameRules(analysis, MONITOR_PRESETS[p].analysis));
+  return hit || 'custom';
+}
 
 export type RiskLevel = 'alarm' | 'warning' | 'early' | 'normal';
 

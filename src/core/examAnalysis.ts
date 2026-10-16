@@ -250,7 +250,7 @@ export function toStudentExercises(list: any[]): StudentExercise[] {
 export function parseWatchList(text: string): string[] {
   return text.split(/[\n,;]+/)
     .map(x => x.replace(/^.*:/, '').replace(/[()]/g, '').trim())
-    .filter(x => x.split(/\s+/).length >= 2 && !/\d/.test(x));
+    .filter(x => x.split(/\s+/).length >= 2 && !/\d{3,}/.test(x));
 }
 
 /* ---------- Gắn cờ ---------- */
