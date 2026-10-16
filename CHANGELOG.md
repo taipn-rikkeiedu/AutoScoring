@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.9.2] - 2026-10-16
+
+### ✨ Cải thiện
+- Log `[QLĐT API]` trong Console in phần `data` của response dưới dạng JSON đã định dạng (giống file response mẫu, có nút Copy của Chrome), kèm object để mở xem từng trường.
+
+---
+
 ## [5.9.1] - 2026-10-16
 
 ### ✨ Cải thiện

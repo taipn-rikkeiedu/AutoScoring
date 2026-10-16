@@ -58,8 +58,10 @@ export function qldtGet<T = any>(path: string, auth: string): Promise<T> {
         let json: any = null;
         try { json = response.text ? JSON.parse(response.text) : null; } catch { /* body không phải JSON */ }
 
-        // In nguyên response (kể cả phần vỏ statusCode/message) để đối chiếu dữ liệu QLĐT trong DevTools → Console
-        console.log(`[QLĐT API] GET ${path} → HTTP ${response.status}`, json ?? response.text);
+        // In response ra Console để đối chiếu dữ liệu QLĐT: phần data dạng JSON (giống file response mẫu) + object để mở xem
+        const logged = json && typeof json === 'object' && 'data' in json ? json.data : (json ?? response.text);
+        console.log(`[QLĐT API] GET ${path} → HTTP ${response.status}\n${JSON.stringify(logged, null, 2)}`);
+        console.log(`[QLĐT API] GET ${path} (object)`, logged);
 
         if (response.status === 401) {
           // Token đã lưu hết hạn → xoá để lần sau báo đăng nhập lại thay vì dùng tiếp token hỏng
