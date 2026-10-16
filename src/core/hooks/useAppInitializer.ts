@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AppConfig, CareStudent, Submission } from '~/src/types';
+import { AppConfig, Submission } from '~/src/types';
 import { ExerciseBank, bankToTemplates } from '../exerciseBank';
 import { SupabaseService } from '~/src/services/supabaseService';
 import { testConnection } from '~/src/services/connectionTester';
@@ -34,7 +34,6 @@ export function useAppInitializer() {
   const [supabaseStatus, setSupabaseStatus] = useState<string>(UI_MESSAGES.statuses.supabaseInactive);
   const [aiStatus, setAiStatus] = useState<"success" | "error" | "testing">("testing");
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [careStudents, setCareStudents] = useState<CareStudent[]>([]);
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [currentTabUrl, setCurrentTabUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -63,7 +62,7 @@ export function useAppInitializer() {
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiKeys, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
       STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseBank,
       STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey, STORAGE_KEYS.gradingScale, STORAGE_KEYS.strictnessLevel,
-      STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
+      STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
       if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>") || !systemPrompt.includes("KHÔNG đưa các thông số kỹ thuật khô khan") || !systemPrompt.includes("CHỈ RA LỖI + GỢI Ý SỬA NGẮN NHẤT"))) {
@@ -116,28 +115,12 @@ export function useAppInitializer() {
           const matchCare = url.match(/\/class\/(\d+)\/take-care/);
           const matchHome = url.match(/\/homework-checking\/(\d+)/);
           const classId = matchCare ? matchCare[1] : (matchHome ? matchHome[1] : null);
-          if (classId) {
-            setActiveClassId(classId);
-            if (stored[STORAGE_KEYS.careStudents]) {
-              setCareStudents((stored[STORAGE_KEYS.careStudents] as any)?.[classId] || []);
-            }
-          }
+          if (classId) setActiveClassId(classId);
         }
         setIsLoading(false);
       });
     });
 
-    const handleStorageChange = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
-      if (areaName === 'local') {
-        if (changes[STORAGE_KEYS.careStudents] && activeClassId) {
-          const allCare = (changes[STORAGE_KEYS.careStudents].newValue as Record<string, CareStudent[]>) || {};
-          setCareStudents(allCare[activeClassId] || []);
-        }
-      }
-    };
-
-    chrome.storage.onChanged.addListener(handleStorageChange);
-    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
   }, [activeClassId]);
 
   const testAiConnection = async (cfg: AppConfig, silent = false) => {
@@ -211,8 +194,6 @@ export function useAppInitializer() {
     saveExerciseBank,
     submissions,
     setSubmissions,
-    careStudents,
-    setCareStudents,
     activeClassId,
     setActiveClassId,
     currentTabUrl,

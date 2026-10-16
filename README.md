@@ -22,15 +22,16 @@ Vượt trội hơn một công cụ chấm điểm thông thường, **REduX** 
 ### 2. 👥 Quản Lý Danh Sách Lớp & Bảo Mật Tuyệt Đối (Local-First Class Management)
 * **Tự động trích xuất thông tin học viên:** Đọc thông tin học viên, mã sinh viên, trạng thái nộp bài trực tiếp từ bảng quản lý lớp học của LMS.
 * **Lưu trữ cục bộ bảo mật (Local Storage):** Danh sách lớp học và học viên được chuyển sang lưu trữ cục bộ hoàn toàn tại trình duyệt của giáo viên (`chrome.storage.local`), đảm bảo an toàn bảo mật và không lưu footprint dữ liệu cá nhân học viên trên đám mây Supabase Cloud.
-* **Đồng bộ đám mây (Supabase):** Ghi chú chăm sóc học viên (bảng `care_notes`) và mẫu giám sát học tập dùng chung (bảng `monitor_templates`) được lưu trên Supabase Cloud.
+* **Đồng bộ đám mây (Supabase):** Mẫu giám sát học tập dùng chung (bảng `monitor_templates`) được lưu trên Supabase Cloud.
 * **Xuất báo cáo định dạng Excel (.xlsx):** Tích hợp xuất trực tiếp bảng điểm tiếng Việt có dấu hoàn hảo, tự động định cấu hình độ rộng cột tối ưu.
 
 ### 3. ⚡ Tự động chạy DDL Migrations (One-Click Setup)
-* **Khởi tạo database tự động:** Điền **Personal Access Token (PAT)** của Supabase rồi nhấn **Khởi tạo DB** ở tab Cài đặt. Extension tạo / cập nhật 2 bảng `care_notes`, `monitor_templates` cùng chính sách RLS, và **xoá vĩnh viễn** bảng `exercises`, `submissions` của các chức năng đã bỏ (có hộp xác nhận trước khi chạy).
+* **Khởi tạo database tự động:** Điền **Personal Access Token (PAT)** của Supabase rồi nhấn **Khởi tạo DB** ở tab Cài đặt. Extension tạo / cập nhật bảng `monitor_templates` cùng chính sách RLS, và **xoá vĩnh viễn** bảng `exercises`, `submissions`, `care_notes` của các chức năng đã bỏ (có hộp xác nhận trước khi chạy).
 
 ### 4. 📞 Quản Lý Chăm Sóc Học Viên (Student Care)
-* **Tự động cào dữ liệu chăm sóc:** Đọc thông tin Mã SV, Tên học viên từ giao diện chăm sóc sinh viên của LMS (`/class/*/take-care`).
-* **Ghi chú cô lập theo ngày (Student Care Isolation):** Lưu trữ ghi chú chăm sóc sinh viên đồng bộ hóa đám mây thông qua bảng `care_notes` trên Supabase Cloud. Cơ chế ghi chú được cô lập theo môn học và ngày học hiện hành, tránh tình trạng ghi đè hoặc lẫn lộn dữ liệu giữa các ngày khác nhau.
+* **Ca chăm sóc lấy thẳng từ QLĐT:** Mỗi ca là 1 buổi nghỉ không phép cần liên hệ. Chọn lớp (hoặc tất cả lớp) và khoảng ngày rồi bấm **Tải** — không cần mở trang LMS, chỉ cần đã đăng nhập QLĐT ít nhất một lần.
+* **Cập nhật lên QLĐT ngay trong extension:** Mở 1 ca để sửa trạng thái, cách chăm sóc, phân loại nguyên nhân, lý do nghỉ, kết quả chăm sóc rồi **Lưu lên QLĐT** (đúng request trang QLĐT gửi: `PATCH /take-care-students/:id`). Xem kèm lịch sử chăm sóc của sinh viên; chuyển ca bằng phím ← / →, hỏi trước khi bỏ thay đổi chưa lưu.
+* **Lọc & xuất:** Lọc theo trạng thái, tìm theo tên / mã SV, xuất Excel danh sách đang hiển thị.
 
 ### 5. 🎨 Giao diện & Trải nghiệm (UI/UX & Integration)
 * **Tự Động Điền Điểm 2 Chiều (Bidirectional Sync):** Tự động điền điểm số và nhận xét ngắn gọn do AI chấm vào form nhập liệu trên trang web LMS ngay khi AI hoàn thành chấm bài. Tự động phát hiện chuyển đổi học viên trên trang web LMS (bằng URL thay đổi hoặc DOM cập nhật động) và chuyển đổi giao diện chấm điểm tương ứng trên popup extension trong thời gian thực.
@@ -97,7 +98,7 @@ Nhấp vào biểu tượng **REduX** trên thanh công cụ trình duyệt ho�
      - Truy cập [Supabase Access Tokens](https://supabase.com/dashboard/account/tokens).
      - Bấm **Generate new token**, đặt tên và tạo token. Sao chép token này dán vào ô **Supabase Personal Access Token (PAT)** trong Extension.
   5. Nhìn xuống khu vực **Trạng thái CSDL trên Server**, bạn sẽ thấy thông báo đỏ `🔴 Chưa được khởi tạo`. 
-  6. Nhấn nút **Khởi tạo DB** và xác nhận. Extension tạo / cập nhật 2 bảng `care_notes`, `monitor_templates` (kèm phân quyền RLS) và xoá vĩnh viễn bảng `exercises`, `submissions` không còn dùng. Khi trạng thái chuyển sang `🟢 Đã khởi tạo bảng thành công`, database đã sẵn sàng.
+  6. Nhấn nút **Khởi tạo DB** và xác nhận. Extension tạo / cập nhật bảng `monitor_templates` (kèm phân quyền RLS) và xoá vĩnh viễn bảng `exercises`, `submissions`, `care_notes` không còn dùng. Khi trạng thái chuyển sang `🟢 Đã khởi tạo bảng thành công`, database đã sẵn sàng.
   7. *(Khuyên dùng bảo mật)*: Sau khi khởi tạo thành công CSDL, bạn có thể xóa chuỗi PAT khỏi ô cấu hình trong Extension để bảo mật. Extension vẫn đọc/ghi điểm bình thường bằng Anon Key.
 
 ---

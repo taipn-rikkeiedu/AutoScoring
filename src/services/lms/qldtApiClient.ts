@@ -94,3 +94,32 @@ export function qldtGetRaw(path: string, auth: string): Promise<{ url: string; s
     );
   });
 }
+
+/** Gửi request ghi (chỉ các endpoint background cho phép, vd PATCH /take-care-students/:id). Trả `data` của response. */
+export function qldtWrite<T = any>(method: 'PATCH', path: string, auth: string, body: unknown): Promise<T> {
+  const url = new URL(path, API_BASE_URLS.lmsPortal).href;
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        type: 'FETCH', url,
+        options: { method, headers: { Authorization: auth, Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      },
+      (response) => {
+        if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+        if (!response || !response.success) return reject(new Error(response?.error || 'Không phản hồi từ background proxy'));
+        let json: any = null;
+        try { json = response.text ? JSON.parse(response.text) : null; } catch { /* body không phải JSON */ }
+        if (response.status === 401) {
+          chrome.storage.local.remove(STORAGE_KEYS.qldtAuthToken);
+          return reject(new QldtAuthError('Phiên đăng nhập QLĐT đã hết hạn. Hãy mở qldt.rikkei.edu.vn, đăng nhập lại rồi thử lại.'));
+        }
+        if (response.status === 403) return reject(new QldtAuthError('Tài khoản QLĐT đang đăng nhập không có quyền sửa dữ liệu này.'));
+        if (!response.ok || (json && typeof json.statusCode === 'number' && json.statusCode >= 400)) {
+          const m = json && (json.message || json.error?.message || json.error);
+          return reject(new Error(`${method} ${path} → HTTP ${response.status}${m ? ': ' + (Array.isArray(m) ? m.join(', ') : m) : ''}`));
+        }
+        resolve(json && typeof json === 'object' && 'data' in json ? json.data : json);
+      }
+    );
+  });
+}

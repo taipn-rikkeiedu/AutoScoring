@@ -16,14 +16,6 @@ export interface AppConfig {
   strictnessLevel: string;
 }
 
-export interface CareStudent {
-  studentId: string;
-  studentName: string;
-  subjectName: string;
-  studyDate: string;
-  note: string;
-}
-
 export interface Submission {
   exerciseName: string;
   studentName: string;

@@ -341,7 +341,7 @@ export const MiniProjectTab: React.FC = () => {
 
   React.useEffect(() => {
     window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: scanStatus }));
-    return () => window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: null }));
+    return () => { window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: null })); };
   }, [scanStatus]);
 
   return (

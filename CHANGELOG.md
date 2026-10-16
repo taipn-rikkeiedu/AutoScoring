@@ -4,6 +4,19 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.24.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Tab Chăm sóc học viên làm lại, dữ liệu thẳng từ QLĐT**: mỗi ca là 1 buổi nghỉ không phép cần liên hệ. Chọn lớp (hoặc tất cả lớp) + khoảng ngày (có sẵn Hôm nay / 7 ngày qua / Tuần này / Tháng này) rồi bấm **Tải**; không cần đang mở trang LMS. Lớp chọn lần trước được nhớ; đang mở trang chăm sóc của 1 lớp thì chọn sẵn lớp đó.
+  - Tổng quan số ca, số ca đang xử lý, số buổi nghỉ không phép / đã xử lý của lớp; lọc theo trạng thái, tìm theo tên / mã SV, xuất Excel danh sách đang hiển thị.
+  - Mở 1 ca để sửa **trạng thái, cách chăm sóc, phân loại nguyên nhân, lý do nghỉ, kết quả** rồi **Lưu lên QLĐT** — cập nhật ngay trên hệ thống, giống thao tác trên trang QLĐT. Kèm lịch sử chăm sóc của sinh viên; chuyển ca bằng phím ← / →; hỏi trước khi bỏ thay đổi chưa lưu.
+- Proxy nền cho phép đúng một loại request ghi: `PATCH /take-care-students/:id` trên apiportal (body JSON nhỏ). Mọi request ghi khác vẫn bị chặn.
+
+### 🗑 Gỡ bỏ
+- Ghi chú chăm sóc lưu trên Supabase (bảng `care_notes`) và script đọc trang chăm sóc LMS: nay dữ liệu chăm sóc lưu thẳng trên QLĐT. **Khởi tạo DB** xoá luôn bảng `care_notes` (có hộp xác nhận).
+
+---
+
 ## [5.23.0] - 2026-10-16
 
 ### 🚀 Tính năng mới

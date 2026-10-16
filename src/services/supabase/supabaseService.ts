@@ -1,27 +1,10 @@
 import { AppConfig } from '~/src/types';
-import { logger } from '~/src/core/logger';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
-/** Bảng còn dùng: ghi chú chăm sóc học viên + mẫu giám sát học tập. */
-const REQUIRED_TABLES = ['care_notes', 'monitor_templates'] as const;
-/** Bảng của chức năng đã bỏ (kho đề, kết quả chấm đồng bộ) — xoá khi khởi tạo lại. */
-export const OBSOLETE_TABLES = ['exercises', 'submissions'] as const;
-
-const CARE_NOTES_SQL = `
-  CREATE TABLE IF NOT EXISTS care_notes (
-    class_id TEXT NOT NULL,
-    student_id TEXT NOT NULL,
-    student_name TEXT NOT NULL,
-    subject_name TEXT NOT NULL,
-    study_date TEXT NOT NULL,
-    note TEXT NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    PRIMARY KEY (class_id, student_id, subject_name, study_date)
-  );
-  ALTER TABLE care_notes ENABLE ROW LEVEL SECURITY;
-  DROP POLICY IF EXISTS "Public access to care_notes" ON care_notes;
-  CREATE POLICY "Public access to care_notes" ON care_notes FOR ALL USING (true) WITH CHECK (true);
-`;
+/** Bảng còn dùng: mẫu giám sát học tập (dùng chung). */
+const REQUIRED_TABLES = ['monitor_templates'] as const;
+/** Bảng của chức năng đã bỏ (kho đề, kết quả chấm đồng bộ, ghi chú chăm sóc — nay lưu thẳng trên QLĐT) — xoá khi khởi tạo lại. */
+export const OBSOLETE_TABLES = ['exercises', 'submissions', 'care_notes'] as const;
 
 const MONITOR_TEMPLATES_SQL = `
   CREATE TABLE IF NOT EXISTS monitor_templates (
@@ -44,7 +27,7 @@ const isMissingTable = (error: any) =>
  * SupabaseService (Direct Client)
  * Kết nối trực tiếp tới Supabase bằng @supabase/supabase-js (anon key),
  * không qua backend trung gian. Yêu cầu Row Level Security (RLS) đã được
- * cấu hình đúng trên các bảng care_notes/monitor_templates vì anon key
+ * cấu hình đúng trên bảng monitor_templates vì anon key
  * nằm công khai trong mã nguồn extension.
  */
 export class SupabaseService {
@@ -92,14 +75,13 @@ NOTIFY pgrst, 'reload schema';` })
   }
 
   /**
-   * Khởi tạo CSDL: tạo / cập nhật care_notes + monitor_templates và XOÁ VĨNH VIỄN các bảng của chức năng đã bỏ
-   * (exercises, submissions). Giao diện phải hỏi xác nhận trước khi gọi.
+   * Khởi tạo CSDL: tạo / cập nhật monitor_templates và XOÁ VĨNH VIỄN các bảng của chức năng đã bỏ
+   * (exercises, submissions, care_notes). Giao diện phải hỏi xác nhận trước khi gọi.
    */
   public static async initializeDatabaseSchema(config: AppConfig, pat: string): Promise<void> {
     await SupabaseService.runSql(config, pat, `
       -- Xoá bảng của chức năng đã bỏ (kho đề, kết quả chấm đồng bộ)
       ${OBSOLETE_TABLES.map(t => `DROP TABLE IF EXISTS ${t};`).join('\n      ')}
-      ${CARE_NOTES_SQL}
       ${MONITOR_TEMPLATES_SQL}
     `);
   }
@@ -141,49 +123,5 @@ NOTIFY pgrst, 'reload schema';` })
     if (!client) throw new Error("Supabase chưa được cấu hình.");
     const { error } = await client.from("monitor_templates").delete().eq("id", id);
     if (error) throw new Error(error.message);
-  }
-
-  /* -------------------------------------------------------------
-   * Care Notes Operations
-   * ------------------------------------------------------------- */
-  public static async upsertCareNote(
-    config: AppConfig,
-    classId: string,
-    studentId: string,
-    studentName: string,
-    subjectName: string,
-    studyDate: string,
-    note: string
-  ): Promise<void> {
-    const client = getSupabaseClient(config);
-    if (!client) throw new Error("Supabase chưa được cấu hình.");
-    try {
-      const { error } = await client.from("care_notes").upsert({
-        class_id: classId,
-        student_id: studentId,
-        student_name: studentName,
-        subject_name: subjectName || "",
-        study_date: studyDate || "",
-        note: note || "",
-        updated_at: new Date().toISOString()
-      }, { onConflict: "class_id,student_id,subject_name,study_date" });
-      if (error) throw new Error(error.message);
-    } catch (e: any) {
-      logger.error("SUPABASE", "Lỗi gửi thông tin chăm sóc học viên lên Supabase.", e.message || e);
-      throw e;
-    }
-  }
-
-  public static async pullCareNotes(config: AppConfig, classId: string): Promise<any[]> {
-    const client = getSupabaseClient(config);
-    if (!client) return [];
-    try {
-      const { data, error } = await client.from("care_notes").select("*").eq("class_id", classId);
-      if (error) throw new Error(error.message);
-      return data || [];
-    } catch (e: any) {
-      logger.error("SUPABASE", "Lỗi tải thông tin chăm sóc học viên từ Supabase.", e.message || e);
-      return [];
-    }
   }
 }

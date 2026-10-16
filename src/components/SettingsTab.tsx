@@ -218,9 +218,9 @@ export const SettingsTab: React.FC = () => {
                   title="Khởi tạo cơ sở dữ liệu Supabase?"
                   description={
                     <div style={{ maxWidth: 320 }}>
-                      Tạo / cập nhật bảng <b>care_notes</b> (chăm sóc học viên) và <b>monitor_templates</b> (mẫu giám sát).
+                      Tạo / cập nhật bảng <b>monitor_templates</b> (mẫu giám sát dùng chung).
                       <br />
-                      <Text type="danger">Xoá vĩnh viễn bảng exercises và submissions</Text> (kho đề, kết quả chấm cũ — không còn dùng), kèm toàn bộ dữ liệu trong đó. Không hoàn tác được.
+                      <Text type="danger">Xoá vĩnh viễn bảng exercises, submissions và care_notes</Text> (kho đề, kết quả chấm cũ, ghi chú chăm sóc cũ — nay chăm sóc học viên lưu thẳng trên QLĐT), kèm toàn bộ dữ liệu trong đó. Không hoàn tác được.
                     </div>
                   }
                   okText="Khởi tạo & xoá bảng cũ"

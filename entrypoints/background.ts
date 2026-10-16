@@ -93,11 +93,19 @@ export default defineBackground(() => {
 
     const rawOptions = message.options || {};
     const method = String(rawOptions.method || "GET").toUpperCase();
-    if (!BACKGROUND_FETCH_PROXY.allowedMethods.includes(method as any)) {
-      throw new Error(UI_MESSAGES.background.disallowedMethod);
+    // Ghi dữ liệu: chỉ đúng các endpoint trong danh sách cho phép (vd cập nhật ca chăm sóc), body JSON nhỏ
+    const isWrite = !BACKGROUND_FETCH_PROXY.allowedMethods.includes(method as any);
+    if (isWrite) {
+      const allowed = BACKGROUND_FETCH_PROXY.allowedWrites.some(w =>
+        w.method === method && w.host === requestUrl.hostname && w.path.test(requestUrl.pathname));
+      const body = rawOptions.body;
+      if (!allowed || typeof body !== "string" || body.length > BACKGROUND_FETCH_PROXY.maxWriteBodyBytes) {
+        throw new Error(UI_MESSAGES.background.disallowedMethod);
+      }
+      try { JSON.parse(body); } catch { throw new Error(UI_MESSAGES.background.disallowedMethod); }
     }
 
-    const allowedHeaderNames = new Set<string>(BACKGROUND_FETCH_PROXY.allowedHeaders);
+    const allowedHeaderNames = new Set<string>([...BACKGROUND_FETCH_PROXY.allowedHeaders, ...(isWrite ? ["content-type"] : [])]);
     const headers: Record<string, string> = {};
     const rawHeaders = rawOptions.headers || {};
     Object.entries(rawHeaders).forEach(([key, value]) => {
@@ -109,7 +117,7 @@ export default defineBackground(() => {
 
     return {
       url: requestUrl.toString(),
-      options: { method, headers }
+      options: isWrite ? { method, headers, body: rawOptions.body } : { method, headers }
     };
   };
 

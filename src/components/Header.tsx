@@ -23,7 +23,7 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
   },
   "tab-care": {
     title: "Chăm sóc học viên",
-    subtitle: "Nhật ký liên hệ và hỗ trợ học viên",
+    subtitle: "Ca nghỉ không phép cần liên hệ — cập nhật thẳng lên QLĐT",
   },
   "tab-qldt-api": {
     title: "Thu thập API QLĐT",

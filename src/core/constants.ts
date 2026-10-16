@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "5.23.0",
+  version: "5.24.0",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -18,7 +18,15 @@ export const AI_DEFAULTS = {
 export const BACKGROUND_FETCH_PROXY = {
   allowedHosts: ["api.github.com", "codeload.github.com", "raw.githubusercontent.com", "apiportal.rikkei.edu.vn", "docs.google.com"],
   allowedMethods: ["GET", "HEAD"],
-  allowedHeaders: ["accept", "authorization", "user-agent"]
+  allowedHeaders: ["accept", "authorization", "user-agent"],
+  /**
+   * Request ghi duy nhất được phép: cập nhật 1 ca chăm sóc học viên trên QLĐT (body JSON nhỏ).
+   * Mọi request ghi khác vẫn bị chặn.
+   */
+  allowedWrites: [
+    { method: "PATCH", host: "apiportal.rikkei.edu.vn", path: /^\/take-care-students\/\d+$/ }
+  ],
+  maxWriteBodyBytes: 10_000
 } as const;
 
 export const STORAGE_KEYS = {
@@ -38,7 +46,6 @@ export const STORAGE_KEYS = {
   googleApiKey: "googleApiKey",
   gradingScale: "gradingScale",
   strictnessLevel: "strictnessLevel",
-  careStudents: "careStudents",
   detectedSubmissions: "detectedSubmissions",
   customShortcuts: "customShortcuts",
   uiWindowMode: "uiWindowMode",
