@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "5.12.0",
+  version: "5.13.0",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 

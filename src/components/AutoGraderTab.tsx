@@ -331,6 +331,57 @@ export const AutoGraderTab: React.FC = () => {
   );
 };
 
+/* ---------- Đề dạng Markdown: link bấm được, code mẫu giữ thụt dòng, ảnh có nhãn ---------- */
+const LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s)\]]+)/g;
+
+const RichLine: React.FC<{ text: string }> = ({ text }) => {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(LINK_RE)) {
+    if (m.index! > last) parts.push(text.slice(last, m.index));
+    const href = m[2] || m[3];
+    parts.push(<a key={m.index} href={href} target="_blank" rel="noopener noreferrer">{m[1] || href}</a>);
+    last = m.index! + m[0].length;
+  }
+  parts.push(text.slice(last));
+  return <>{parts}</>;
+};
+
+const AssignmentView: React.FC<{ text: string; images?: string[] }> = ({ text, images = [] }) => (
+  <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+    {images.length > 0 && (
+      <Flex wrap gap={8} style={{ marginBottom: 8 }}>
+        {images.map((src, i) => (
+          <a key={src} href={src.startsWith('data:') ? undefined : src} target="_blank" rel="noopener noreferrer" style={{ textAlign: 'center' }}>
+            <img src={src} alt={`Ảnh ${i + 1}`} style={{ width: 120, height: 84, objectFit: 'cover', borderRadius: 6, border: '1px solid #f0f0f0', display: 'block' }} />
+            <Text type="secondary" style={{ fontSize: 12 }}>Ảnh {i + 1}</Text>
+          </a>
+        ))}
+      </Flex>
+    )}
+    {text.split(/(```[^\n]*\n[\s\S]*?\n```)/).map((part, i) => {
+      if (i % 2) {
+        const body = part.replace(/^```[^\n]*\n/, '').replace(/\n```$/, '');
+        return (
+          <pre key={i} style={{ background: '#f6f8fa', padding: 8, borderRadius: 6, fontSize: 12, overflowX: 'auto', margin: '6px 0' }}>{body}</pre>
+        );
+      }
+      return (
+        <div key={i} style={{ whiteSpace: 'pre-wrap' }}>
+          {part.replace(/^\n+|\n+$/g, '').split('\n').map((line, j) => {
+            const heading = /^#{1,6}\s+(.*)$/.exec(line);
+            return (
+              <div key={j} style={heading ? { fontWeight: 600, marginTop: j ? 4 : 0 } : undefined}>
+                {line ? <RichLine text={heading ? heading[1] : line} /> : '\u00a0'}
+              </div>
+            );
+          })}
+        </div>
+      );
+    })}
+  </div>
+);
+
 /* ---------- Chi tiết 1 bài: đề, tiêu chí, nhận xét ---------- */
 const ItemDetailDrawer: React.FC<{ item: BatchItem | null; g: Grader; onClose: () => void }> = ({ item, g, onClose }) => {
   const block = (text: string) => (
@@ -380,6 +431,12 @@ const ItemDetailDrawer: React.FC<{ item: BatchItem | null; g: Grader; onClose: (
               }
             >
               {block(extractComment(item.report || '') || item.report || '')}
+              {(item.assignmentImagesAttached || item.assignmentImagesMissing) ? (
+                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
+                  Ảnh của đề: đã gửi kèm {item.assignmentImagesAttached || 0}
+                  {item.assignmentImagesMissing ? `, không gửi được ${item.assignmentImagesMissing}` : ''}.
+                </Text>
+              ) : null}
             </Card>
           )}
 
@@ -387,11 +444,15 @@ const ItemDetailDrawer: React.FC<{ item: BatchItem | null; g: Grader; onClose: (
             size="small"
             defaultActiveKey={item.status === 'success' ? [] : ['assignment']}
             items={[
-              { key: 'assignment', label: 'Đề bài', children: block(item.assignment || '(Đề không có mô tả)') },
+              {
+                key: 'assignment',
+                label: item.images.length ? `Đề bài · ${item.images.length} ảnh (gửi kèm cho AI)` : 'Đề bài',
+                children: <AssignmentView text={item.assignment || '(Đề không có mô tả)'} images={item.images} />
+              },
               {
                 key: 'criteria',
                 label: item.criteria ? 'Tiêu chí chấm' : 'Tiêu chí chấm (mặc định — đề chưa có tiêu chí trên QLĐT)',
-                children: block(criteriaOf(item))
+                children: <AssignmentView text={criteriaOf(item)} />
               },
               ...(item.comment ? [{ key: 'comment', label: 'Nhận xét hiện có trên QLĐT', children: block(item.comment) }] : []),
               ...(item.fileList?.length ? [{

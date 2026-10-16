@@ -4,12 +4,14 @@
  * để các phần chấm điểm dùng như trước.
  */
 import { DEFAULT_CRITERIA } from './utils';
+import { htmlToMarkdown } from './htmlContent';
 
 export interface BankHomework {
   id: string;
   title: string;
-  assignment: string;   // mô tả đề (+ hướng dẫn), dạng chữ
+  assignment: string;   // mô tả đề (+ hướng dẫn), dạng Markdown (giữ link, code mẫu, nhãn [Ảnh n])
   criteria: string;     // tiêu chí chấm trên QLĐT, '' nếu chưa nhập
+  images?: string[];    // ảnh trong đề (http(s) / data:), khớp nhãn [Ảnh n]
 }
 
 export interface BankSession {
@@ -31,30 +33,18 @@ export type ExerciseBank = Record<string, BankCourse>;
 
 export type ExerciseTemplates = Record<string, Record<string, Record<string, { assignment: string; criteria: string }>>>;
 
-/** HTML (mô tả đề trên QLĐT) → chữ thuần, giữ xuống dòng / gạch đầu dòng / ô bảng. */
-export function htmlToText(html: string): string {
-  return String(html || '')
-    .replace(/<(script|style|head)[\s\S]*?<\/\1>/gi, '')
-    .replace(/<\/(td|th)>/gi, ' | ')
-    .replace(/<(br|\/p|\/div|\/tr|\/li|\/h\d)[^>]*>/gi, '\n')
-    .replace(/<li[^>]*>/gi, '• ')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&amp;/g, '&')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n\s*\n\s*\n+/g, '\n\n')
-    .trim();
-}
-
+/** Đề trên QLĐT (HTML) → Markdown giữ link, code mẫu; ảnh đánh số [Ảnh n] liên tục qua mô tả, hướng dẫn, tiêu chí. */
 export function toBankHomework(h: any): BankHomework {
-  const description = htmlToText(h.description || h.content || '');
-  const tutorial = htmlToText(h.tutorial || '');
+  const images: string[] = [];
+  const description = htmlToMarkdown(h.description || h.content || '', images);
+  const tutorial = htmlToMarkdown(h.tutorial || '', images);
+  const criteria = htmlToMarkdown(h.gradingCriteria || h.criteria || '', images);
   return {
     id: String(h.id),
     title: String(h.title || h.name || `Bài ${h.id}`).trim(),
     assignment: tutorial ? `${description}\n\n## HƯỚNG DẪN\n${tutorial}` : description,
-    criteria: htmlToText(h.gradingCriteria || h.criteria || '')
+    criteria,
+    images
   };
 }
 

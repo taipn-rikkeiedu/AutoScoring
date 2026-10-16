@@ -4,6 +4,7 @@ import { analyzeCode, ASTMetrics } from '~/src/services/codeAnalysis';
 import { proxyFetchText } from '~/src/services/github/backgroundFetch';
 import { DEFAULT_CRITERIA, parseScore } from '~/src/core/utils';
 import { AppConfig } from '~/src/types';
+import { loadAssignmentImages } from '~/src/services/assignmentImages';
 
 export interface GradingResult {
   score: string;
@@ -13,6 +14,9 @@ export interface GradingResult {
   astMetrics?: ASTMetrics;
   imagesAttached?: number;
   imagesSkipped?: number;
+  /** Số ảnh trong đề đã gửi kèm / không gửi được. */
+  assignmentImagesAttached?: number;
+  assignmentImagesMissing?: number;
 }
 
 /**
@@ -26,7 +30,9 @@ export async function gradeSubmission(
   assignmentText: string,
   criteriaText: string | null,
   onStatusUpdate: ((status: string) => void) | null = null,
-  onFilesDownloaded: ((fileList: string[]) => void) | null = null
+  onFilesDownloaded: ((fileList: string[]) => void) | null = null,
+  /** Ảnh trong đề (địa chỉ theo thứ tự [Ảnh n]) — tải và gửi kèm cho AI. */
+  options: { assignmentImages?: string[] } = {}
 ): Promise<GradingResult> {
   let repoData = { content: "", fileList: [] as string[], images: [] as any[], skippedImageCount: 0 };
   
@@ -55,23 +61,47 @@ export async function gradeSubmission(
     onFilesDownloaded(repoData.fileList);
   }
 
-  onStatusUpdate?.(`Đang gửi bài nộp tới ${config.aiProvider.toUpperCase()} để chấm điểm...`);
-  const prompt = buildGradingPrompt(
-    config.systemPrompt,
-    assignmentText,
-    criteriaText || DEFAULT_CRITERIA,
-    repoData.content,
-    repoData.images.length,
-    config.gradingScale,
-    config.strictnessLevel
-  );
+  // Ảnh trong đề (giao diện mẫu, sơ đồ…) gửi kèm trước ảnh của bài nộp
+  const assignmentImgs = options.assignmentImages?.length
+    ? await loadAssignmentImages(options.assignmentImages)
+    : { images: [], numbers: [], failed: [] };
   const credentials = {
     provider: config.aiProvider,
     modelName: config.aiModelName,
     apiKey: config.aiApiKey,
     apiUrl: config.aiApiUrl
   };
-  const report = await callAiWithRateLimitRetry(prompt, credentials, onStatusUpdate, 3, 6000, repoData.images);
+  const callAi = (withAssignmentImages: boolean) => {
+    const sent = withAssignmentImages ? assignmentImgs.numbers : [];
+    const missing = withAssignmentImages ? assignmentImgs.failed : [...assignmentImgs.numbers, ...assignmentImgs.failed].sort((a, b) => a - b);
+    const prompt = buildGradingPrompt(
+      config.systemPrompt,
+      assignmentText,
+      criteriaText || DEFAULT_CRITERIA,
+      repoData.content,
+      repoData.images.length,
+      config.gradingScale,
+      config.strictnessLevel,
+      { sent, missing }
+    );
+    const images = withAssignmentImages ? [...assignmentImgs.images, ...repoData.images] : repoData.images;
+    return { sent, missing, run: () => callAiWithRateLimitRetry(prompt, credentials, onStatusUpdate, 3, 6000, images) };
+  };
+
+  onStatusUpdate?.(`Đang gửi bài nộp tới ${config.aiProvider.toUpperCase()} để chấm điểm...`);
+  let attempt = callAi(assignmentImgs.images.length > 0);
+  let report: string;
+  try {
+    report = await attempt.run();
+  } catch (e: any) {
+    // Model không đọc được ảnh → chấm lại chỉ với phần chữ của đề
+    if (!assignmentImgs.images.length || !/image|vision|multimodal|image_url|inline_data|content.*(array|type)|unsupported/i.test(e?.message || '')) throw e;
+    onStatusUpdate?.('Model không nhận ảnh của đề — chấm lại chỉ với phần chữ của đề...');
+    attempt = callAi(false);
+    report = await attempt.run();
+  }
+  const sentNumbers = attempt.sent;
+  const missingNumbers = attempt.missing;
 
   const scoreStr = parseScore(report) || "0";
   const { language, metrics } = analyzeCode(compressCode(repoData.content));
@@ -83,6 +113,8 @@ export async function gradeSubmission(
     language,
     astMetrics: metrics,
     imagesAttached: repoData.images.length,
+    assignmentImagesAttached: sentNumbers.length,
+    assignmentImagesMissing: missingNumbers.length,
     imagesSkipped: repoData.skippedImageCount
   };
 }

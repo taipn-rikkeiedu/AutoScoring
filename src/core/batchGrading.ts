@@ -19,6 +19,8 @@ export interface BatchResult {
   astMetrics?: ASTMetrics;
   imagesAttached?: number;
   imagesSkipped?: number;
+  assignmentImagesAttached?: number;
+  assignmentImagesMissing?: number;
   gradedAt?: string;
 }
 
@@ -30,6 +32,7 @@ export interface BatchItem extends BatchResult {
   title: string;
   assignment: string;     // mô tả đề + hướng dẫn
   criteria: string;       // tiêu chí trên QLĐT, '' nếu chưa nhập
+  images: string[];       // ảnh trong đề, khớp nhãn [Ảnh n]
   link: string;           // '' = chưa nộp
   sysAi: string;          // điểm AI của hệ thống QLĐT (chỉ để tham khảo)
   comment: string;        // nhận xét đang có trên QLĐT
@@ -98,6 +101,7 @@ export function buildStudentItems(
       title: h.title,
       assignment: h.assignment,
       criteria: h.criteria,
+      images: h.images || [],
       link: String(ex?.link_git || '').trim(),
       sysAi: ex ? systemAiText(ex) : '',
       comment: String(ex?.comment || '').trim(),
@@ -115,7 +119,8 @@ export function studentAverage(s: BatchStudent): number | null {
 }
 
 export const RESULT_FIELDS: (keyof BatchResult)[] = [
-  'status', 'score', 'report', 'error', 'fileList', 'language', 'astMetrics', 'imagesAttached', 'imagesSkipped', 'gradedAt'
+  'status', 'score', 'report', 'error', 'fileList', 'language', 'astMetrics', 'imagesAttached', 'imagesSkipped',
+  'assignmentImagesAttached', 'assignmentImagesMissing', 'gradedAt'
 ];
 
 export function pickResult(item: BatchItem): BatchResult {

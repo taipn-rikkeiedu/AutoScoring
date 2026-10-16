@@ -4,6 +4,21 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.13.0] - 2026-10-16
+
+### ✨ Cải thiện
+- **Đề bài gửi cho AI giữ đủ ảnh, link và code mẫu** (trước đây đề HTML trên QLĐT bị lột hết thẻ):
+  - **Ảnh trong đề** (giao diện mẫu, sơ đồ…) được tải và **gửi kèm cho AI**, đánh nhãn `[Ảnh n]` đúng vị trí trong đề; AI được dặn đây là mẫu của đề, không phải bài làm. Ảnh lớn / định dạng lạ được thu nhỏ, đổi sang JPEG; ảnh hỏng hoặc không tải được thì báo AI chấm theo phần chữ. Cả lớp cùng một đề chỉ tải ảnh 1 lần.
+  - **Link** giữ cả chữ và địa chỉ (`[tài liệu](https://…)`).
+  - **Code mẫu** (`<pre>`, `<code>`) giữ nguyên thụt dòng trong khối code; tiêu đề, danh sách, bảng vẫn rõ ràng.
+  - Model không đọc được ảnh → tự chấm lại chỉ với phần chữ của đề thay vì báo lỗi.
+- Ngăn chi tiết bài: xem ảnh của đề, link bấm được, code mẫu trong khung riêng; nhận xét ghi rõ số ảnh của đề đã gửi kèm.
+
+### 🐛 Sửa lỗi
+- Đề hoặc bài nộp có ký tự `$&`, `` $` ``, `$'` (code PHP/JS…) làm hỏng nội dung prompt gửi AI.
+
+---
+
 ## [5.12.0] - 2026-10-16
 
 ### 🚀 Tính năng mới

@@ -232,10 +232,11 @@ export function useBatchGrader() {
     updateItem(item.key, { status: 'downloading', score: null, report: undefined, error: undefined });
     try {
       const r = await gradeSubmission(config, item.link, item.assignment, criteriaOf(item), onStatus || null,
-        (fileList) => updateItem(item.key, { fileList, status: 'grading' }));
+        (fileList) => updateItem(item.key, { fileList, status: 'grading' }), { assignmentImages: item.images });
       updateItem(item.key, {
         status: 'success', score: r.score, report: r.report, fileList: r.fileList, language: r.language,
         astMetrics: r.astMetrics, imagesAttached: r.imagesAttached, imagesSkipped: r.imagesSkipped,
+        assignmentImagesAttached: r.assignmentImagesAttached, assignmentImagesMissing: r.assignmentImagesMissing,
         gradedAt: new Date().toISOString()
       });
       return true;
