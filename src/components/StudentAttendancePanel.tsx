@@ -1,5 +1,5 @@
 import React from 'react';
-import { Empty, Flex, Tag, Tooltip, Typography } from 'antd';
+import { Empty, Flex, Tag, Typography } from 'antd';
 import {
   ATTENDANCE_LABELS, AttendanceKind, ClassAttendance, StudentAttendance, StudentDay, fmtDay, isAbsentKind, weekday
 } from '~/src/core/attendance';
@@ -7,14 +7,6 @@ import {
 const { Text } = Typography;
 
 const LEAVE_COLOR: Record<string, string> = { 'Phê duyệt': 'green', 'Từ chối': 'red', 'Đang chờ': 'gold' };
-
-/** Màu ô 1 ca: nghỉ tô đậm, đi muộn tô nhạt, có mặt xám nhạt. */
-const cellStyle = (kind: AttendanceKind): React.CSSProperties => {
-  const c = ATTENDANCE_LABELS[kind].color;
-  if (isAbsentKind(kind)) return { background: c, color: '#fff' };
-  if (kind === 'late') return { background: `${c}22`, color: c };
-  return { background: '#f5f5f5', color: '#bfbfbf' };
-};
 
 /** Tóm tắt 1 ngày cho dòng danh sách / tooltip, vd "Ca 1 · Không phép". */
 export function describeDay(day: StudentDay): string {
@@ -58,12 +50,11 @@ const Stat: React.FC<{ label: string; value: number; color?: string }> = ({ labe
   </Flex>
 );
 
-/* ---------- Điểm danh của 1 SV: số liệu nhanh → lịch các buổi → danh sách buổi nghỉ ---------- */
+/* ---------- Điểm danh của 1 SV: số liệu nhanh → đúng các buổi vắng (mới nhất trước) ---------- */
 export const StudentAttendancePanel: React.FC<{ cls: ClassAttendance | null; s: StudentAttendance | null }> = ({ cls, s }) => {
   if (!cls || !s) return <Empty description="Chưa có dữ liệu điểm danh của sinh viên này." />;
   const days = cls.dates.filter(d => s.days[d]);
   const count = (k: AttendanceKind) => days.filter(d => s.days[d].marks.some(m => m.kind === k)).length;
-  const inStreak = (d: string) => s.streaks.some(x => x.from <= d && d <= x.to);
   const absentDays = [...days].reverse().filter(d => s.days[d].absent);
 
   return (
@@ -77,55 +68,10 @@ export const StudentAttendancePanel: React.FC<{ cls: ClassAttendance | null; s: 
         <Stat label="Liên tiếp tối đa" value={s.maxStreak} color={s.maxStreak >= 2 ? ATTENDANCE_LABELS.unexcused.color : undefined} />
       </Flex>
 
-      {/* Lịch các buổi: mỗi ô 1 ngày học, chia theo ca; khung đỏ = nằm trong chuỗi nghỉ liên tiếp */}
-      <Flex vertical gap={6}>
-        <Flex justify="space-between" align="baseline" wrap gap={8}>
-          <Text strong>Các buổi học</Text>
-          <Flex gap={10} wrap>
-            {(['excused', 'unexcused', 'late'] as const).map(k => (
-              <Text key={k} type="secondary" style={{ fontSize: 12 }}>
-                <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, marginRight: 4, ...cellStyle(k) }} />
-                {ATTENDANCE_LABELS[k].label}
-              </Text>
-            ))}
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, marginRight: 4, border: '2px solid #cf1322' }} />
-              Nghỉ liên tiếp
-            </Text>
-          </Flex>
-        </Flex>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(52px, 1fr))', gap: 6 }}>
-          {cls.dates.map(d => {
-            const day = s.days[d];
-            return (
-              <Tooltip key={d} title={day ? `${weekday(d)} ${fmtDay(d)} — ${describeDay(day)}` : `${weekday(d)} ${fmtDay(d)} — chưa có điểm danh`}>
-                <div
-                  style={{
-                    borderRadius: 6, overflow: 'hidden', textAlign: 'center', cursor: 'default',
-                    border: day && inStreak(d) ? '2px solid #cf1322' : '1px solid #f0f0f0'
-                  }}
-                >
-                  <div style={{ fontSize: 11, lineHeight: '16px', color: '#8c8c8c' }}>{weekday(d)} {fmtDay(d)}</div>
-                  <Flex>
-                    {day
-                      ? day.marks.map(m => (
-                        <div key={m.period} style={{ flex: 1, height: 20, lineHeight: '20px', fontSize: 11, fontWeight: 600, ...cellStyle(m.kind) }}>
-                          {ATTENDANCE_LABELS[m.kind].short}
-                        </div>
-                      ))
-                      : <div style={{ flex: 1, height: 20, background: 'repeating-linear-gradient(45deg,#fafafa,#fafafa 4px,#f0f0f0 4px,#f0f0f0 8px)' }} />}
-                  </Flex>
-                </div>
-              </Tooltip>
-            );
-          })}
-        </div>
-      </Flex>
-
       {/* Các buổi nghỉ (mới nhất trước) */}
       <Flex vertical gap={6}>
-        <Text strong>Các buổi nghỉ ({absentDays.length})</Text>
-        {!absentDays.length && <Text type="secondary">Không nghỉ buổi nào.</Text>}
+        <Text strong>Các buổi vắng ({absentDays.length})</Text>
+        {!absentDays.length && <Text type="secondary">Không vắng buổi nào.</Text>}
         {absentDays.map(d => {
           const day = s.days[d];
           const streak = s.streaks.find(x => x.from <= d && d <= x.to);

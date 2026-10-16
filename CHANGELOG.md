@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.20.2] - 2026-10-16
+
+### ✨ Cải thiện
+- Chi tiết sinh viên, tab Điểm danh: bỏ lịch tất cả các buổi học, chỉ liệt kê đúng các buổi vắng (ngày, ca, có phép / không phép, đơn xin nghỉ, chuỗi nghỉ liên tiếp) dưới các số liệu tổng.
+
+---
+
 ## [5.20.1] - 2026-10-16
 
 ### ✨ Cải thiện
