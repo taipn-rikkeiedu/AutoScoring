@@ -193,10 +193,12 @@ export const StudentMonitorTab: React.FC = () => {
           message="Chưa kết nối dữ liệu QLĐT"
           description={
             <span>
-              Cần đăng nhập vào hệ thống Quản lý Đào tạo (QLĐT) để tải danh sách lớp và môn học.{' '}
+              {m.classError || 'Cần đăng nhập vào hệ thống Quản lý Đào tạo (QLĐT) để tải danh sách lớp và môn học.'}{' '}
               <a href="https://qldt.rikkei.edu.vn" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600 }}>
                 Mở trang QLĐT ↗
               </a>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>Đã đăng nhập mà vẫn báo lỗi: tải lại (F5) tab QLĐT rồi bấm Thử lại.</Text>
             </span>
           }
           action={

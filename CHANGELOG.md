@@ -4,6 +4,16 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.25.1] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- **Báo "Chưa kết nối dữ liệu QLĐT" dù đã đăng nhập**: lấy token QLĐT chắc chắn hơn.
+  - Lưu token từ chính request mà trang QLĐT gửi thành công (header Authorization) ngay khi mở / thao tác trên QLĐT — không phụ thuộc trang lưu token ở khoá nào, dùng được cả khi tab QLĐT sau đó bị đóng hoặc Chrome cho "ngủ".
+  - Đọc token từ tab QLĐT: dò thêm các khoá chứa JWT ngoài `token`, bỏ qua tab đang ngủ; có nhiều token thì chọn token còn hạn mới nhất, bỏ token đã hết hạn thay vì gửi đi rồi bị 401.
+  - Ô cảnh báo ở tab Giám sát hiện lý do thật (chưa đăng nhập / hết hạn / lỗi API / tài khoản không có lớp) kèm hướng dẫn tải lại tab QLĐT.
+
+---
+
 ## [5.25.0] - 2026-10-16
 
 ### 🚀 Tính năng mới

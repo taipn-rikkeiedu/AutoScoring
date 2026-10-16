@@ -47,6 +47,7 @@ let templateErrorLogged = false;
 export function useStudentMonitor() {
   const { config } = useApp();
   const [classes, setClasses] = useState<QldtOption[]>([]);
+  const [classError, setClassError] = useState('');
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   const [courses, setCourses] = useState<QldtOption[]>([]);
   const [courseId, setCourseId] = useState('');
@@ -167,12 +168,14 @@ export function useStudentMonitor() {
       const auth = await getQldtAuth();
       const list = await listQldtClasses(auth);
       setClasses(list);
+      setClassError(list.length ? '' : 'Tài khoản QLĐT đang đăng nhập không có lớp nào.');
       const keep = (want.classIds || []).filter(id => list.some(c => c.value === id));
       setSelectedClassIds(keep);
       if (keep.length) await loadCourses(keep, want.courseId || '', auth);
       setStatusText(`Đã tải ${list.length} lớp. Chọn lớp và môn học rồi bấm "Tải dữ liệu".`);
     } catch (e: any) {
       setStatusText('Không tải được danh sách lớp: ' + e.message);
+      setClassError(e.message);
       logger.error(LOG_MODULE, 'Không tải được danh sách lớp QLĐT.', e.message);
     }
   };
@@ -403,7 +406,7 @@ export function useStudentMonitor() {
   };
 
   return {
-    classes, selectedClassIds, courses, courseId, setCourseId, courseName,
+    classes, classError, selectedClassIds, courses, courseId, setCourseId, courseName,
     rows, visibleRows, testCols, classAttendance, attendanceOf, absenceDates, absentDate, setAbsentDate, overview, filterCounts, watchList, watchMissing,
     monitorConfig, levels, rules, watchText, setWatchText,
     templates, templateSource, templateError, templatesLoading, assignment, activeTemplate, activePerCourse,

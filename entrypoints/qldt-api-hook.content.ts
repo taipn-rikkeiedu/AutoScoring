@@ -2,7 +2,9 @@
  * Chạy trong MAIN world của trang QLĐT: quan sát các request tới apiportal.rikkei.edu.vn mà chính trang web gửi
  * (GET và các request ghi POST / PUT / PATCH / DELETE), rồi chuyển sang script cầu nối (qldt-api-relay)
  * qua window.postMessage. Chỉ quan sát — không sửa, không tự gửi request.
- * Bỏ qua request đăng nhập / token / mật khẩu; không đọc header (không lấy token Authorization).
+ * Bỏ qua request đăng nhập / token / mật khẩu (không ghi body của chúng).
+ * Riêng header Authorization của request thành công được chuyển cho relay để extension luôn có token đang dùng được
+ * (không phụ thuộc trang lưu token ở khoá nào); token này không bao giờ được ghi vào kho API.
  */
 export default defineContentScript({
   matches: ['https://qldt.rikkei.edu.vn/*'],
@@ -42,6 +44,20 @@ export default defineContentScript({
       try { return JSON.stringify(body); } catch { return String(body); }
     };
 
+    let lastAuth = '';
+    const reportAuth = (auth: string, status: number) => {
+      if (!auth || status < 200 || status >= 400 || auth === lastAuth) return;
+      lastAuth = auth;
+      window.postMessage({ source: 'redux-qldt-auth', auth }, location.origin);
+    };
+    const authOf = (input: RequestInfo | URL, init?: RequestInit): string => {
+      try {
+        return new Headers(init?.headers || (input instanceof Request ? input.headers : undefined)).get('authorization') || '';
+      } catch {
+        return '';
+      }
+    };
+
     const report = (method: string, url: string, status: number, body: string, requestBody: string) => {
       if (requestBody && SECRET_FIELD.test(requestBody)) return; // không bao giờ ghi body có mật khẩu / token
       window.postMessage({
@@ -57,6 +73,7 @@ export default defineContentScript({
         const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
         const method = init?.method || (input instanceof Request ? input.method : 'GET');
         if (isTarget(url, method)) {
+          reportAuth(authOf(input, init), res.status);
           const reqBody = bodyText(init?.body);
           res.clone().text().then(text => report(method, url, res.status, text, reqBody)).catch(() => {});
         }
@@ -67,6 +84,12 @@ export default defineContentScript({
     /* XMLHttpRequest (axios) */
     const open = XMLHttpRequest.prototype.open;
     const send = XMLHttpRequest.prototype.send;
+    const setHeader = XMLHttpRequest.prototype.setRequestHeader;
+    XMLHttpRequest.prototype.setRequestHeader = function (this: any, name: string, value: string) {
+      if (this.__redux && /^authorization$/i.test(name)) this.__redux.auth = value;
+      // eslint-disable-next-line prefer-rest-params
+      return setHeader.apply(this, arguments as any);
+    };
     XMLHttpRequest.prototype.open = function (this: any, method: string, url: string | URL) {
       this.__redux = { method, url: String(url) };
       // eslint-disable-next-line prefer-rest-params
@@ -77,6 +100,7 @@ export default defineContentScript({
       if (info && isTarget(info.url, info.method)) {
         const reqBody = bodyText(body);
         this.addEventListener('loadend', () => {
+          reportAuth(info.auth || '', this.status);
           try {
             const text = this.responseType === '' || this.responseType === 'text'
               ? this.responseText
