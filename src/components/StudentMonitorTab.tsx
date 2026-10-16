@@ -6,15 +6,14 @@ import {
 import type { TableColumnsType } from 'antd';
 import {
   CloudDownloadOutlined, DownloadOutlined, SettingOutlined, RobotOutlined, FilterOutlined,
-  UnorderedListOutlined, BarChartOutlined, ReloadOutlined, CheckCircleFilled
+  UnorderedListOutlined, BarChartOutlined, ReloadOutlined, CheckCircleFilled, RightOutlined, CalendarOutlined
 } from '@ant-design/icons';
 import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
 import { StudentMonitorDrawer, RiskTag, WatchStar } from '~/src/components/StudentMonitorDrawer';
+import { StudentAbsenceView } from '~/src/components/StudentAbsenceView';
 import {
-  MonitorRow, MONITOR_FILTERS, levelFilterKey, fmtPercent, colorFor, CLASS_AI_KINDS, ClassAiKind
+  MonitorRow, MONITOR_FILTERS, levelFilterKey, fmtPercent, CLASS_AI_KINDS, ClassAiKind
 } from '~/src/core/studentMonitor';
-import { ANALYSIS_LEVELS } from '~/src/core/examAnalysis';
-import { readableColor } from '~/src/core/monitorLevels';
 import { MonitorTemplatesPanel } from '~/src/components/MonitorTemplatesPanel';
 
 const { Text, Paragraph } = Typography;
@@ -26,75 +25,83 @@ type Monitor = ReturnType<typeof useStudentMonitor>;
 const StudentMonitorCharts = lazy(() =>
   import('~/src/components/StudentMonitorCharts').then(mod => ({ default: mod.StudentMonitorCharts })));
 
-
-const MAX_ISSUE_TAGS = 3;
-
-/** Các vấn đề chính của SV (nặng nhất trước), tối đa 3 nhãn — bấm vào dòng để xem đủ. */
-const IssueTags: React.FC<{ row: MonitorRow }> = ({ row }) => {
-  const tags: React.ReactNode[] = [
-    // Nhãn tô theo màu mức mà chỉ số chạm (nặng nhất trước); di chuột để xem tên mức + ngưỡng
-    ...row.issues.map(i => (
-      <Tooltip key={i.kind} title={`${i.levelName}: ${i.title} ${i.threshold}`}>
-        <Tag style={{ margin: 0, color: readableColor(i.color), background: `${i.color}14`, borderColor: `${i.color}66` }}>{i.label}</Tag>
-      </Tooltip>
-    )),
-    ...row.early.map(e => (
-      <Tooltip key={`early-${e.kind}`} title={`${e.levelName}: ${e.title} ${e.threshold}`}>
-        <Tag variant="outlined" style={{ margin: 0, borderColor: e.color, borderStyle: 'dashed' }}>Sắp: {e.label}</Tag>
-      </Tooltip>
-    )),
-    ...(row.suspect || row.dups.length
-      ? [<Tooltip key="suspect" title={[row.suspect ? ANALYSIS_LEVELS[row.level].label : '', row.dups.length ? 'trùng link bài nộp' : ''].filter(Boolean).join(', ')}>
-          <Tag color="purple" variant="filled" style={{ margin: 0 }}>Nghi vấn BTVN</Tag>
-        </Tooltip>]
-      : [])
-  ];
-  const hidden = tags.length - MAX_ISSUE_TAGS;
-  return (
-    <Flex wrap gap={4}>
-      {tags.slice(0, MAX_ISSUE_TAGS)}
-      {hidden > 0 && <Tag style={{ margin: 0 }}>+{hidden}</Tag>}
-    </Flex>
-  );
-};
-
 export const StudentMonitorTab: React.FC = () => {
   const m = useStudentMonitor();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const searchInputRef = React.useRef<any>(null);
 
   React.useEffect(() => {
     window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: m.statusText }));
     return () => { window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: null })); };
   }, [m.statusText]);
 
+  // Phím tắt / để tìm kiếm nhanh
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === '/' && m.view === 'list') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [m.view]);
+
   const multiClass = new Set(m.rows.map(r => r.classLabel)).size > 1;
   // SV đang xem: duyệt trước / sau theo đúng thứ tự danh sách đang lọc
-  const selectedIndex = selectedKey ? m.visibleRows.findIndex(r => r.key === selectedKey) : -1;
-  const selectedRow = selectedIndex >= 0 ? m.visibleRows[selectedIndex] : null;
-  const goTo = (i: number) => { const r = m.visibleRows[i]; if (r) setSelectedKey(r.key); };
+  // Mở từ Lịch nghỉ có thể là SV đang bị bộ lọc ẩn → duyệt trong toàn bộ danh sách
+  const navRows = selectedKey && !m.visibleRows.some(r => r.key === selectedKey) ? m.rows : m.visibleRows;
+  const selectedIndex = selectedKey ? navRows.findIndex(r => r.key === selectedKey) : -1;
+  const selectedRow = selectedIndex >= 0 ? navRows[selectedIndex] : null;
+  const goTo = (i: number) => { const r = navRows[i]; if (r) setSelectedKey(r.key); };
+
+  const getRiskRank = (row: MonitorRow) => (row.risk === 'normal' ? 999 : m.levels.findIndex(l => l.id === row.risk));
 
   const columns: TableColumnsType<MonitorRow> = [
     {
-      title: 'Sinh viên', key: 'name', width: 176, ellipsis: true,
+      title: 'Sinh viên',
+      key: 'name',
+      sorter: (a, b) => a.name.localeCompare(b.name, 'vi'),
       render: (_, r) => (
-        <>
-          <div><WatchStar on={r.watch} onToggle={() => m.toggleWatch(r.name)} />{r.name}</div>
-          {multiClass && <Text type="secondary">{r.classLabel}</Text>}
-        </>
+        <Flex align="center" gap={8}>
+          <WatchStar on={r.watch} onToggle={() => m.toggleWatch(r.name)} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {r.name}
+            </div>
+            <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+              {r.code ? `${r.code} · ` : ''}{r.classLabel}
+            </Text>
+          </div>
+        </Flex>
       )
     },
-    { title: 'Mức', key: 'risk', width: 136, render: (_, r) => <RiskTag row={r} /> },
     {
-      title: 'R-Point', key: 'rpoints', width: 84, align: 'right',
-      sorter: (x, y) => (x.rpoints ?? Infinity) - (y.rpoints ?? Infinity),
+      title: 'Mức',
+      key: 'risk',
+      width: 170,
+      align: 'right',
+      sorter: (a, b) => getRiskRank(a) - getRiskRank(b),
       render: (_, r) => {
-        if (r.rpoints == null) return <Text type="secondary">—</Text>;
-        const color = colorFor(m.levels, 'rpoints', r.rpoints);
-        return color ? <Text strong style={{ color: readableColor(color) }}>{r.rpoints}</Text> : <Text>{r.rpoints}</Text>;
+        const issuesSummary = r.issues.length > 0
+          ? r.issues.map(i => `• ${i.title}: ${i.value} (${i.levelName})`).join('\n')
+          : r.early.length > 0
+            ? r.early.map(e => `• Sắp vượt: ${e.title} ${e.threshold}`).join('\n')
+            : 'Không có vi phạm';
+
+        return (
+          <Flex align="center" justify="flex-end" gap={8}>
+            <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{issuesSummary}</div>}>
+              <span><RiskTag row={r} /></span>
+            </Tooltip>
+            <RightOutlined style={{ fontSize: 11, color: '#94a3b8' }} />
+          </Flex>
+        );
       }
-    },
-    { title: 'Vấn đề', key: 'issues', render: (_, r) => <IssueTags row={r} /> }
+    }
   ];
 
   // Lọc theo mức đã cấu hình; ẩn mức không có SV (trừ khi đang chọn)
@@ -141,7 +148,8 @@ export const StudentMonitorTab: React.FC = () => {
           disabled={!m.rows.length}
           options={[
             { value: 'list', icon: <Tooltip title="Danh sách sinh viên"><UnorderedListOutlined /></Tooltip> },
-            { value: 'chart', icon: <Tooltip title="Biểu đồ thống kê"><BarChartOutlined /></Tooltip> }
+            { value: 'chart', icon: <Tooltip title="Biểu đồ thống kê"><BarChartOutlined /></Tooltip> },
+            { value: 'absence', icon: <Tooltip title="Lịch nghỉ học"><CalendarOutlined /></Tooltip> }
           ]}
         />
         <Tooltip title={`Mẫu giám sát đang áp dụng: ${m.activeTemplate.name}${m.activePerCourse ? ' (riêng môn này)' : ''} — bấm để quản lý mẫu & danh sách rà soát`}>
@@ -153,12 +161,39 @@ export const StudentMonitorTab: React.FC = () => {
         </Tooltip>
       </Flex>
 
+      {m.classes.length === 0 && !m.busy && (
+        <Alert
+          type="warning"
+          showIcon
+          message="Chưa kết nối dữ liệu QLĐT"
+          description={
+            <span>
+              Cần đăng nhập vào hệ thống Quản lý Đào tạo (QLĐT) để tải danh sách lớp và môn học.{' '}
+              <a href="https://qldt.rikkei.edu.vn" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600 }}>
+                Mở trang QLĐT ↗
+              </a>
+            </span>
+          }
+          action={
+            <Button size="small" icon={<ReloadOutlined />} onClick={() => m.reloadClasses()}>
+              Thử lại
+            </Button>
+          }
+        />
+      )}
+
       {m.progress && (
         <Progress
           percent={m.progress.total ? Math.round((m.progress.done / m.progress.total) * 100) : 0}
           status="active"
           format={() => `${m.progress!.done}/${m.progress!.total}`}
         />
+      )}
+
+      {m.rows.length > 0 && m.view === 'absence' && (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#fff', borderRadius: 8, padding: '0 12px 12px' }}>
+          <StudentAbsenceView classes={m.classAttendance} rows={m.rows} onOpenStudent={setSelectedKey} />
+        </div>
       )}
 
       {m.rows.length > 0 && m.view === 'chart' && (
@@ -181,7 +216,7 @@ export const StudentMonitorTab: React.FC = () => {
         <Flex justify="space-between" align="center" gap={8}>
           <Flex gap={4} align="center" style={{ minWidth: 0, flex: 1 }}>
             {/* Nhiều mức thì cuộn ngang, nút Lọc thêm luôn hiện */}
-            <Flex gap={4} align="center" style={{ minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            <Flex gap={6} align="center" style={{ minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none', padding: '2px 0' }}>
             {levelFilters.map(f => {
               const on = m.filters.includes(f.key);
               return (
@@ -189,9 +224,18 @@ export const StudentMonitorTab: React.FC = () => {
                   key={f.key}
                   checked={on}
                   onChange={() => m.toggleFilter(f.key)}
-                  style={{ border: `1px solid ${on ? '#1677ff' : '#d9d9d9'}`, padding: '1px 8px', marginInlineEnd: 0, whiteSpace: 'nowrap' }}
+                  style={{
+                    border: `1px solid ${on ? '#1677ff' : '#d9d9d9'}`,
+                    padding: '3px 10px',
+                    marginInlineEnd: 0,
+                    whiteSpace: 'nowrap',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    lineHeight: '20px',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: f.color, marginRight: 4 }} />
+                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: f.color, marginRight: 6 }} />
                   {f.label} <b>{m.filterCounts[f.key]}</b>
                 </Tag.CheckableTag>
               );
@@ -222,14 +266,21 @@ export const StudentMonitorTab: React.FC = () => {
           </Flex>
           <Flex gap={8} style={{ flexShrink: 0 }}>
             <Input.Search
-              placeholder="Tìm tên, email, MSSV"
+              ref={searchInputRef}
+              placeholder="Tìm tên, email, MSSV (phím /)"
               allowClear
               value={m.query}
               onChange={(e) => m.setQuery(e.target.value)}
-              style={{ width: 150 }}
+              style={{ width: 170 }}
             />
             <Tooltip title={`Xuất Excel ${m.visibleRows.length} sinh viên đang hiển thị`}>
-              <Button icon={<DownloadOutlined />} onClick={m.handleExport} disabled={!m.visibleRows.length} />
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={m.handleExport}
+                loading={m.exporting}
+                disabled={!m.visibleRows.length}
+                style={{ minWidth: 32, height: 32 }}
+              />
             </Tooltip>
           </Flex>
         </Flex>
@@ -245,7 +296,19 @@ export const StudentMonitorTab: React.FC = () => {
           sticky
           onRow={(r) => ({
             onClick: () => setSelectedKey(r.key),
-            style: { cursor: 'pointer', background: r.key === selectedKey ? '#e6f4ff' : undefined }
+            tabIndex: 0,
+            onKeyDown: (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setSelectedKey(r.key);
+              }
+            },
+            style: {
+              cursor: 'pointer',
+              background: r.key === selectedKey ? '#e6f4ff' : undefined,
+              outline: 'none'
+            },
+            className: 'transition-colors hover:bg-slate-50 focus-visible:bg-blue-50 focus-visible:ring-1 focus-visible:ring-blue-400'
           })}
           locale={{
             emptyText: <Empty description={m.rows.length
@@ -259,7 +322,7 @@ export const StudentMonitorTab: React.FC = () => {
       <StudentMonitorDrawer
         row={selectedRow}
         index={selectedIndex}
-        total={m.visibleRows.length}
+        total={navRows.length}
         testCols={m.testCols}
         m={m}
         onPrev={() => goTo(selectedIndex - 1)}
@@ -338,7 +401,7 @@ const SettingsDrawer: React.FC<{ open: boolean; onClose: () => void; m: Monitor 
           size="small"
           items={[{
             key: 'paste',
-            label: 'Dán danh sách tên có sẵn',
+            label: `Dán danh sách tên có sẵn (${m.watchList.length} tên đã nhận diện)`,
             children: (
               <Flex vertical gap={6}>
                 <TextArea
@@ -347,7 +410,12 @@ const SettingsDrawer: React.FC<{ open: boolean; onClose: () => void; m: Monitor 
                   onChange={(e) => m.setWatchText(e.target.value)}
                   placeholder={'Mỗi dòng 1 tên (hoặc cách nhau dấu phẩy), vd:\nĐinh Quang Hào\nNguyễn Duy Đạt'}
                 />
-                <Text type="secondary">So khớp cả tên gõ không dấu.</Text>
+                <Flex justify="space-between" align="center">
+                  <Text type="secondary">So khớp cả tên gõ không dấu.</Text>
+                  <Tag color={m.watchList.length > 0 ? 'blue' : 'default'} style={{ margin: 0 }}>
+                    {m.watchList.length} học viên
+                  </Tag>
+                </Flex>
               </Flex>
             )
           }]}

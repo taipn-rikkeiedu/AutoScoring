@@ -4,6 +4,41 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.18.1] - 2026-10-16
+
+### 🌿 Tinh giản tối đa Bảng danh sách Giám sát học tập (Minimalist & Anti-Clutter UI)
+- **Triệt tiêu nhiễu thị giác**: Tinh gọn bảng danh sách chỉ còn **2 cột cốt lõi**:
+  - **Sinh viên**: Ngôi sao rà soát + Tên học viên nổi bật font 13px + Mã sinh viên & Lớp (hỗ trợ sắp xếp A-Z).
+  - **Mức**: Tag mức độ rủi ro rõ ràng, căn phải với biểu tượng mũi tên gợi ý nhấp chuột (hỗ trợ sắp xếp theo độ nặng rủi ro).
+- **Tập trung toàn bộ chi tiết vào Drawer**: Các số liệu chi tiết (% Nghỉ học, % Thiếu bài tập, R-Points, BTVN, Điểm thi và Liên hệ khẩn cấp) được hiển thị đầy đủ, khoa học trong Drawer khi người dùng nhấp vào từng sinh viên, giúp giao diện bảng luôn thoáng đãng, tinh tế và không bị ngợp thông tin.
+- **Tooltip tóm tắt vi phạm nhẹ nhàng**: Di chuột vào Tag mức trên bảng sẽ hiển thị tóm tắt vi phạm mà không làm rối bảng mặc định.
+
+---
+
+## [5.18.0] - 2026-10-16
+
+### 🎨 Tối ưu toàn diện UI/UX Giám sát học tập (Theo chuẩn Nielsen Heuristics & WCAG 2.2)
+- **Công thái học & Kích thước vùng bấm (Fitts's Law & WCAG 2.2 Target Size)**:
+  - Nâng cấp nút sao rà soát `WatchStar` thành nút tương tác tròn kích thước chuẩn 26×26px với padding an toàn, hiệu ứng hover, `tabIndex={0}`, hỗ trợ kích hoạt bằng phím `Enter` / `Space`, không bị bấm trượt vào tên sinh viên.
+  - Mở rộng vùng bấm của `Tag.CheckableTag` bộ lọc (padding 3px 10px, min-height 26px, bo tròn 6px) giúp tương tác ngón tay/chuột dễ dàng.
+  - Chuẩn hóa kích thước các nút icon thao tác (Sửa, Nhân bản, Xóa mẫu, Điều hướng sinh viên) đạt diện tích tối thiểu 28×28px.
+- **Thứ bậc thị giác (Visual Hierarchy) trong Drawer**:
+  - Bổ sung **Thẻ liên hệ khẩn cấp (Quick Contact Card)** hiển thị MSSV, SĐT, Email với nút sao chép 1 chạm ngay phần đầu Drawer, giúp giảng viên và cán bộ quản lý liên lạc nhanh mà không phải cuộn xuống đáy.
+  - Bổ sung huy hiệu chỉ dẫn phím tắt `Phím ← → duyệt SV` trực quan trên thanh điều hướng Drawer.
+  - Thêm tooltip giải thích ngữ cảnh cho điểm thưởng rèn luyện `R-Points`.
+- **Nhận diện thay vì ghi nhớ (Recognition rather than Recall) & Sắp xếp linh hoạt**:
+  - Bổ sung trực tiếp 2 cột số liệu cốt lõi vào bảng chính: cột **Nghỉ (%)** và cột **Thiếu BT (%)** (tô màu theo mức ngưỡng vi phạm).
+  - Hỗ trợ sắp xếp (`sorter`) toàn diện cho các cột: Sinh viên (A-Z tiếng Việt), Mức (theo độ nặng rủi ro), Nghỉ học, Thiếu bài tập, R-Point.
+  - Hỗ trợ điều hướng bàn phím cho Bảng (`tabIndex={0}`, phím `Enter`/`Space` mở Drawer, viền focus rõ ràng theo tiêu chuẩn WCAG 2.2 Focus Not Obscured).
+  - Bổ sung phím tắt `/` để tự động focus vào ô tìm kiếm sinh viên.
+- **Ngăn ngừa lỗi (Error Prevention) & Phản hồi trạng thái (Visibility of System Status)**:
+  - Hộp thoại `Modal.confirm` cảnh báo xác nhận khi chọn "Áp dụng cho tất cả môn" nếu đang có cấu hình riêng của các môn khác để tránh ghi đè dữ liệu ngoài ý muốn.
+  - Hiển thị số lượng học viên hợp lệ đã nhận diện khi dán danh sách rà soát (`watchText`).
+  - Banner cảnh báo trực quan kèm liên kết mở QLĐT đăng nhập khi chưa kết nối phiên làm việc.
+  - Thêm trạng thái `exporting` (spinner loading) trên nút Xuất Excel.
+
+---
+
 ## [5.17.0] - 2026-10-16
 
 ### 🚀 Tính năng mới

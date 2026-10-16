@@ -59,6 +59,20 @@ export const MonitorTemplatesPanel: React.FC<{ m: Monitor }> = ({ m }) => {
       }
     ],
     onClick: ({ key }: { key: string }) => {
+      if (key === 'all' && overrides.length > 0) {
+        Modal.confirm({
+          title: `Áp dụng mẫu "${t.name}" cho tất cả môn?`,
+          content: `Hiện đang có ${overrides.length} môn đặt mẫu riêng (${overrides.map(([id, v]) => v.courseName || id).slice(0, 3).join(', ')}${overrides.length > 3 ? '...' : ''}). Thao tác này sẽ xoá cấu hình riêng của các môn này để đồng bộ về mẫu "${t.name}".`,
+          okText: 'Đồng ý áp dụng',
+          okButtonProps: { danger: true },
+          cancelText: 'Huỷ',
+          onOk: () => {
+            m.applyTemplate(t.id, 'all');
+            showToast(`Đã áp dụng mẫu "${t.name}" cho tất cả môn.`, 'success');
+          }
+        });
+        return;
+      }
       m.applyTemplate(t.id, key as 'all' | 'course');
       showToast(key === 'all' ? `Áp dụng mẫu "${t.name}" cho tất cả môn.` : `Áp dụng mẫu "${t.name}" cho môn ${m.courseName}.`, 'success');
     }
@@ -130,7 +144,7 @@ export const MonitorTemplatesPanel: React.FC<{ m: Monitor }> = ({ m }) => {
                     </Button>
                   </Dropdown>
                   <Tooltip title="Sửa">
-                    <Button type="text" size="small" icon={<EditOutlined />} onClick={() => setEditing({ template: t, isNew: false })} />
+                    <Button type="text" size="small" icon={<EditOutlined />} onClick={() => setEditing({ template: t, isNew: false })} style={{ minWidth: 28, height: 28 }} />
                   </Tooltip>
                   <Tooltip title="Nhân bản">
                     <Button
@@ -138,6 +152,7 @@ export const MonitorTemplatesPanel: React.FC<{ m: Monitor }> = ({ m }) => {
                       size="small"
                       icon={<CopyOutlined />}
                       onClick={() => setEditing({ template: { ...t, id: newTemplateId(), name: `${t.name} (bản sao)` }, isNew: true })}
+                      style={{ minWidth: 28, height: 28 }}
                     />
                   </Tooltip>
                   <Popconfirm
@@ -150,7 +165,7 @@ export const MonitorTemplatesPanel: React.FC<{ m: Monitor }> = ({ m }) => {
                     onConfirm={() => handleDelete(t)}
                   >
                     <Tooltip title={m.templates.length <= 1 ? 'Phải giữ lại ít nhất 1 mẫu' : 'Xoá'}>
-                      <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={m.templates.length <= 1} />
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />} disabled={m.templates.length <= 1} style={{ minWidth: 28, height: 28 }} />
                     </Tooltip>
                   </Popconfirm>
                 </Space>
@@ -261,7 +276,7 @@ const LevelMatrix: React.FC<{ levels: MonitorLevel[]; onChange: (levels: Monitor
                   }
                 }}
               >
-                <Button type="text" size="small" icon={<MoreOutlined />} aria-label={`Tuỳ chọn mức ${l.name}`} />
+                <Button type="text" size="small" icon={<MoreOutlined />} aria-label={`Tuỳ chọn mức ${l.name}`} style={{ minWidth: 28, height: 28 }} />
               </Dropdown>
             </Flex>
           </Flex>

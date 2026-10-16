@@ -78,3 +78,14 @@ export async function fetchSessionExercises(auth: string, sessionId: string, stu
     `/exercise?classId=&courseId=&sessionId=${sessionId}&studentName=&page=1&limit=100&studentId=${studentId}`, auth
   )) || [];
 }
+
+/** Lịch sử điểm danh của lớp theo môn: { 'yyyy-mm-dd': [ca học { period, attendanceDetail[] }] }. */
+export async function fetchClassAttendance(auth: string, classId: string, courseId: string): Promise<Record<string, any[]>> {
+  return (await qldtGet<Record<string, any[]>>(`/attendance?class_id=${classId}&course_id=${courseId}`, auth)) || {};
+}
+
+/** Đơn xin nghỉ của lớp (mọi môn, mọi thời gian) — nối với điểm danh qua attendanceDetailId. */
+export async function fetchClassLeaves(auth: string, classId: string): Promise<any[]> {
+  const list = await qldtGet<any>(`/request-leave?classId=${classId}`, auth);
+  return Array.isArray(list) ? list : [];
+}

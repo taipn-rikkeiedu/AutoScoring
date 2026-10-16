@@ -4,7 +4,7 @@
  * Xét từ mức đầu tiên (nặng nhất): SV có một chỉ số chạm ngưỡng của mức nào thì vào mức đó.
  */
 
-export type MetricKey = 'absent' | 'homework' | 'elearning' | 'rpoints' | 'examScore' | 'examAbsent' | 'violations';
+export type MetricKey = 'absent' | 'absentStreak' | 'homework' | 'elearning' | 'rpoints' | 'examScore' | 'examAbsent' | 'violations';
 
 export interface MetricDef {
   key: MetricKey;
@@ -18,6 +18,7 @@ export interface MetricDef {
 
 export const METRICS: MetricDef[] = [
   { key: 'absent', label: 'Nghỉ học', op: 'gte', unit: '%', hint: 'Tỉ lệ nghỉ học từ … % trở lên', action: 'Nhắc nhở chuyên cần, hỏi lý do nghỉ' },
+  { key: 'absentStreak', label: 'Nghỉ liên tiếp', op: 'gte', unit: 'buổi', hint: 'Nghỉ (có phép hoặc không) từ … buổi học liên tiếp trở lên', action: 'Liên hệ sinh viên nghỉ nhiều buổi liên tiếp, hỏi lý do' },
   { key: 'homework', label: 'Thiếu bài tập', op: 'gte', unit: '%', hint: 'Tỉ lệ thiếu bài tập từ … % trở lên', action: 'Nhắc nộp bù bài tập còn thiếu' },
   { key: 'elearning', label: 'Chậm E-learning', op: 'gte', unit: 'bài', hint: 'Chậm E-learning từ … bài trở lên', action: 'Nhắc hoàn thành E-learning trước buổi học' },
   { key: 'rpoints', label: 'R-Point', op: 'lt', unit: 'điểm', hint: 'R-Point dưới … điểm', action: 'Nhắc cải thiện R-Point' },
@@ -49,15 +50,15 @@ export const LEVEL_PALETTE = ['#5c0011', '#cf1322', '#fa8c16', '#fadb14', '#722e
 
 export const DEFAULT_LEVELS: MonitorLevel[] = [
   { id: 'ban', name: 'Cấm thi', color: '#5c0011', violation: true, thresholds: { absent: 20, homework: 20, elearning: 3, rpoints: 80 } },
-  { id: 'alarm', name: 'Báo động', color: '#cf1322', violation: true, thresholds: { absent: 15, homework: 15, elearning: 2, examAbsent: 1, violations: 2 } },
-  { id: 'warning', name: 'Cảnh báo', color: '#fa8c16', violation: true, thresholds: { absent: 10, homework: 10, elearning: 1, examScore: 50 } },
+  { id: 'alarm', name: 'Báo động', color: '#cf1322', violation: true, thresholds: { absent: 15, absentStreak: 3, homework: 15, elearning: 2, examAbsent: 1, violations: 2 } },
+  { id: 'warning', name: 'Cảnh báo', color: '#fa8c16', violation: true, thresholds: { absent: 10, absentStreak: 2, homework: 10, elearning: 1, examScore: 50 } },
   { id: 'early', name: 'Sắp vượt ngưỡng', color: '#fadb14', violation: false, thresholds: { absent: 7, homework: 7, examScore: 55 } }
 ];
 
 export const STRICT_LEVELS: MonitorLevel[] = [
   DEFAULT_LEVELS[0],
-  { id: 'alarm', name: 'Báo động', color: '#cf1322', violation: true, thresholds: { absent: 12, homework: 12, elearning: 2, examAbsent: 1, violations: 2 } },
-  { id: 'warning', name: 'Cảnh báo', color: '#fa8c16', violation: true, thresholds: { absent: 5, homework: 5, elearning: 1, examScore: 50 } },
+  { id: 'alarm', name: 'Báo động', color: '#cf1322', violation: true, thresholds: { absent: 12, absentStreak: 3, homework: 12, elearning: 2, examAbsent: 1, violations: 2 } },
+  { id: 'warning', name: 'Cảnh báo', color: '#fa8c16', violation: true, thresholds: { absent: 5, absentStreak: 2, homework: 5, elearning: 1, examScore: 50 } },
   { id: 'early', name: 'Sắp vượt ngưỡng', color: '#fadb14', violation: false, thresholds: { absent: 3, homework: 3, examScore: 60 } }
 ];
 
@@ -96,11 +97,11 @@ export function levelsFromLegacy(old: any): MonitorLevel[] {
     DEFAULT_LEVELS[0],
     {
       id: 'alarm', name: 'Báo động', color: '#cf1322', violation: true,
-      thresholds: { absent: n(old.absentAlarm, 15), homework: n(old.homeworkAlarm, 15), elearning: n(old.elearningAlarm, 2), examAbsent: 1, violations: 2 }
+      thresholds: { absent: n(old.absentAlarm, 15), absentStreak: 3, homework: n(old.homeworkAlarm, 15), elearning: n(old.elearningAlarm, 2), examAbsent: 1, violations: 2 }
     },
     {
       id: 'warning', name: 'Cảnh báo', color: '#fa8c16', violation: true,
-      thresholds: { absent: n(old.absentWarn, 10), homework: n(old.homeworkWarn, 10), elearning: n(old.elearningWarn, 1), examScore: n(old.examPass, 50) }
+      thresholds: { absent: n(old.absentWarn, 10), absentStreak: 2, homework: n(old.homeworkWarn, 10), elearning: n(old.elearningWarn, 1), examScore: n(old.examPass, 50) }
     },
     {
       id: 'early', name: 'Sắp vượt ngưỡng', color: '#fadb14', violation: false,

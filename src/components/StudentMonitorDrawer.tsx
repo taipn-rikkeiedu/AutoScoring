@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
 import { Drawer, Button, Tag, Typography, Flex, Alert, Collapse, Descriptions, Table, Tooltip, Space } from 'antd';
-import { LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import {
+  LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined,
+  PhoneOutlined, MailOutlined, IdcardOutlined, CalendarOutlined
+} from '@ant-design/icons';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
   MonitorRow, Issue, ExamCell, ExamCellKey, fmtPercent, fmtDate, examCellLabel, colorFor
@@ -14,17 +17,45 @@ type Monitor = ReturnType<typeof useStudentMonitor>;
 
 const DISCLAIMER = 'Nghi vấn chỉ là dấu hiệu cần rà soát (vd vấn đáp lại bài tập), không phải bằng chứng gian lận.';
 
-/** Bật / tắt sinh viên trong danh sách cần rà soát — bấm, không cần gõ tên. */
+/** Bật / tắt sinh viên trong danh sách cần rà soát — bấm hoặc dùng phím Enter/Space, hit area chuẩn WCAG 2.2. */
 export const WatchStar: React.FC<{ on: boolean; onToggle: () => void }> = ({ on, onToggle }) => (
   <Tooltip title={on ? 'Bỏ khỏi danh sách rà soát' : 'Thêm vào danh sách rà soát'}>
-    <span
+    <button
+      type="button"
       role="button"
       aria-label={on ? 'Bỏ khỏi danh sách rà soát' : 'Thêm vào danh sách rà soát'}
+      aria-pressed={on}
+      tabIndex={0}
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      style={{ cursor: 'pointer', color: on ? '#faad14' : '#bfbfbf', padding: '0 4px' }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle();
+        }
+      }}
+      style={{
+        cursor: 'pointer',
+        color: on ? '#faad14' : '#bfbfbf',
+        background: on ? '#fffbe6' : 'transparent',
+        border: on ? '1px solid #ffe58f' : '1px solid transparent',
+        borderRadius: '50%',
+        width: 26,
+        height: 26,
+        minWidth: 26,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0,
+        marginRight: 6,
+        verticalAlign: 'middle',
+        transition: 'all 0.2s ease',
+        outline: 'none'
+      }}
+      className="hover:scale-110 hover:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-400"
     >
-      {on ? <StarFilled /> : <StarOutlined />}
-    </span>
+      {on ? <StarFilled style={{ fontSize: 13 }} /> : <StarOutlined style={{ fontSize: 13 }} />}
+    </button>
   </Tooltip>
 );
 
@@ -188,14 +219,56 @@ export const StudentMonitorDrawer: React.FC<{
         </Flex>
       }
       extra={
-        <Space size={4}>
-          <Text type="secondary">{index + 1}/{total}</Text>
-          <Tooltip title="Sinh viên trước (←)"><Button icon={<LeftOutlined />} onClick={onPrev} disabled={index <= 0} /></Tooltip>
-          <Tooltip title="Sinh viên sau (→)"><Button icon={<RightOutlined />} onClick={onNext} disabled={index >= total - 1} /></Tooltip>
+        <Space size={6} align="center">
+          <Tag color="blue" style={{ margin: 0, fontSize: 11, borderRadius: 4, padding: '1px 6px' }}>
+            Phím ← → duyệt SV
+          </Tag>
+          <Text type="secondary" style={{ fontSize: 12 }}>{index + 1}/{total}</Text>
+          <Tooltip title="Sinh viên trước (phím ←)"><Button size="small" icon={<LeftOutlined />} onClick={onPrev} disabled={index <= 0} style={{ minWidth: 28, height: 28 }} /></Tooltip>
+          <Tooltip title="Sinh viên sau (phím →)"><Button size="small" icon={<RightOutlined />} onClick={onNext} disabled={index >= total - 1} style={{ minWidth: 28, height: 28 }} /></Tooltip>
         </Space>
       }
     >
-      <Flex vertical gap={24}>
+      <Flex vertical gap={20}>
+        {/* Thông tin liên hệ nhanh: MSSV, SĐT, Email (hỗ trợ copy nhanh để GV/quản lý liên lạc ngay) */}
+        <div style={{
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: 8,
+          padding: '10px 14px',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+        }}>
+          <Flex vertical gap={6}>
+            <Flex justify="space-between" align="center" wrap gap={8}>
+              <Space size={16} wrap align="center">
+                <Space size={4}>
+                  <IdcardOutlined style={{ color: '#64748b', fontSize: 13 }} />
+                  <Text type="secondary" style={{ fontSize: 12 }}>MSSV:</Text>
+                  <Text copyable strong style={{ fontSize: 13 }}>{r.code}</Text>
+                </Space>
+                {r.phone && (
+                  <Space size={4}>
+                    <PhoneOutlined style={{ color: '#1677ff', fontSize: 13 }} />
+                    <Text copyable strong style={{ fontSize: 13, color: '#0958d9' }}>{r.phone}</Text>
+                  </Space>
+                )}
+                {r.email && (
+                  <Space size={4}>
+                    <MailOutlined style={{ color: '#1677ff', fontSize: 13 }} />
+                    <Text copyable style={{ fontSize: 13 }}>{r.email}</Text>
+                  </Space>
+                )}
+              </Space>
+              {r.dateOfBirth && (
+                <Space size={4}>
+                  <CalendarOutlined style={{ color: '#94a3b8', fontSize: 12 }} />
+                  <Text type="secondary" style={{ fontSize: 12 }}>{fmtDate(r.dateOfBirth)}</Text>
+                </Space>
+              )}
+            </Flex>
+          </Flex>
+        </div>
+
         {/* 1. Cần xử lý: vấn đề + hành động đi kèm */}
         <Section
           title={problems ? `Cần xử lý (${problems})` : 'Cần xử lý'}
@@ -216,8 +289,25 @@ export const StudentMonitorDrawer: React.FC<{
             size="small"
             column={3}
             items={[
+              ...(r.absence ? [
+                { key: 'abs', label: 'Buổi nghỉ', children: `${r.absence.absentDays} (${r.absence.unexcusedDays} không phép)` },
+                {
+                  key: 'streak', label: 'Nghỉ liên tiếp',
+                  children: r.absence.maxStreak >= 2
+                    ? <Text type="danger" strong>{r.absence.maxStreak} buổi</Text>
+                    : `${r.absence.maxStreak} buổi`
+                }
+              ] : []),
               { key: 'el', label: 'Chậm E-learning', children: r.unprepared == null ? '—' : `${r.unprepared} bài` },
-              { key: 'rp', label: 'R-Points', children: r.rpoints ?? '—' },
+              {
+                key: 'rp',
+                label: (
+                  <Tooltip title="R-Points: Điểm thưởng rèn luyện tích lũy từ các hoạt động học tập và thử thách">
+                    <span style={{ cursor: 'help', borderBottom: '1px dashed #bfbfbf' }}>R-Points</span>
+                  </Tooltip>
+                ),
+                children: r.rpoints ?? '—'
+              },
               { key: 'ai', label: 'Điểm AI BT TB', children: fmtScore(r.aiAvg) }
             ]}
           />

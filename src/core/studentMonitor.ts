@@ -13,6 +13,7 @@ import {
 import {
   MetricKey, MonitorLevel, MonitorConfig, METRICS, NORMAL_LEVEL, metricDef, formatThreshold
 } from './monitorLevels';
+import type { AbsenceSummary } from './attendance';
 
 /** Điểm 1 phần thi: số điểm, 'absent' khi SV vắng thi, null khi chưa có bài thi này. */
 export type ExamCell = number | 'absent' | null;
@@ -59,6 +60,7 @@ export interface MonitorBase extends AnalysisRow {
   missingHomework: number | null; // tỉ lệ thiếu bài tập (%) — 100 − submissionRate
   unprepared: number | null;      // số bài e-learning chậm — elearningProgress
   rpoints: number | null;
+  absence: AbsenceSummary | null; // điểm danh theo buổi (null = chưa tải được)
   hkTNCell: ExamCell; hkTLCell: ExamCell; ckTNCell: ExamCell; ckTLCell: ExamCell;
 }
 
@@ -78,6 +80,7 @@ export const levelFilterKey = (id: string) => `level:${id}`;
 
 export const MONITOR_FILTERS: { key: MonitorFilter; label: string; group: 'issue' | 'suspect' }[] = [
   { key: 'absent', label: 'Nghỉ học', group: 'issue' },
+  { key: 'absentStreak', label: 'Nghỉ liên tiếp', group: 'issue' },
   { key: 'homework', label: 'Thiếu bài tập', group: 'issue' },
   { key: 'elearning', label: 'Chậm E-learning', group: 'issue' },
   { key: 'rpoints', label: 'R-Point thấp', group: 'issue' },
@@ -122,6 +125,7 @@ export function parseMonitorClass(d: any, classLabel: string, testCols: Map<stri
       missingHomework: submission != null ? Math.max(0, 100 - submission) : null,
       unprepared: it.elearningProgress != null ? Number(it.elearningProgress) : null,
       rpoints: it.rpoints != null ? Number(it.rpoints) : null,
+      absence: null,
       hkTNCell: cell('hk', a.hkTN), hkTLCell: cell('hk', a.hkTL),
       ckTNCell: cell('ck', a.ckTN), ckTLCell: cell('ck', a.ckTL)
     };
@@ -138,6 +142,9 @@ function metricValue(r: MonitorBase, metric: MetricKey, t: number): { label: str
   switch (metric) {
     case 'absent':
       return r.absentRate != null && r.absentRate >= t ? { label: `Nghỉ ${fmtPercent(r.absentRate)}`, value: fmtPercent(r.absentRate) } : null;
+    case 'absentStreak':
+      return r.absence && r.absence.maxStreak >= t
+        ? { label: `Nghỉ ${r.absence.maxStreak} buổi liên tiếp`, value: `${r.absence.maxStreak} buổi` } : null;
     case 'homework':
       return r.missingHomework != null && r.missingHomework >= t ? { label: `Thiếu BT ${fmtPercent(r.missingHomework)}`, value: fmtPercent(r.missingHomework) } : null;
     case 'elearning':

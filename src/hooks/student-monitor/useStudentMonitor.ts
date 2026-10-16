@@ -22,8 +22,9 @@ import { SupabaseService } from '~/src/services/supabase/supabaseService';
 import { callAiWithRateLimitRetry } from '~/src/services/aiService';
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
 import {
-  QldtOption, listQldtClasses, listQldtCourses, fetchClassDashboard, fetchStudentExercises
+  QldtOption, listQldtClasses, listQldtCourses, fetchClassDashboard, fetchStudentExercises, fetchClassAttendance, fetchClassLeaves
 } from '~/src/services/lms/examAnalysisService';
+import { ClassAttendance, parseClassAttendance } from '~/src/core/attendance';
 
 interface MonitorPrefs {
   templateAssignment?: TemplateAssignment;
@@ -35,7 +36,7 @@ interface MonitorPrefs {
 }
 
 export interface AiResult { loading: boolean; text?: string; error?: string }
-export type MonitorView = 'list' | 'chart';
+export type MonitorView = 'list' | 'chart' | 'absence';
 export type TemplateScope = 'all' | 'course';
 /** Lọc theo 1 cột biểu đồ: đúng nhóm SV của cột đó. */
 export interface ChartFilter { label: string; keys: Set<string> }
@@ -50,6 +51,7 @@ export function useStudentMonitor() {
   const [courseId, setCourseId] = useState('');
   const [baseRows, setBaseRows] = useState<MonitorBase[]>([]);
   const [testCols, setTestCols] = useState<TestColumn[]>([]);
+  const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
   const [templates, setTemplates] = useState<MonitorTemplate[]>(STARTER_TEMPLATES);
   const [templateSource, setTemplateSource] = useState<TemplateSource>('local');
   const [templateError, setTemplateError] = useState<{ message: string; tableMissing: boolean } | null>(null);
@@ -61,6 +63,7 @@ export function useStudentMonitor() {
   const [view, setView] = useState<MonitorView>('list');
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; text: string } | null>(null);
   const [statusText, setStatusText] = useState('Chọn lớp + môn học rồi bấm "Tải dữ liệu". Cần đăng nhập QLĐT ít nhất một lần.');
   // AI tổng quan lớp theo từng loại (toàn lớp / bài tập / vắng nghỉ / R-Point / E-learning / điểm thi)
@@ -193,15 +196,30 @@ export function useStudentMonitor() {
       const auth = await getQldtAuth();
       const cols = new Map<string, TestColumn>();
       const rows: MonitorBase[] = [];
+      const attendance: ClassAttendance[] = [];
       let done = 0;
       setProgress({ done: 0, total: selectedClassIds.length, text: 'Đang tải dữ liệu các lớp…' });
       for (const id of selectedClassIds) {
         const label = (classes.find(c => c.value === id)?.label || id).replace(/\s*\(\d+ SV\)$/, '');
         try {
-          const d = await fetchClassDashboard(auth, id, courseId);
+          // Điểm danh + đơn xin nghỉ: lỗi thì vẫn dùng được phần còn lại
+          const [d, att] = await Promise.all([
+            fetchClassDashboard(auth, id, courseId),
+            Promise.all([fetchClassAttendance(auth, id, courseId), fetchClassLeaves(auth, id)])
+              .then(([a, l]) => parseClassAttendance(a, l, label))
+              .catch((e: any) => { logger.error(LOG_MODULE, `Không tải được điểm danh lớp ${label}.`, e.message); return null; })
+          ]);
           // In response dashboard ra Console (DevTools của extension) để đối chiếu / lưu làm dữ liệu mẫu
           console.log(`[GIÁM SÁT] /classes/dashboard/${id}/${courseId} — ${label}`, d);
-          rows.push(...parseMonitorClass(d, label, cols));
+          const classRows = parseMonitorClass(d, label, cols);
+          if (att) {
+            attendance.push(att);
+            classRows.forEach(r => {
+              const a = att.students[String(r.studentId)];
+              if (a) r.absence = { absentDays: a.absentDays, excusedDays: a.excusedDays, unexcusedDays: a.unexcusedDays, maxStreak: a.maxStreak, streaks: a.streaks };
+            });
+          }
+          rows.push(...classRows);
         } catch (e: any) {
           logger.error(LOG_MODULE, `Không tải được dữ liệu lớp ${label}.`, e.message);
         }
@@ -209,6 +227,7 @@ export function useStudentMonitor() {
       }
       setTestCols(sortTestColumns(cols.values()));
       setBaseRows(rows);
+      setClassAttendance(attendance);
       logger.success(LOG_MODULE, `Tải ${selectedClassIds.length} lớp, ${rows.length} sinh viên.`);
     } catch (e: any) {
       setStatusText('Lỗi: ' + e.message);
@@ -318,43 +337,49 @@ export function useStudentMonitor() {
   };
 
   /* ---------- Xuất Excel theo bộ lọc hiện tại ---------- */
-  const handleExport = () => {
-    if (!visibleRows.length) return;
-    const data = visibleRows.map(r => {
-      const record: Record<string, any> = {
-        'Lớp': r.classLabel, 'MSSV': r.code, 'Họ tên': r.name, 'Email': r.email,
-        'Mức': r.riskLevel.name,
-        'Vi phạm': r.issues.map(i => `${i.label} (${i.levelName})`).join('; '),
-        'Sắp vượt ngưỡng': r.early.map(e => e.label).join('; '),
-        'Nghỉ học (%)': round1(r.absentRate), 'Thiếu bài tập (%)': round1(r.missingHomework), 'Chậm E-learning': r.unprepared
-      };
-      EXAM_CELLS.forEach(c => { record[c.key === 'ckTNCell' || c.key === 'ckTLCell' ? `Cuối môn - ${examCellLabel(r, c.key)}` : c.label] = r[c.key] === 'absent' ? 'Vắng' : round1(r[c.key] as number | null); });
-      record['TB Hackathon'] = round1(r.hk);
-      record['Tổng điểm thi'] = round1(r.ck);
-      record['Thi bổ sung'] = r.makeupNotes.join('; ');
-      Object.assign(record, {
-        'R-Points': r.rpoints,
-        'Nghi vấn BTVN': r.suspect ? ANALYSIS_LEVELS[r.level].label : '',
-        'Lý do nghi vấn': r.reasons.join('; '),
-        'DS rà soát': r.watch ? 'Có' : '',
-        'Gợi ý hành động': r.actions.join('; ')
+  const handleExport = async () => {
+    if (!visibleRows.length || exporting) return;
+    setExporting(true);
+    try {
+      const data = visibleRows.map(r => {
+        const record: Record<string, any> = {
+          'Lớp': r.classLabel, 'MSSV': r.code, 'Họ tên': r.name, 'Email': r.email,
+          'Mức': r.riskLevel.name,
+          'Vi phạm': r.issues.map(i => `${i.label} (${i.levelName})`).join('; '),
+          'Sắp vượt ngưỡng': r.early.map(e => e.label).join('; '),
+          'Nghỉ học (%)': round1(r.absentRate), 'Số buổi nghỉ': r.absence?.absentDays ?? '', 'Nghỉ không phép': r.absence?.unexcusedDays ?? '',
+        'Nghỉ liên tiếp tối đa': r.absence?.maxStreak ?? '', 'Thiếu bài tập (%)': round1(r.missingHomework), 'Chậm E-learning': r.unprepared
+        };
+        EXAM_CELLS.forEach(c => { record[c.key === 'ckTNCell' || c.key === 'ckTLCell' ? `Cuối môn - ${examCellLabel(r, c.key)}` : c.label] = r[c.key] === 'absent' ? 'Vắng' : round1(r[c.key] as number | null); });
+        record['TB Hackathon'] = round1(r.hk);
+        record['Tổng điểm thi'] = round1(r.ck);
+        record['Thi bổ sung'] = r.makeupNotes.join('; ');
+        Object.assign(record, {
+          'R-Points': r.rpoints,
+          'Nghi vấn BTVN': r.suspect ? ANALYSIS_LEVELS[r.level].label : '',
+          'Lý do nghi vấn': r.reasons.join('; '),
+          'DS rà soát': r.watch ? 'Có' : '',
+          'Gợi ý hành động': r.actions.join('; ')
+        });
+        return record;
       });
-      return record;
-    });
-    const name = (courseName || 'mon').replace(/[^\wÀ-ỹ]+/g, '-').slice(0, 40);
-    exportToExcel(data, 'GiamSat', `GiamSat_${name}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      const name = (courseName || 'mon').replace(/[^\wÀ-ỹ]+/g, '-').slice(0, 40);
+      exportToExcel(data, 'GiamSat', `GiamSat_${name}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return {
     classes, selectedClassIds, courses, courseId, setCourseId, courseName,
-    rows, visibleRows, testCols, overview, filterCounts, watchList, watchMissing,
+    rows, visibleRows, testCols, classAttendance, overview, filterCounts, watchList, watchMissing,
     monitorConfig, levels, rules, watchText, setWatchText,
     templates, templateSource, templateError, templatesLoading, assignment, activeTemplate, activePerCourse,
     reloadTemplates, saveTemplate, deleteTemplate, applyTemplate, clearCourseTemplate, createTemplatesTable,
     canCreateTable: !!config.supabasePat?.trim(),
     filters, toggleFilter, clearFilters: () => { setFilters([]); setChartFilter(null); }, query, setQuery,
     view, setView, distributions, chartFilter, clearChartFilter: () => setChartFilter(null), openChartBin, openRiskLevel,
-    busy, progress, statusText, classAi, studentAi,
+    busy, exporting, progress, statusText, classAi, studentAi,
     handleClassChange, handleLoad, handleClassAi, handleStudentAi, handleExport,
     exerciseLoading, loadStudentExercises, toggleWatch,
     reloadClasses: () => loadClasses(classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current)
