@@ -91,7 +91,6 @@ const IssueItem: React.FC<{ issue: Issue; early?: boolean }> = ({ issue, early }
       <span><Text strong>{issue.title}: {issue.value}</Text> <Text type="secondary">· ngưỡng {issue.threshold}</Text></span>
       <LevelTag level={{ name: issue.levelName, color: issue.color, violation: !early }} />
     </Flex>
-    {issue.action && <div>→ {early ? `Nhắc sớm: ${issue.action.charAt(0).toLowerCase()}${issue.action.slice(1)}` : issue.action}</div>}
   </div>
 );
 

@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.20.1] - 2026-10-16
+
+### ✨ Cải thiện
+- Chi tiết sinh viên, tab Cần xử lý: bỏ dòng gợi ý hành động ("→ Nhắc nhở chuyên cần, hỏi lý do nghỉ", "→ Hỗ trợ ôn tập phần thi điểm thấp"…) — mỗi vấn đề chỉ còn chỉ số, giá trị, ngưỡng và mức.
+
+---
+
 ## [5.20.0] - 2026-10-16
 
 ### ✨ Cải thiện
