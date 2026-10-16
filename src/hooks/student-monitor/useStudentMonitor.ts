@@ -42,6 +42,7 @@ export type TemplateScope = 'all' | 'course';
 export interface ChartFilter { label: string; keys: Set<string> }
 
 const LOG_MODULE = 'STUDENT_MONITOR';
+let templateErrorLogged = false;
 
 export function useStudentMonitor() {
   const { config } = useApp();
@@ -103,7 +104,15 @@ export function useStudentMonitor() {
     setTemplates(res.templates);
     setTemplateSource(res.source);
     setTemplateError(res.error ? { message: res.error, tableMissing: !!res.tableMissing } : null);
-    if (res.error) logger.error(LOG_MODULE, 'Không đọc được mẫu giám sát trên Supabase, dùng bản trên máy.', res.error);
+    // Chỉ báo 1 lần mỗi phiên (mỗi lần mở tab đều đọc lại mẫu)
+    if (res.error && !templateErrorLogged) {
+      templateErrorLogged = true;
+      if (res.tableMissing) {
+        logger.warn(LOG_MODULE, 'Supabase chưa có bảng monitor_templates — mẫu giám sát đang lưu trên máy. Bấm "Tạo bảng" trong Cài đặt giám sát (cần Supabase PAT) hoặc chạy "Khởi tạo cấu trúc bảng" ở tab Cài đặt.', res.error);
+      } else {
+        logger.error(LOG_MODULE, 'Không đọc được mẫu giám sát trên Supabase, dùng bản trên máy.', res.error);
+      }
+    }
     setTemplatesLoading(false);
   };
 

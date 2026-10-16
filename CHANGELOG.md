@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.21.2] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- Lỗi "Could not find the table 'public.monitor_templates'" bị ghi lặp lại mỗi lần mở tab Giám sát: nay chỉ báo 1 lần mỗi phiên, dạng cảnh báo kèm cách khắc phục (bấm "Tạo bảng" trong Cài đặt giám sát hoặc chạy "Khởi tạo cấu trúc bảng" ở tab Cài đặt). Khi chưa có bảng, mẫu giám sát vẫn dùng bản lưu trên máy.
+
+---
+
 ## [5.21.1] - 2026-10-16
 
 ### 🐛 Sửa lỗi
