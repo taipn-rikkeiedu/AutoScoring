@@ -58,6 +58,9 @@ export function qldtGet<T = any>(path: string, auth: string): Promise<T> {
         let json: any = null;
         try { json = response.text ? JSON.parse(response.text) : null; } catch { /* body không phải JSON */ }
 
+        // In nguyên response (kể cả phần vỏ statusCode/message) để đối chiếu dữ liệu QLĐT trong DevTools → Console
+        console.log(`[QLĐT API] GET ${path} → HTTP ${response.status}`, json ?? response.text);
+
         if (response.status === 401) {
           // Token đã lưu hết hạn → xoá để lần sau báo đăng nhập lại thay vì dùng tiếp token hỏng
           chrome.storage.local.remove(STORAGE_KEYS.qldtAuthToken);

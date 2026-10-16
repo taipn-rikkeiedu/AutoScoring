@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.9.1] - 2026-10-16
+
+### ✨ Cải thiện
+- In nguyên response của mọi lần gọi API QLĐT ra Console (nhãn `[QLĐT API]`) để đối chiếu dữ liệu: chuột phải vào extension → Kiểm tra (Inspect) → tab Console.
+
+---
+
 ## [5.9.0] - 2026-10-16
 
 ### 🗑 Gỡ bỏ
