@@ -7,19 +7,19 @@
  * - "Liên tiếp" tính theo buổi học trên lịch của lớp (bỏ qua ngày không có lịch học).
  */
 
-export type AttendanceKind = 'present' | 'excused' | 'unexcused' | 'code3' | 'unknown';
+export type AttendanceKind = 'present' | 'excused' | 'unexcused' | 'late' | 'unknown';
 
 /**
  * Mã trạng thái điểm danh của QLĐT. Suy ra từ dữ liệu thật: đơn "Phê duyệt" → 1, đơn "Từ chối" và
- * danh sách chăm sóc → 0, đa số → 4. Mã 3 chưa xác định nghĩa → không tính là nghỉ (sửa tại đây khi biết).
+ * danh sách chăm sóc → 0, đa số → 4; mã 3 = đi muộn (giảng viên xác nhận) — có mặt, không tính là nghỉ.
  */
-export const ATTENDANCE_CODES: Record<string, AttendanceKind> = { '4': 'present', '1': 'excused', '0': 'unexcused', '3': 'code3' };
+export const ATTENDANCE_CODES: Record<string, AttendanceKind> = { '4': 'present', '1': 'excused', '0': 'unexcused', '3': 'late' };
 
 export const ATTENDANCE_LABELS: Record<AttendanceKind, { label: string; short: string; color: string }> = {
   present: { label: 'Có mặt', short: '·', color: '#d9d9d9' },
   excused: { label: 'Nghỉ có phép', short: 'P', color: '#fa8c16' },
   unexcused: { label: 'Nghỉ không phép', short: 'K', color: '#cf1322' },
-  code3: { label: 'Mã 3 (chưa rõ)', short: '3', color: '#8c8c8c' },
+  late: { label: 'Đi muộn', short: 'M', color: '#1677ff' },
   unknown: { label: 'Không rõ', short: '?', color: '#8c8c8c' }
 };
 

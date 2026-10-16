@@ -225,7 +225,7 @@ export const StudentAbsenceView: React.FC<{
       <Flex gap={12} align="center" wrap>
         <Checkbox checked={onlyAbsent} onChange={(e) => setOnlyAbsent(e.target.checked)}>Chỉ sinh viên có nghỉ</Checkbox>
         <Text type="secondary">
-          {(['excused', 'unexcused', 'code3'] as const).map(k => `${ATTENDANCE_LABELS[k].short} = ${ATTENDANCE_LABELS[k].label}`).join(' · ')} · mỗi ô là 1 ca
+          {(['excused', 'unexcused', 'late'] as const).map(k => `${ATTENDANCE_LABELS[k].short} = ${ATTENDANCE_LABELS[k].label}`).join(' · ')} · mỗi ô là 1 ca
         </Text>
       </Flex>
       <Table<Entry>

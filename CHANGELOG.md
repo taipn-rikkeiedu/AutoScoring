@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.19.1] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- **Mã điểm danh 3 = Đi muộn** (trước hiện "Mã 3 (chưa rõ)"): Lịch nghỉ học và bảng điểm danh hiện "Đi muộn" (ô chữ **M** màu xanh); đi muộn là có mặt nên không tính là nghỉ và không nối chuỗi nghỉ liên tiếp.
+
+---
+
 ## [5.19.0] - 2026-10-16
 
 ### 🚀 Tính năng mới
