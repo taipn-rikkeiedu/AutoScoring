@@ -8,7 +8,7 @@ import {
   toStudentExercises, parseWatchList, sortTestColumns, avg, round1, plainText
 } from '~/src/core/examAnalysis';
 import {
-  MonitorBase, MonitorRow, MonitorFilter, MONITOR_FILTERS, RISK_LEVELS,
+  MonitorBase, MonitorRow, MonitorFilter, MONITOR_FILTERS, levelFilterKey, describeByRisk,
   parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS, examCellLabel,
   buildDistributions, DistributionBin
 } from '~/src/core/studentMonitor';
@@ -220,19 +220,21 @@ export function useStudentMonitor() {
   /* ---------- Đánh giá + lọc (theo mẫu đang áp dụng cho môn) ---------- */
   const courseName = courses.find(c => c.value === courseId)?.label || '';
   const { template: activeTemplate, perCourse: activePerCourse } = resolveTemplate(templates, assignment, courseId);
-  const monitorRules = activeTemplate.monitor;
+  const monitorConfig = activeTemplate.monitor;
+  const levels = monitorConfig.levels;
   const rules = activeTemplate.analysis;
   const watchList = useMemo(() => parseWatchList(watchText), [watchText]);
   const { rows, watchMissing } = useMemo(
-    () => evaluateMonitor(baseRows, monitorRules, rules, watchList),
-    [baseRows, monitorRules, rules, watchList]);
-  const overview = useMemo(() => summarizeClass(rows), [rows]);
-  const distributions = useMemo(() => buildDistributions(rows, monitorRules), [rows, monitorRules]);
+    () => evaluateMonitor(baseRows, monitorConfig, rules, watchList),
+    [baseRows, monitorConfig, rules, watchList]);
+  const overview = useMemo(() => summarizeClass(rows, levels), [rows, levels]);
+  const distributions = useMemo(() => buildDistributions(rows, levels), [rows, levels]);
   const filterCounts = useMemo(() => {
-    const counts = {} as Record<MonitorFilter, number>;
+    const counts: Record<MonitorFilter, number> = {};
     MONITOR_FILTERS.forEach(f => { counts[f.key] = rows.filter(r => matchesFilter(r, f.key)).length; });
+    levels.forEach(l => { counts[levelFilterKey(l.id)] = rows.filter(r => r.risk === l.id).length; });
     return counts;
-  }, [rows]);
+  }, [rows, levels]);
 
   const visibleRows = useMemo(() => {
     const q = plainText(query);
@@ -249,16 +251,17 @@ export function useStudentMonitor() {
     setChartFilter({ label: `${title}: ${bin.label}`, keys: new Set(bin.keys) });
     setView('list');
   };
-  const openRiskLevel = (level: MonitorFilter) => {
+  /** Bấm 1 mức trên biểu đồ (id mức) → lọc đúng mức đó. */
+  const openRiskLevel = (levelId: string) => {
     setChartFilter(null);
-    setFilters([level]);
+    setFilters(levelId === 'normal' ? [] : [levelFilterKey(levelId)]);
     setView('list');
   };
 
   useEffect(() => {
     if (!rows.length) return;
     const o = overview;
-    setStatusText(`${o.total} SV: ${o.byRisk.alarm} báo động, ${o.byRisk.warning} cảnh báo, ${o.byRisk.early} sắp vượt ngưỡng.`);
+    setStatusText(`${o.total} SV: ${describeByRisk(o, levels)}.`);
   }, [overview]);
 
   const toggleFilter = (f: MonitorFilter) =>
@@ -295,7 +298,7 @@ export function useStudentMonitor() {
     if (!rows.length || classAi?.loading) return;
     setClassAi({ loading: true });
     try {
-      const text = await callAiWithRateLimitRetry(buildClassOverviewPrompt(rows, courseName), aiCredentials);
+      const text = await callAiWithRateLimitRetry(buildClassOverviewPrompt(rows, courseName, levels), aiCredentials);
       setClassAi({ loading: false, text: text.trim() });
     } catch (e: any) {
       setClassAi({ loading: false, error: e.message });
@@ -319,8 +322,8 @@ export function useStudentMonitor() {
     const data = visibleRows.map(r => {
       const record: Record<string, any> = {
         'Lớp': r.classLabel, 'MSSV': r.code, 'Họ tên': r.name, 'Email': r.email,
-        'Mức': RISK_LEVELS[r.risk].label,
-        'Vi phạm': r.issues.map(i => i.label).join('; '),
+        'Mức': r.riskLevel.name,
+        'Vi phạm': r.issues.map(i => `${i.label} (${i.levelName})`).join('; '),
         'Sắp vượt ngưỡng': r.early.map(e => e.label).join('; '),
         'Nghỉ học (%)': round1(r.absentRate), 'Thiếu bài tập (%)': round1(r.missingHomework), 'Chậm E-learning': r.unprepared
       };
@@ -344,7 +347,7 @@ export function useStudentMonitor() {
   return {
     classes, selectedClassIds, courses, courseId, setCourseId, courseName,
     rows, visibleRows, testCols, overview, filterCounts, watchList, watchMissing,
-    monitorRules, rules, watchText, setWatchText,
+    monitorConfig, levels, rules, watchText, setWatchText,
     templates, templateSource, templateError, templatesLoading, assignment, activeTemplate, activePerCourse,
     reloadTemplates, saveTemplate, deleteTemplate, applyTemplate, clearCourseTemplate, createTemplatesTable,
     canCreateTable: !!config.supabasePat?.trim(),

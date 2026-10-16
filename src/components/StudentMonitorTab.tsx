@@ -11,9 +11,10 @@ import {
 import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
 import { StudentMonitorDrawer, RiskTag, WatchStar } from '~/src/components/StudentMonitorDrawer';
 import {
-  MonitorRow, MONITOR_FILTERS, fmtPercent
+  MonitorRow, MONITOR_FILTERS, levelFilterKey, fmtPercent
 } from '~/src/core/studentMonitor';
 import { ANALYSIS_LEVELS } from '~/src/core/examAnalysis';
+import { readableColor } from '~/src/core/monitorLevels';
 import { MonitorTemplatesPanel } from '~/src/components/MonitorTemplatesPanel';
 
 const { Text, Paragraph } = Typography;
@@ -31,10 +32,17 @@ const MAX_ISSUE_TAGS = 3;
 /** Các vấn đề chính của SV (nặng nhất trước), tối đa 3 nhãn — bấm vào dòng để xem đủ. */
 const IssueTags: React.FC<{ row: MonitorRow }> = ({ row }) => {
   const tags: React.ReactNode[] = [
-    ...[...row.issues]
-      .sort((x, y) => Number(y.severity === 'alarm') - Number(x.severity === 'alarm'))
-      .map(i => <Tag key={i.kind} color={i.severity === 'alarm' ? 'red' : 'orange'} variant="filled" style={{ margin: 0 }}>{i.label}</Tag>),
-    ...row.early.map(e => <Tag key={`early-${e.kind}`} color="gold" variant="outlined" style={{ margin: 0 }}>Sắp: {e.label}</Tag>),
+    // Nhãn tô theo màu mức mà chỉ số chạm (nặng nhất trước); di chuột để xem tên mức + ngưỡng
+    ...row.issues.map(i => (
+      <Tooltip key={i.kind} title={`${i.levelName}: ${i.title} ${i.threshold}`}>
+        <Tag style={{ margin: 0, color: readableColor(i.color), background: `${i.color}14`, borderColor: `${i.color}66` }}>{i.label}</Tag>
+      </Tooltip>
+    )),
+    ...row.early.map(e => (
+      <Tooltip key={`early-${e.kind}`} title={`${e.levelName}: ${e.title} ${e.threshold}`}>
+        <Tag variant="outlined" style={{ margin: 0, borderColor: e.color, borderStyle: 'dashed' }}>Sắp: {e.label}</Tag>
+      </Tooltip>
+    )),
     ...(row.suspect || row.dups.length
       ? [<Tooltip key="suspect" title={[row.suspect ? ANALYSIS_LEVELS[row.level].label : '', row.dups.length ? 'trùng link bài nộp' : ''].filter(Boolean).join(', ')}>
           <Tag color="purple" variant="filled" style={{ margin: 0 }}>Nghi vấn BTVN</Tag>
@@ -80,8 +88,11 @@ export const StudentMonitorTab: React.FC = () => {
     { title: 'Vấn đề', key: 'issues', render: (_, r) => <IssueTags row={r} /> }
   ];
 
-  const levelFilters = MONITOR_FILTERS.filter(f => f.group === 'level');
-  const otherFilters = MONITOR_FILTERS.filter(f => f.group !== 'level');
+  // Lọc theo mức đã cấu hình; ẩn mức không có SV (trừ khi đang chọn)
+  const levelFilters = m.levels
+    .map(l => ({ key: levelFilterKey(l.id), label: l.name, color: l.color }))
+    .filter(f => m.filterCounts[f.key] || m.filters.includes(f.key));
+  const otherFilters = MONITOR_FILTERS;
   const otherActive = otherFilters.filter(f => m.filters.includes(f.key)).length;
 
   return (
@@ -146,6 +157,7 @@ export const StudentMonitorTab: React.FC = () => {
           <Overview m={m} />
           <Suspense fallback={<Flex justify="center" style={{ padding: 24 }}><Text type="secondary">Đang tải biểu đồ…</Text></Flex>}>
             <StudentMonitorCharts
+              levels={m.levels}
               byRisk={m.overview.byRisk}
               distributions={m.distributions}
               onPickRisk={m.openRiskLevel}
@@ -158,7 +170,9 @@ export const StudentMonitorTab: React.FC = () => {
       {/* Bộ lọc thông minh (chọn nhiều, khớp bất kỳ) + tìm kiếm + xuất Excel */}
       {m.rows.length > 0 && m.view === 'list' && (
         <Flex justify="space-between" align="center" gap={8}>
-          <Flex gap={4} align="center" style={{ minWidth: 0 }}>
+          <Flex gap={4} align="center" style={{ minWidth: 0, flex: 1 }}>
+            {/* Nhiều mức thì cuộn ngang, nút Lọc thêm luôn hiện */}
+            <Flex gap={4} align="center" style={{ minWidth: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
             {levelFilters.map(f => {
               const on = m.filters.includes(f.key);
               return (
@@ -166,12 +180,14 @@ export const StudentMonitorTab: React.FC = () => {
                   key={f.key}
                   checked={on}
                   onChange={() => m.toggleFilter(f.key)}
-                  style={{ border: `1px solid ${on ? '#1677ff' : '#d9d9d9'}`, padding: '1px 8px', marginInlineEnd: 0 }}
+                  style={{ border: `1px solid ${on ? '#1677ff' : '#d9d9d9'}`, padding: '1px 8px', marginInlineEnd: 0, whiteSpace: 'nowrap' }}
                 >
+                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: f.color, marginRight: 4 }} />
                   {f.label} <b>{m.filterCounts[f.key]}</b>
                 </Tag.CheckableTag>
               );
             })}
+            </Flex>
             <Dropdown
               trigger={['click']}
               popupRender={() => (
@@ -186,7 +202,7 @@ export const StudentMonitorTab: React.FC = () => {
                 </Card>
               )}
             >
-              <Button size="small" type={otherActive ? 'primary' : 'default'} ghost={!!otherActive} icon={<FilterOutlined />}>
+              <Button size="small" type={otherActive ? 'primary' : 'default'} ghost={!!otherActive} icon={<FilterOutlined />} style={{ flexShrink: 0 }}>
                 Lọc thêm{otherActive ? ` (${otherActive})` : ''}
               </Button>
             </Dropdown>
@@ -201,7 +217,7 @@ export const StudentMonitorTab: React.FC = () => {
               allowClear
               value={m.query}
               onChange={(e) => m.setQuery(e.target.value)}
-              style={{ width: 170 }}
+              style={{ width: 150 }}
             />
             <Tooltip title={`Xuất Excel ${m.visibleRows.length} sinh viên đang hiển thị`}>
               <Button icon={<DownloadOutlined />} onClick={m.handleExport} disabled={!m.visibleRows.length} />

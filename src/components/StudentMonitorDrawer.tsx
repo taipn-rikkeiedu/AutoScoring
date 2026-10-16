@@ -3,8 +3,9 @@ import { Drawer, Button, Tag, Typography, Flex, Alert, Collapse, Descriptions, T
 import { LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
-  MonitorRow, MonitorRules, ExamCell, ExamCellKey, RISK_LEVELS, STATUS_COLORS, fmtPercent, fmtDate, examCellLabel
+  MonitorRow, Issue, ExamCell, ExamCellKey, fmtPercent, fmtDate, examCellLabel, colorFor
 } from '~/src/core/studentMonitor';
+import { MonitorLevel, MetricKey, textOn, readableColor } from '~/src/core/monitorLevels';
 import { TestColumn, ANALYSIS_LEVELS, fmtScore } from '~/src/core/examAnalysis';
 
 const { Text } = Typography;
@@ -12,12 +13,6 @@ const { Text } = Typography;
 type Monitor = ReturnType<typeof useStudentMonitor>;
 
 const DISCLAIMER = 'Nghi vấn chỉ là dấu hiệu cần rà soát (vd vấn đáp lại bài tập), không phải bằng chứng gian lận.';
-
-const SEVERITY_TAG: Record<'alarm' | 'warning' | 'early', { label: string; color: string }> = {
-  alarm: { label: 'Báo động', color: 'red' },
-  warning: { label: 'Cảnh báo', color: 'orange' },
-  early: { label: 'Sắp vượt', color: 'gold' }
-};
 
 /** Bật / tắt sinh viên trong danh sách cần rà soát — bấm, không cần gõ tên. */
 export const WatchStar: React.FC<{ on: boolean; onToggle: () => void }> = ({ on, onToggle }) => (
@@ -33,13 +28,22 @@ export const WatchStar: React.FC<{ on: boolean; onToggle: () => void }> = ({ on,
   </Tooltip>
 );
 
-export const RiskTag: React.FC<{ row: MonitorRow }> = ({ row }) => {
-  const label = RISK_LEVELS[row.risk].label;
-  if (row.risk === 'alarm') return <Tag color="#cf1322" variant="solid">{label}</Tag>;
-  if (row.risk === 'warning') return <Tag color="orange" variant="solid">{label}</Tag>;
-  if (row.risk === 'early') return <Tag color="gold" variant="filled">{label}</Tag>;
-  return <Text type="secondary">{label}</Text>;
-};
+/** Nhãn 1 mức: mức vi phạm tô đặc, mức nhắc sớm tô nhạt, màu theo cấu hình. */
+export const LevelTag: React.FC<{ level: Pick<MonitorLevel, 'name' | 'color' | 'violation'>; children?: React.ReactNode }> = ({ level, children }) => (
+  <Tag
+    style={{
+      margin: 0,
+      background: level.violation ? level.color : `${level.color}26`,
+      color: level.violation ? textOn(level.color) : '#262626',
+      borderColor: level.violation ? level.color : `${level.color}99`
+    }}
+  >
+    {children ?? level.name}
+  </Tag>
+);
+
+export const RiskTag: React.FC<{ row: MonitorRow }> = ({ row }) =>
+  row.risk === 'normal' ? <Text type="secondary">{row.riskLevel.name}</Text> : <LevelTag level={row.riskLevel} />;
 
 const Section: React.FC<{ title: React.ReactNode; extra?: React.ReactNode; children: React.ReactNode }> = ({ title, extra, children }) => (
   <Flex vertical gap={8}>
@@ -52,37 +56,34 @@ const Section: React.FC<{ title: React.ReactNode; extra?: React.ReactNode; child
 );
 
 /* ---------- 1 vấn đề: tên + giá trị so với ngưỡng, hành động ngay bên dưới ---------- */
-const IssueItem: React.FC<{ severity: 'alarm' | 'warning' | 'early'; title: string; value: string; threshold: string; action: string }> =
-  ({ severity, title, value, threshold, action }) => {
-    const sev = SEVERITY_TAG[severity];
-    const color = severity === 'early' ? STATUS_COLORS.early : severity === 'alarm' ? STATUS_COLORS.alarm : STATUS_COLORS.warning;
-    return (
-      <div style={{ borderLeft: `3px solid ${color}`, background: '#fafafa', borderRadius: 4, padding: '8px 12px' }}>
-        <Flex justify="space-between" align="center" gap={8}>
-          <span><Text strong>{title}: {value}</Text> <Text type="secondary">· ngưỡng {threshold}</Text></span>
-          <Tag color={sev.color} variant="filled" style={{ margin: 0, flexShrink: 0 }}>{sev.label}</Tag>
-        </Flex>
-        <div>→ {action}</div>
-      </div>
-    );
-  };
+const IssueItem: React.FC<{ issue: Issue; early?: boolean }> = ({ issue, early }) => (
+  <div style={{ borderLeft: `3px solid ${issue.color}`, background: '#fafafa', borderRadius: 4, padding: '8px 12px' }}>
+    <Flex justify="space-between" align="center" gap={8}>
+      <span><Text strong>{issue.title}: {issue.value}</Text> <Text type="secondary">· ngưỡng {issue.threshold}</Text></span>
+      <LevelTag level={{ name: issue.levelName, color: issue.color, violation: !early }} />
+    </Flex>
+    {issue.action && <div>→ {early ? `Nhắc sớm: ${issue.action.charAt(0).toLowerCase()}${issue.action.slice(1)}` : issue.action}</div>}
+  </div>
+);
 
 /* ---------- Thanh tỉ lệ có vạch ngưỡng (nghỉ học / thiếu bài tập) ---------- */
-const Meter: React.FC<{ label: string; value: number | null; warn: number; alarm: number }> = ({ label, value, warn, alarm }) => {
-  const max = Math.max(alarm * 1.5, value ?? 0);
+const Meter: React.FC<{ label: string; value: number | null; metric: MetricKey; levels: MonitorLevel[] }> = ({ label, value, metric, levels }) => {
+  const marks = [...new Map(levels.filter(l => l.thresholds[metric] != null).map(l => [l.thresholds[metric] as number, l.color])).entries()]
+    .map(([t, color]) => ({ t, color }));
+  const max = Math.max(Math.max(1, ...marks.map(m => m.t)) * 1.3, value ?? 0);
   const pos = (v: number) => `${Math.min(100, (v / max) * 100)}%`;
   const v = value ?? 0;
-  const color = v > alarm ? STATUS_COLORS.alarm : v >= warn ? STATUS_COLORS.warning : '#1677ff';
+  const color = colorFor(levels, metric, value) || '#1677ff';
   return (
     <Flex align="center" gap={12}>
       <Text style={{ width: 96, flexShrink: 0 }}>{label}</Text>
       <div style={{ flex: 1, position: 'relative', height: 30 }}>
         <div style={{ position: 'absolute', top: 6, left: 0, right: 0, height: 8, background: '#f0f0f0', borderRadius: 4 }} />
         <div style={{ position: 'absolute', top: 6, left: 0, width: pos(v), height: 8, background: color, borderRadius: 4 }} />
-        {[warn, alarm].map(t => (
-          <React.Fragment key={t}>
-            <div style={{ position: 'absolute', top: 2, left: pos(t), width: 1, height: 16, background: '#8c8c8c' }} />
-            <Text type="secondary" style={{ position: 'absolute', top: 16, left: pos(t), transform: 'translateX(-50%)', fontSize: 12 }}>{t}%</Text>
+        {marks.map(m => (
+          <React.Fragment key={m.t}>
+            <div style={{ position: 'absolute', top: 2, left: pos(m.t), width: 2, height: 16, background: m.color }} />
+            <Text type="secondary" style={{ position: 'absolute', top: 16, left: pos(m.t), transform: 'translateX(-50%)', fontSize: 12 }}>{m.t}%</Text>
           </React.Fragment>
         ))}
       </div>
@@ -92,15 +93,14 @@ const Meter: React.FC<{ label: string; value: number | null; warn: number; alarm
 };
 
 /* ---------- Bảng điểm thi 2×2 + điểm tổng hợp từng đợt ---------- */
-const ExamValue: React.FC<{ value: ExamCell | number | null; rules: MonitorRules }> = ({ value, rules }) => {
+const ExamValue: React.FC<{ value: ExamCell | number | null; levels: MonitorLevel[] }> = ({ value, levels }) => {
   if (value === 'absent') return <Text type="secondary">Vắng</Text>;
   if (value == null) return <Text type="secondary">—</Text>;
-  if (value < rules.examPass) return <Text type="danger" strong>{fmtScore(value)}</Text>;
-  if (value <= rules.earlyExamTo) return <Text type="warning" strong>{fmtScore(value)}</Text>;
-  return <Text>{fmtScore(value)}</Text>;
+  const color = colorFor(levels, 'examScore', value);
+  return color ? <Text strong style={{ color: readableColor(color) }}>{fmtScore(value)}</Text> : <Text>{fmtScore(value)}</Text>;
 };
 
-const ExamTable: React.FC<{ row: MonitorRow; rules: MonitorRules }> = ({ row: r, rules }) => {
+const ExamTable: React.FC<{ row: MonitorRow; levels: MonitorLevel[] }> = ({ row: r, levels }) => {
   const parts = (a: ExamCellKey, b: ExamCellKey) => [
     { label: examCellLabel(r, a).replace(/^(HK|CK) /, ''), value: r[a] },
     { label: examCellLabel(r, b).replace(/^(HK|CK) /, ''), value: r[b] }
@@ -124,13 +124,13 @@ const ExamTable: React.FC<{ row: MonitorRow; rules: MonitorRules }> = ({ row: r,
           title: 'Thành phần', key: 'parts',
           render: (_, d) => (
             <Flex gap={16} wrap>
-              {d.parts.map(p => <span key={p.label}><Text type="secondary">{p.label} </Text><ExamValue value={p.value} rules={rules} /></span>)}
+              {d.parts.map(p => <span key={p.label}><Text type="secondary">{p.label} </Text><ExamValue value={p.value} levels={levels} /></span>)}
             </Flex>
           )
         },
         {
           title: <Tooltip title="Theo công thức của môn trên QLĐT: Hackathon = 30% TN + 70% TL; cuối môn tự luận = 30% TN + 70% TL; cuối môn project = 70% sản phẩm + 30% kiến thức">Tổng</Tooltip>,
-          key: 'total', align: 'right', render: (_, d) => <ExamValue value={d.total} rules={rules} />
+          key: 'total', align: 'right', render: (_, d) => <ExamValue value={d.total} levels={levels} />
         }
       ]}
     />
@@ -166,7 +166,7 @@ export const StudentMonitorDrawer: React.FC<{
   }, [r?.key, r?.exercises]);
 
   if (!r) return null;
-  const rules = m.monitorRules;
+  const levels = m.levels;
   const ai = m.studentAi[r.key];
   const tests = testCols.map(c => r.tests[c.key]).filter(t => t && (t.comment || t.link));
   const problems = r.issues.length + r.early.length;
@@ -204,14 +204,14 @@ export const StudentMonitorDrawer: React.FC<{
           {ai?.error && <Alert type="error" showIcon title={ai.error} />}
           {ai?.text && <Alert type="info" title={<span style={{ whiteSpace: 'pre-wrap' }}>{ai.text}</span>} />}
           {problems === 0 && <Text type="secondary">Không có vấn đề cần xử lý.</Text>}
-          {r.issues.map(i => <IssueItem key={i.kind} severity={i.severity} title={i.title} value={i.value} threshold={i.threshold} action={i.action} />)}
-          {r.early.map(e => <IssueItem key={`early-${e.kind}`} severity="early" title={e.title} value={e.value} threshold={e.threshold} action={e.action} />)}
+          {r.issues.map(i => <IssueItem key={i.kind} issue={i} />)}
+          {r.early.map(e => <IssueItem key={`early-${e.kind}`} issue={e} early />)}
         </Section>
 
         {/* 2. Chỉ số học tập */}
         <Section title="Chỉ số học tập">
-          <Meter label="Nghỉ học" value={r.absentRate} warn={rules.absentWarn} alarm={rules.absentAlarm} />
-          <Meter label="Thiếu bài tập" value={r.missingHomework} warn={rules.homeworkWarn} alarm={rules.homeworkAlarm} />
+          <Meter label="Nghỉ học" value={r.absentRate} metric="absent" levels={levels} />
+          <Meter label="Thiếu bài tập" value={r.missingHomework} metric="homework" levels={levels} />
           <Descriptions
             size="small"
             column={3}
@@ -225,7 +225,7 @@ export const StudentMonitorDrawer: React.FC<{
 
         {/* 3. Điểm thi + nhận xét của GV chấm */}
         <Section title="Điểm thi">
-          <ExamTable row={r} rules={rules} />
+          <ExamTable row={r} levels={levels} />
           {r.makeupNotes.map(note => <Alert key={note} type="info" showIcon title={note} />)}
           {tests.length > 0 && (
             <Collapse

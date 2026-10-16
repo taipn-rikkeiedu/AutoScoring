@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import {
-  Button, Input, InputNumber, Tag, Typography, Alert, Tooltip, Divider, Flex, Space, Dropdown, Modal, Popconfirm, List
+  Button, Input, InputNumber, Tag, Typography, Alert, Tooltip, Divider, Flex, Space, Dropdown, Modal, Popconfirm, List,
+  ColorPicker, Checkbox, Collapse
 } from 'antd';
 import {
-  PlusOutlined, EditOutlined, CopyOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined, DownOutlined, CloseOutlined
+  PlusOutlined, EditOutlined, CopyOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined, DownOutlined, CloseOutlined,
+  LeftOutlined, RightOutlined, MoreOutlined
 } from '@ant-design/icons';
 import { useToast } from '~/src/core/ToastContext';
-import { MonitorRules } from '~/src/core/studentMonitor';
+import { MetricKey, MonitorLevel, METRICS, LEVEL_PALETTE, newLevelId, formatThreshold } from '~/src/core/monitorLevels';
 import { AnalysisRules } from '~/src/core/examAnalysis';
 import { MonitorTemplate, describeTemplate, newTemplateId } from '~/src/core/monitorTemplates';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
@@ -153,7 +155,14 @@ export const MonitorTemplatesPanel: React.FC<{ m: Monitor }> = ({ m }) => {
                   </Popconfirm>
                 </Space>
               </Flex>
-              <Text type="secondary" style={{ fontSize: 12 }}>{describeTemplate(t)}</Text>
+              <Flex wrap gap={8} style={{ marginTop: 2 }} aria-label={describeTemplate(t)}>
+                {t.monitor.levels.map(l => (
+                  <Text key={l.id} type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: l.color, marginRight: 4 }} />
+                    {l.name}
+                  </Text>
+                ))}
+              </Flex>
             </List.Item>
           );
         }}
@@ -195,7 +204,133 @@ export const MonitorTemplatesPanel: React.FC<{ m: Monitor }> = ({ m }) => {
   );
 };
 
-/* ---------- Tạo / sửa mẫu: tên + toàn bộ ngưỡng ---------- */
+/* ---------- Bảng ngưỡng: dòng = chỉ số, cột = mức (nặng → nhẹ, trái → phải) ---------- */
+const LABEL_COL = 150;
+const LEVEL_COL = 118;
+
+const LevelMatrix: React.FC<{ levels: MonitorLevel[]; onChange: (levels: MonitorLevel[]) => void }> = ({ levels, onChange }) => {
+  const update = (i: number, patch: Partial<MonitorLevel>) => onChange(levels.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  const setThreshold = (i: number, metric: MetricKey, v: number | null) =>
+    update(i, { thresholds: { ...levels[i].thresholds, [metric]: v } });
+  const move = (i: number, dir: -1 | 1) => {
+    const next = [...levels];
+    [next[i], next[i + dir]] = [next[i + dir], next[i]];
+    onChange(next);
+  };
+  const add = () => onChange([...levels, {
+    id: newLevelId(), name: `Mức ${levels.length + 1}`, violation: true, thresholds: {},
+    color: LEVEL_PALETTE.find(c => !levels.some(l => l.color === c)) || LEVEL_PALETTE[levels.length % LEVEL_PALETTE.length]
+  }]);
+  const grid = { display: 'grid', gridTemplateColumns: `${LABEL_COL}px repeat(${levels.length}, ${LEVEL_COL}px) 40px`, gap: 6, alignItems: 'center' } as const;
+
+  return (
+    <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+      <div style={{ ...grid, alignItems: 'start' }}>
+        <Text type="secondary" style={{ paddingTop: 4 }}>Mức (nặng → nhẹ)</Text>
+        {levels.map((l, i) => (
+          <Flex key={l.id} vertical gap={4} style={{ borderTop: `3px solid ${l.color}`, paddingTop: 4 }}>
+            <Flex gap={4} align="center">
+              <ColorPicker
+                size="small"
+                value={l.color}
+                disabledAlpha
+                presets={[{ label: 'Gợi ý', colors: LEVEL_PALETTE }]}
+                onChangeComplete={(c) => update(i, { color: c.toHexString() })}
+              />
+              <Input size="small" value={l.name} maxLength={30} onChange={(e) => update(i, { name: e.target.value })} placeholder="Tên mức" />
+            </Flex>
+            <Flex justify="space-between" align="center">
+              <Tooltip title="Bỏ tick: mức chỉ nhắc sớm (như Sắp vượt ngưỡng), không tính là vi phạm">
+                <Checkbox checked={l.violation} onChange={(e) => update(i, { violation: e.target.checked })}>
+                  <Text style={{ fontSize: 12 }}>Vi phạm</Text>
+                </Checkbox>
+              </Tooltip>
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: 'left', icon: <LeftOutlined />, label: 'Nặng hơn (sang trái)', disabled: i === 0 },
+                    { key: 'right', icon: <RightOutlined />, label: 'Nhẹ hơn (sang phải)', disabled: i === levels.length - 1 },
+                    { type: 'divider' },
+                    { key: 'delete', icon: <DeleteOutlined />, label: 'Xoá mức', danger: true, disabled: levels.length <= 1 }
+                  ],
+                  onClick: ({ key }) => {
+                    if (key === 'left') move(i, -1);
+                    else if (key === 'right') move(i, 1);
+                    else onChange(levels.filter((_, j) => j !== i));
+                  }
+                }}
+              >
+                <Button type="text" size="small" icon={<MoreOutlined />} aria-label={`Tuỳ chọn mức ${l.name}`} />
+              </Dropdown>
+            </Flex>
+          </Flex>
+        ))}
+        <Tooltip title="Thêm mức">
+          <Button size="small" icon={<PlusOutlined />} onClick={add} style={{ marginTop: 4 }} />
+        </Tooltip>
+      </div>
+
+      <Divider style={{ margin: '8px 0' }} />
+
+      <Flex vertical gap={6}>
+        {METRICS.map(d => (
+          <div key={d.key} style={grid}>
+            <Tooltip title={d.hint} placement="left">
+              <Text style={{ cursor: 'help' }}>{d.label}{d.unit ? <Text type="secondary"> ({d.unit})</Text> : null}</Text>
+            </Tooltip>
+            {levels.map((l, i) => {
+              const v = l.thresholds[d.key];
+              if (d.op === 'flag') {
+                return (
+                  <Checkbox key={l.id} checked={!!v} onChange={(e) => setThreshold(i, d.key, e.target.checked ? 1 : null)}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>có</Text>
+                  </Checkbox>
+                );
+              }
+              return (
+                <InputNumber
+                  key={l.id}
+                  size="small"
+                  min={0}
+                  max={d.unit === '%' ? 100 : 1000}
+                  value={v ?? null}
+                  placeholder="—"
+                  prefix={<Text type="secondary">{d.op === 'lt' ? '<' : '≥'}</Text>}
+                  onChange={(x) => setThreshold(i, d.key, x == null ? null : Number(x))}
+                  style={{ width: '100%' }}
+                />
+              );
+            })}
+            <span />
+          </div>
+        ))}
+      </Flex>
+    </div>
+  );
+};
+
+/** Cảnh báo cấu hình vô tác dụng: mức nhẹ hơn có ngưỡng không "dễ chạm" hơn mức nặng hơn. */
+function shadowWarnings(levels: MonitorLevel[]): string[] {
+  const out: string[] = [];
+  for (const d of METRICS) {
+    if (d.op === 'flag') continue;
+    for (let i = 1; i < levels.length; i++) {
+      const t = levels[i].thresholds[d.key];
+      if (t == null) continue;
+      const blocker = levels.slice(0, i).find(h => {
+        const ht = h.thresholds[d.key];
+        return ht != null && (d.op === 'lt' ? t <= ht : t >= ht);
+      });
+      if (blocker) {
+        out.push(`${d.label}: ngưỡng của "${levels[i].name}" (${formatThreshold(d.key, t)}) đã nằm trong "${blocker.name}" nên mức này không bao giờ xét chỉ số đó.`);
+      }
+    }
+  }
+  return out;
+}
+
+/* ---------- Tạo / sửa mẫu: tên + bảng mức + ngưỡng nghi vấn BTVN ---------- */
 const TemplateEditorModal: React.FC<{
   initial: MonitorTemplate;
   isNew: boolean;
@@ -206,33 +341,34 @@ const TemplateEditorModal: React.FC<{
 }> = ({ initial, isNew, shared, names, onCancel, onSave }) => {
   const [draft, setDraft] = useState<MonitorTemplate>(initial);
   const [saving, setSaving] = useState(false);
-  const r = draft.monitor;
+  const levels = draft.monitor.levels;
   const a = draft.analysis;
-  const setMonitor = (k: keyof MonitorRules) => (v: number | null) => setDraft(d => ({ ...d, monitor: { ...d.monitor, [k]: v ?? 0 } }));
   const setRule = (k: keyof AnalysisRules) => (v: number | null) => setDraft(d => ({ ...d, analysis: { ...d.analysis, [k]: v ?? 0 } }));
   const num = (value: number, onChange: (v: number | null) => void) => (
     <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} style={{ width: 76 }} />
   );
-  const row = (label: string, ...inputs: React.ReactNode[]) => (
-    <Flex justify="space-between" align="center" gap={8}>
+  const row = (label: string, input: React.ReactNode) => (
+    <Flex justify="space-between" align="center" gap={8} style={{ maxWidth: 360 }}>
       <Text>{label}</Text>
-      <Space size={4}>{inputs.map((x, i) => <React.Fragment key={i}>{x}</React.Fragment>)}</Space>
+      {input}
     </Flex>
   );
 
   const name = draft.name.trim();
+  const levelNames = levels.map(l => l.name.trim().toLowerCase());
   const errors = [
     !name && 'Nhập tên mẫu.',
     name && names.includes(name.toLowerCase()) && 'Đã có mẫu trùng tên.',
-    r.absentWarn > r.absentAlarm && 'Nghỉ học: ngưỡng cảnh báo phải ≤ báo động.',
-    r.homeworkWarn > r.homeworkAlarm && 'Thiếu bài tập: ngưỡng cảnh báo phải ≤ báo động.',
-    r.elearningWarn > r.elearningAlarm && 'Chậm E-learning: ngưỡng cảnh báo phải ≤ báo động.'
+    levelNames.some(n => !n) && 'Mỗi mức phải có tên.',
+    new Set(levelNames).size !== levelNames.length && 'Tên các mức không được trùng nhau.',
+    levels.some(l => !Object.values(l.thresholds).some(v => v != null)) && 'Mỗi mức cần ít nhất 1 ngưỡng (hoặc xoá mức đó).'
   ].filter(Boolean) as string[];
+  const warnings = shadowWarnings(levels);
 
   const handleOk = async () => {
     if (errors.length) return;
     setSaving(true);
-    await onSave({ ...draft, name });
+    await onSave({ ...draft, name, monitor: { levels: levels.map(l => ({ ...l, name: l.name.trim() })) } });
     setSaving(false);
   };
 
@@ -245,7 +381,7 @@ const TemplateEditorModal: React.FC<{
       onOk={handleOk}
       onCancel={onCancel}
       okButtonProps={{ disabled: errors.length > 0, loading: saving }}
-      width={440}
+      width={Math.min(LABEL_COL + levels.length * (LEVEL_COL + 6) + 110, 900)}
       destroyOnHidden
     >
       <Flex vertical gap={10}>
@@ -259,32 +395,31 @@ const TemplateEditorModal: React.FC<{
         {shared && !isNew && <Text type="secondary">Mẫu dùng chung: thay đổi áp dụng cho mọi người đang dùng mẫu này.</Text>}
 
         <Divider style={{ margin: '4px 0' }} />
-        <Flex justify="space-between" align="center">
-          <Text strong>Vi phạm học tập</Text>
-          <Space size={4}>
-            <Text type="warning" strong style={{ width: 76, textAlign: 'center', display: 'inline-block' }}>Cảnh báo</Text>
-            <Text type="danger" strong style={{ width: 76, textAlign: 'center', display: 'inline-block' }}>Báo động</Text>
-          </Space>
+        <Flex vertical gap={2}>
+          <Text strong>Các mức giám sát</Text>
+          <Text type="secondary">
+            Xét từ trái sang phải: sinh viên có một chỉ số chạm ngưỡng của mức nào thì vào mức đó (mức nặng nhất). Ô để trống = không xét.
+          </Text>
         </Flex>
-        {row('Nghỉ học (%)', num(r.absentWarn, setMonitor('absentWarn')), num(r.absentAlarm, setMonitor('absentAlarm')))}
-        {row('Thiếu bài tập (%)', num(r.homeworkWarn, setMonitor('homeworkWarn')), num(r.homeworkAlarm, setMonitor('homeworkAlarm')))}
-        {row('Chậm E-learning (bài)', num(r.elearningWarn, setMonitor('elearningWarn')), num(r.elearningAlarm, setMonitor('elearningAlarm')))}
-        {row('Bài thi dưới (điểm)', num(r.examPass, setMonitor('examPass')), <div style={{ width: 76 }} />)}
-        <Text type="secondary">SV có từ 2 lỗi cảnh báo, hoặc vắng thi, cũng là báo động.</Text>
+        <LevelMatrix levels={levels} onChange={(next) => setDraft(d => ({ ...d, monitor: { levels: next } }))} />
+        {warnings.length > 0 && <Alert type="warning" showIcon title="Ngưỡng không có tác dụng" description={warnings.join(' ')} />}
 
-        <Divider style={{ margin: '4px 0' }} />
-        <Text strong>Sắp vượt ngưỡng</Text>
-        {row('Nghỉ học từ (%)', num(r.earlyAbsentFrom, setMonitor('earlyAbsentFrom')))}
-        {row('Thiếu bài tập từ (%)', num(r.earlyHomeworkFrom, setMonitor('earlyHomeworkFrom')))}
-        {row('Bài thi đạt nhưng tới (điểm)', num(r.earlyExamTo, setMonitor('earlyExamTo')))}
-
-        <Divider style={{ margin: '4px 0' }} />
-        <Text strong>Nghi vấn BTVN ↔ điểm thi</Text>
-        {row('Tỉ lệ nộp BTVN từ (%)', num(a.hwMin, setRule('hwMin')))}
-        {row('Nghi vấn cao khi thi dưới', num(a.highBelow, setRule('highBelow')))}
-        {row('Cần rà soát khi thi dưới', num(a.midBelow, setRule('midBelow')))}
-        {row('hoặc chênh BTVN − thi từ', num(a.gapMin, setRule('gapMin')))}
-        {row('Điểm AI bài tập TB từ', num(a.aiHigh, setRule('aiHigh')))}
+        <Collapse
+          size="small"
+          items={[{
+            key: 'suspect',
+            label: 'Nghi vấn BTVN ↔ điểm thi',
+            children: (
+              <Flex vertical gap={8}>
+                {row('Tỉ lệ nộp BTVN từ (%)', num(a.hwMin, setRule('hwMin')))}
+                {row('Nghi vấn cao khi thi dưới', num(a.highBelow, setRule('highBelow')))}
+                {row('Cần rà soát khi thi dưới', num(a.midBelow, setRule('midBelow')))}
+                {row('hoặc chênh BTVN − thi từ', num(a.gapMin, setRule('gapMin')))}
+                {row('Điểm AI bài tập TB từ', num(a.aiHigh, setRule('aiHigh')))}
+              </Flex>
+            )
+          }]}
+        />
 
         {errors.length > 0 && name && <Alert type="error" showIcon title={errors[0]} />}
       </Flex>

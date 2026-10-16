@@ -4,6 +4,23 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.15.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Tự cấu hình các mức giám sát** trong từng mẫu giám sát (dùng chung qua Supabase), thay cho 4 mức cố định:
+  - **Bảng ngưỡng**: mỗi dòng là một chỉ số (Nghỉ học %, Thiếu bài tập %, Chậm E-learning, **R-Point**, Điểm bài thi, Vắng thi, Số chỉ số vi phạm), mỗi cột là một mức; ô để trống = không xét.
+  - **Thêm / xoá / đổi tên / đổi màu / sắp xếp mức** (trái = nặng nhất). Bỏ tick "Vi phạm" để mức chỉ nhắc sớm (như Sắp vượt ngưỡng).
+  - Sinh viên vào mức nặng nhất mà một chỉ số chạm ngưỡng; dòng "Số chỉ số vi phạm" cho phép kiểu "từ 2 chỉ số vi phạm → Báo động".
+  - Cảnh báo khi một ngưỡng không có tác dụng (bị mức nặng hơn che).
+- **Mức Cấm thi** trong mẫu Chuẩn và Chặt: thiếu bài tập ≥ 20%, nghỉ học ≥ 20%, chậm E-learning ≥ 3 bài, hoặc R-Point < 80.
+  - Mẫu Chuẩn mới: Báo động ≥ 15% (chậm E-learning 2 bài, vắng thi, hoặc từ 2 chỉ số vi phạm), Cảnh báo ≥ 10% (E-learning 1 bài, bài thi < 50), Sắp vượt ngưỡng ≥ 7% (bài thi < 55).
+  - Mẫu đã lưu theo ngưỡng cũ được tự đổi sang bảng mức (thêm mức Cấm thi).
+
+### ✨ Cải thiện
+- Danh sách, ô lọc, biểu đồ (thanh mức, phân bố nghỉ học / thiếu BT / E-learning / R-Point / điểm thi), chi tiết sinh viên, xuất Excel và nhận xét AI đều theo các mức đã cấu hình (tên, màu, ngưỡng). Nhãn vấn đề tô màu theo mức mà chỉ số chạm; di chuột để xem mức và ngưỡng.
+
+---
+
 ## [5.14.0] - 2026-10-16
 
 ### ✨ Cải thiện

@@ -1,14 +1,14 @@
 /**
- * Mẫu giám sát: bộ ngưỡng (vi phạm học tập + nghi vấn BTVN) đặt tên, tạo / sửa / xoá được.
+ * Mẫu giám sát: bộ mức (bảng ngưỡng theo chỉ số) + ngưỡng nghi vấn BTVN, đặt tên, tạo / sửa / xoá được.
  * Áp dụng 1 mẫu cho tất cả môn (mẫu mặc định) hoặc riêng từng môn.
  */
 import { AnalysisRules, DEFAULT_ANALYSIS_RULES } from './examAnalysis';
-import { MonitorRules, DEFAULT_MONITOR_RULES } from './studentMonitor';
+import { MonitorConfig, DEFAULT_LEVELS, STRICT_LEVELS, normalizeConfig } from './monitorLevels';
 
 export interface MonitorTemplate {
   id: string;
   name: string;
-  monitor: MonitorRules;
+  monitor: MonitorConfig;
   analysis: AnalysisRules;
   updatedAt?: string;
 }
@@ -20,27 +20,32 @@ export interface TemplateAssignment {
 }
 
 export const STARTER_TEMPLATES: MonitorTemplate[] = [
-  { id: 'standard', name: 'Chuẩn', monitor: DEFAULT_MONITOR_RULES, analysis: DEFAULT_ANALYSIS_RULES },
+  { id: 'standard', name: 'Chuẩn', monitor: { levels: DEFAULT_LEVELS }, analysis: DEFAULT_ANALYSIS_RULES },
   {
     id: 'strict',
     name: 'Chặt',
-    monitor: {
-      absentWarn: 5, absentAlarm: 15, homeworkWarn: 5, homeworkAlarm: 15,
-      elearningWarn: 1, elearningAlarm: 2, examPass: 50,
-      earlyAbsentFrom: 3, earlyHomeworkFrom: 3, earlyExamTo: 60
-    },
+    monitor: { levels: STRICT_LEVELS },
     analysis: { hwMin: 70, highBelow: 55, midBelow: 70, gapMin: 30, aiHigh: 75 }
   }
 ];
 
 export const DEFAULT_ASSIGNMENT: TemplateAssignment = { defaultId: STARTER_TEMPLATES[0].id, byCourse: {} };
 
-/** Đủ trường (bổ sung ngưỡng mới bằng giá trị mặc định khi dữ liệu cũ thiếu). */
+/** Ngưỡng cũ đúng bằng mặc định của mẫu khởi đầu → dùng bộ mức mới của mẫu đó (có Cấm thi). */
+function starterLevels(id: string, old: any) {
+  if (id === 'standard' && old.absentWarn === 10 && old.absentAlarm === 20 && old.homeworkAlarm === 20) return { levels: DEFAULT_LEVELS };
+  if (id === 'strict' && old.absentWarn === 5 && old.absentAlarm === 15 && old.homeworkAlarm === 15) return { levels: STRICT_LEVELS };
+  return null;
+}
+
+/** Đủ trường; mẫu lưu dạng ngưỡng cũ được đổi sang bảng mức. */
 export function normalizeTemplate(raw: Partial<MonitorTemplate> & { id: string }): MonitorTemplate {
+  const m: any = raw.monitor;
+  const legacy = m && typeof m.absentWarn === 'number' ? starterLevels(raw.id, m) : null;
   return {
     id: raw.id,
     name: (raw.name || '').trim() || 'Mẫu không tên',
-    monitor: { ...DEFAULT_MONITOR_RULES, ...(raw.monitor || {}) },
+    monitor: legacy || normalizeConfig(m),
     analysis: { ...DEFAULT_ANALYSIS_RULES, ...(raw.analysis || {}) },
     updatedAt: raw.updatedAt
   };
@@ -56,9 +61,7 @@ export function resolveTemplate(templates: MonitorTemplate[], assign: TemplateAs
   return { template, perCourse: !!own };
 }
 
-/** Tóm tắt ngưỡng chính của mẫu (luôn đúng với số liệu, không cần nhập mô tả). */
+/** Tóm tắt các mức của mẫu, vd "Cấm thi · Báo động · Cảnh báo · Sắp vượt ngưỡng". */
 export function describeTemplate(t: MonitorTemplate): string {
-  const m = t.monitor;
-  return `Nghỉ học ${m.absentWarn}% / ${m.absentAlarm}% · Thiếu BT ${m.homeworkWarn}% / ${m.homeworkAlarm}% · `
-    + `Chậm E-learning ${m.elearningWarn} / ${m.elearningAlarm} bài · Thi dưới ${m.examPass}`;
+  return t.monitor.levels.map(l => l.name).join(' · ') || 'Chưa có mức nào';
 }

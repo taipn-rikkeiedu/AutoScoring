@@ -2,14 +2,17 @@
  * Giám sát học tập: gộp chỉ số học tập (nghỉ học, thiếu bài tập, chậm e-learning, điểm thi) với phân tích
  * nghi vấn BTVN ↔ điểm thi. Dữ liệu từ API `/classes/dashboard/{classId}/{courseId}` của QLĐT.
  *
- * - Mức rủi ro (Báo động / Cảnh báo) chỉ xét vi phạm học tập, theo ngưỡng từng chỉ số.
- * - "Sắp vượt ngưỡng" là cảnh báo sớm theo khoảng cố định.
+ * - Mức (vd Cấm thi / Báo động / Cảnh báo / Sắp vượt ngưỡng) tự cấu hình trong mẫu giám sát: bảng ngưỡng theo chỉ số
+ *   (xem monitorLevels.ts); SV vào mức nặng nhất mà một chỉ số chạm ngưỡng.
  * - Nghi vấn (BTVN cao nhưng thi thấp, trùng link) là nhãn riêng, không tính vào mức rủi ro.
  */
 import {
   AnalysisRow, AnalysisRules, FlaggedRow, TestColumn, TestPhase, TestKind, ExamType,
-  parseClassDashboard, flagRows, avg, fmtScore, PHASE_LABELS, DEFAULT_ANALYSIS_RULES
+  parseClassDashboard, flagRows, avg, fmtScore, PHASE_LABELS
 } from './examAnalysis';
+import {
+  MetricKey, MonitorLevel, MonitorConfig, METRICS, NORMAL_LEVEL, metricDef, formatThreshold
+} from './monitorLevels';
 
 /** Điểm 1 phần thi: số điểm, 'absent' khi SV vắng thi, null khi chưa có bài thi này. */
 export type ExamCell = number | 'absent' | null;
@@ -29,53 +32,23 @@ export const EXAM_CELLS: { key: ExamCellKey; phase: TestPhase; kind: TestKind; l
   { key: 'ckTLCell', phase: 'ck', kind: 'TL', label: 'CK TL' }
 ];
 
-export interface MonitorRules {
-  absentWarn: number;      // nghỉ học từ … % → cảnh báo
-  absentAlarm: number;     // nghỉ học trên … % → báo động
-  homeworkWarn: number;    // thiếu bài tập từ … % → cảnh báo
-  homeworkAlarm: number;   // thiếu bài tập trên … % → báo động
-  elearningWarn: number;   // chậm e-learning từ … bài → cảnh báo
-  elearningAlarm: number;  // chậm e-learning từ … bài → báo động
-  examPass: number;        // bài thi dưới … điểm → cảnh báo
-  earlyAbsentFrom: number;   // nghỉ học từ … % (dưới ngưỡng cảnh báo) → sắp vượt ngưỡng
-  earlyHomeworkFrom: number; // thiếu bài tập từ … % → sắp vượt ngưỡng
-  earlyExamTo: number;       // bài thi từ ngưỡng đạt tới … điểm → sát ngưỡng
-}
+/** Mức của 1 SV: id 1 trong các mức đã cấu hình, hoặc 'normal'. */
+export type RiskLevel = string;
 
-export const DEFAULT_MONITOR_RULES: MonitorRules = {
-  absentWarn: 10, absentAlarm: 20, homeworkWarn: 10, homeworkAlarm: 20,
-  elearningWarn: 1, elearningAlarm: 2, examPass: 50,
-  earlyAbsentFrom: 7, earlyHomeworkFrom: 7, earlyExamTo: 55
-};
+export type IssueKind = MetricKey;
 
-export type RiskLevel = 'alarm' | 'warning' | 'early' | 'normal';
-
-export const RISK_LEVELS: Record<RiskLevel, { label: string; order: number }> = {
-  alarm: { label: 'Báo động', order: 0 },
-  warning: { label: 'Cảnh báo', order: 1 },
-  early: { label: 'Sắp vượt ngưỡng', order: 2 },
-  normal: { label: 'Bình thường', order: 3 }
-};
-
-export type IssueKind = 'absent' | 'homework' | 'elearning' | 'examLow' | 'examAbsent';
-
+/** 1 chỉ số chạm ngưỡng của 1 mức. */
 export interface Issue {
   kind: IssueKind;
-  severity: 'warning' | 'alarm';
+  levelId: string;
+  levelName: string;
+  levelIndex: number;  // vị trí mức (0 = nặng nhất)
+  color: string;
   label: string;     // nhãn ngắn hiện trên dòng, vd "Nghỉ 12.50%"
-  title: string;     // tên vấn đề, vd "Nghỉ học"
+  title: string;     // tên chỉ số, vd "Nghỉ học"
   value: string;     // giá trị hiện tại, vd "30.95%"
-  threshold: string; // ngưỡng đã vượt, vd "trên 20%"
+  threshold: string; // ngưỡng đã chạm, vd "≥ 20%"
   action: string;    // gợi ý hành động
-}
-
-export interface EarlySignal {
-  kind: 'absent' | 'homework' | 'exam';
-  label: string;
-  title: string;
-  value: string;
-  threshold: string;
-  action: string;
 }
 
 export interface MonitorBase extends AnalysisRow {
@@ -90,26 +63,25 @@ export interface MonitorBase extends AnalysisRow {
 }
 
 export interface MonitorRow extends FlaggedRow<MonitorBase> {
-  risk: RiskLevel;
-  issues: Issue[];
-  early: EarlySignal[];
+  risk: RiskLevel;          // id mức, 'normal' = Bình thường
+  riskLevel: MonitorLevel;  // thông tin mức (tên, màu)
+  riskIndex: number;        // vị trí mức để sắp xếp (Bình thường = cuối)
+  issues: Issue[];          // chỉ số chạm mức vi phạm
+  early: Issue[];           // chỉ số chạm mức nhắc sớm (không tính vi phạm)
   suspect: boolean;  // nghi vấn cao / cần rà soát
   actions: string[]; // gợi ý hành động (không trùng lặp)
 }
 
-export type MonitorFilter =
-  | 'alarm' | 'warning' | 'early'
-  | IssueKind
-  | 'suspect' | 'dup' | 'watch';
+/** Lọc theo mức: `level:<id>`; theo chỉ số: MetricKey; nghi vấn: suspect / dup / watch. */
+export type MonitorFilter = string;
+export const levelFilterKey = (id: string) => `level:${id}`;
 
-export const MONITOR_FILTERS: { key: MonitorFilter; label: string; group: 'level' | 'issue' | 'suspect' }[] = [
-  { key: 'alarm', label: 'Báo động', group: 'level' },
-  { key: 'warning', label: 'Cảnh báo', group: 'level' },
-  { key: 'early', label: 'Sắp vượt ngưỡng', group: 'level' },
+export const MONITOR_FILTERS: { key: MonitorFilter; label: string; group: 'issue' | 'suspect' }[] = [
   { key: 'absent', label: 'Nghỉ học', group: 'issue' },
   { key: 'homework', label: 'Thiếu bài tập', group: 'issue' },
   { key: 'elearning', label: 'Chậm E-learning', group: 'issue' },
-  { key: 'examLow', label: 'Điểm thi thấp', group: 'issue' },
+  { key: 'rpoints', label: 'R-Point thấp', group: 'issue' },
+  { key: 'examScore', label: 'Điểm thi thấp', group: 'issue' },
   { key: 'examAbsent', label: 'Vắng thi', group: 'issue' },
   { key: 'suspect', label: 'Nghi vấn BTVN', group: 'suspect' },
   { key: 'dup', label: 'Trùng link', group: 'suspect' },
@@ -117,8 +89,8 @@ export const MONITOR_FILTERS: { key: MonitorFilter; label: string; group: 'level
 ];
 
 export function matchesFilter(r: MonitorRow, f: MonitorFilter): boolean {
+  if (f.startsWith('level:')) return r.risk === f.slice(6);
   switch (f) {
-    case 'alarm': case 'warning': case 'early': return r.risk === f;
     case 'suspect': return r.suspect;
     case 'dup': return r.dups.length > 0;
     case 'watch': return r.watch;
@@ -156,137 +128,116 @@ export function parseMonitorClass(d: any, classLabel: string, testCols: Map<stri
   });
 }
 
-/* ---------- Đánh giá rủi ro ---------- */
-function percentIssue(kind: 'absent' | 'homework', v: number | null, warn: number, alarm: number): Issue | null {
-  if (v == null || v < warn) return null;
-  const severity = v > alarm ? 'alarm' : 'warning';
-  const threshold = severity === 'alarm' ? `trên ${alarm}%` : `từ ${warn}%`;
-  if (kind === 'absent') {
-    return {
-      kind, severity, label: `Nghỉ ${fmtPercent(v)}`, title: 'Nghỉ học', value: fmtPercent(v), threshold,
-      action: severity === 'alarm' ? 'Liên hệ ngay, nhắc quy định chuyên cần' : 'Nhắc nhở chuyên cần, hỏi lý do nghỉ'
-    };
+/* ---------- Đánh giá theo bảng mức ---------- */
+/** Phần thi có điểm dưới ngưỡng (bỏ đợt có thi bổ sung QLĐT chưa tính — đã có ghi chú riêng). */
+const lowExamCells = (r: MonitorBase, below: number) =>
+  EXAM_CELLS.filter(c => typeof r[c.key] === 'number' && (r[c.key] as number) < below && !r.makeupPending.includes(c.phase));
+
+/** Chỉ số có chạm ngưỡng t không; trả về giá trị hiển thị nếu chạm. */
+function metricValue(r: MonitorBase, metric: MetricKey, t: number): { label: string; value: string } | null {
+  switch (metric) {
+    case 'absent':
+      return r.absentRate != null && r.absentRate >= t ? { label: `Nghỉ ${fmtPercent(r.absentRate)}`, value: fmtPercent(r.absentRate) } : null;
+    case 'homework':
+      return r.missingHomework != null && r.missingHomework >= t ? { label: `Thiếu BT ${fmtPercent(r.missingHomework)}`, value: fmtPercent(r.missingHomework) } : null;
+    case 'elearning':
+      return r.unprepared != null && r.unprepared >= t ? { label: `Chậm EL ${r.unprepared}`, value: `${r.unprepared} bài` } : null;
+    case 'rpoints':
+      return r.rpoints != null && r.rpoints < t ? { label: `R-Point ${r.rpoints}`, value: String(r.rpoints) } : null;
+    case 'examScore': {
+      const low = lowExamCells(r, t);
+      if (!low.length) return null;
+      const label = low.map(c => `${examCellLabel(r, c.key)} ${fmtScore(r[c.key] as number)}`).join(', ');
+      return { label, value: label };
+    }
+    case 'examAbsent': {
+      if (!t || !r.absentPhases.length) return null;
+      const phases = r.absentPhases.map(ph => PHASE_LABELS[ph]).join(', ');
+      return { label: `Vắng thi ${phases}`, value: phases };
+    }
+    default:
+      return null;
   }
+}
+
+function levelIssue(levels: MonitorLevel[], i: number, metric: MetricKey, t: number, hit: { label: string; value: string }): Issue {
+  const level = levels[i];
+  const d = metricDef(metric);
   return {
-    kind, severity, label: `Thiếu BT ${fmtPercent(v)}`, title: 'Thiếu bài tập', value: fmtPercent(v), threshold,
-    action: severity === 'alarm' ? 'Liên hệ ngay, lập kế hoạch nộp bù bài tập' : 'Nhắc nộp bù bài tập còn thiếu'
+    kind: metric, levelId: level.id, levelName: level.name, levelIndex: i, color: level.color,
+    label: hit.label, title: d.label, value: hit.value, threshold: formatThreshold(metric, t), action: d.action
   };
 }
 
-function evaluateIssues(r: MonitorBase, rules: MonitorRules): Issue[] {
-  const issues: Issue[] = [];
-  const absent = percentIssue('absent', r.absentRate, rules.absentWarn, rules.absentAlarm);
-  if (absent) issues.push(absent);
-  const homework = percentIssue('homework', r.missingHomework, rules.homeworkWarn, rules.homeworkAlarm);
-  if (homework) issues.push(homework);
-  if (r.unprepared != null && r.unprepared >= rules.elearningWarn) {
-    const alarm = r.unprepared >= rules.elearningAlarm;
-    issues.push({
-      kind: 'elearning', severity: alarm ? 'alarm' : 'warning',
-      label: `Chậm EL ${r.unprepared}`, title: 'Chậm E-learning', value: `${r.unprepared} bài`,
-      threshold: `từ ${alarm ? rules.elearningAlarm : rules.elearningWarn} bài`,
-      action: 'Nhắc hoàn thành E-learning trước buổi học'
-    });
+/** Mỗi chỉ số → mức nặng nhất mà nó chạm; mức của SV = mức nặng nhất trong các chỉ số (kể cả theo số chỉ số vi phạm). */
+function evaluateLevels(r: MonitorBase, levels: MonitorLevel[]): { hits: Issue[]; index: number } {
+  const hits: Issue[] = [];
+  for (const d of METRICS) {
+    if (d.key === 'violations') continue;
+    for (let i = 0; i < levels.length; i++) {
+      const t = levels[i].thresholds[d.key];
+      if (t == null) continue;
+      const hit = metricValue(r, d.key, t);
+      if (hit) { hits.push(levelIssue(levels, i, d.key, t, hit)); break; }
+    }
   }
-  // Đợt có thi bổ sung mà QLĐT chưa tính thì không báo điểm thấp theo điểm cũ (đã có ghi chú thi bổ sung)
-  const low = EXAM_CELLS.filter(c => typeof r[c.key] === 'number' && (r[c.key] as number) < rules.examPass && !r.makeupPending.includes(c.phase));
-  if (low.length) {
-    const label = low.map(c => `${examCellLabel(r, c.key)} ${fmtScore(r[c.key] as number)}`).join(', ');
-    issues.push({
-      kind: 'examLow', severity: 'warning', label, title: 'Điểm thi thấp', value: label,
-      threshold: `dưới ${rules.examPass} điểm`,
-      action: `Hỗ trợ ôn tập phần thi dưới ${rules.examPass} điểm`
-    });
+  const violations = hits.filter(h => levels[h.levelIndex].violation).length;
+  let index = Math.min(levels.length, ...hits.map(h => h.levelIndex));
+  const byCount = levels.findIndex(l => l.thresholds.violations != null && violations >= (l.thresholds.violations as number));
+  if (byCount >= 0 && byCount < index) {
+    index = byCount;
+    hits.push(levelIssue(levels, byCount, 'violations', levels[byCount].thresholds.violations as number,
+      { label: `${violations} chỉ số vi phạm`, value: `${violations} chỉ số` }));
   }
-  if (r.absentPhases.length) {
-    const phases = r.absentPhases.map(ph => PHASE_LABELS[ph]).join(', ');
-    issues.push({
-      kind: 'examAbsent', severity: 'alarm', label: `Vắng thi ${phases}`, title: 'Vắng thi', value: phases,
-      threshold: 'không nộp bài thi',
-      action: 'Xác minh lý do vắng thi, hướng dẫn thi bù / thi lại'
-    });
-  }
-  return issues;
-}
-
-function evaluateEarly(r: MonitorBase, rules: MonitorRules, issues: Issue[]): EarlySignal[] {
-  const has = (k: IssueKind) => issues.some(i => i.kind === k);
-  const early: EarlySignal[] = [];
-  if (!has('absent') && r.absentRate != null && r.absentRate >= rules.earlyAbsentFrom && r.absentRate < rules.absentWarn) {
-    early.push({
-      kind: 'absent', label: `Nghỉ ${fmtPercent(r.absentRate)}`, title: 'Nghỉ học', value: fmtPercent(r.absentRate),
-      threshold: `sắp chạm ${rules.absentWarn}%`, action: `Nhắc sớm: sắp chạm ngưỡng nghỉ ${rules.absentWarn}%`
-    });
-  }
-  if (!has('homework') && r.missingHomework != null && r.missingHomework >= rules.earlyHomeworkFrom && r.missingHomework < rules.homeworkWarn) {
-    early.push({
-      kind: 'homework', label: `Thiếu BT ${fmtPercent(r.missingHomework)}`, title: 'Thiếu bài tập', value: fmtPercent(r.missingHomework),
-      threshold: `sắp chạm ${rules.homeworkWarn}%`, action: `Nhắc sớm: sắp chạm ngưỡng thiếu ${rules.homeworkWarn}% bài tập`
-    });
-  }
-  const borderline = EXAM_CELLS.filter(c => {
-    const v = r[c.key];
-    return typeof v === 'number' && v >= rules.examPass && v <= rules.earlyExamTo;
-  });
-  if (borderline.length) {
-    const label = borderline.map(c => `${examCellLabel(r, c.key)} ${fmtScore(r[c.key] as number)}`).join(', ');
-    early.push({
-      kind: 'exam', label, title: 'Điểm thi sát ngưỡng', value: label,
-      threshold: `${rules.examPass}–${rules.earlyExamTo} điểm`, action: 'Điểm thi sát ngưỡng đạt, nên theo dõi thêm'
-    });
-  }
-  return early;
+  return { hits, index };
 }
 
 export function evaluateMonitor(
-  base: MonitorBase[], rules: MonitorRules, analysisRules: AnalysisRules, watchList: string[]
+  base: MonitorBase[], config: MonitorConfig, analysisRules: AnalysisRules, watchList: string[]
 ): { rows: MonitorRow[]; watchMissing: string[] } {
+  const levels = config.levels;
   const { rows: flagged, watchMissing } = flagRows(base, analysisRules, watchList);
   const rows = flagged.map((r): MonitorRow => {
-    const issues = evaluateIssues(r, rules);
-    const early = evaluateEarly(r, rules, issues);
-    const alarms = issues.filter(i => i.severity === 'alarm').length;
-    const risk: RiskLevel = alarms || issues.length >= 2 ? 'alarm' : issues.length ? 'warning' : early.length ? 'early' : 'normal';
+    const { hits, index } = evaluateLevels(r, levels);
+    const byLevel = (a: Issue, b: Issue) => a.levelIndex - b.levelIndex;
+    const issues = hits.filter(h => levels[h.levelIndex].violation).sort(byLevel);
+    const early = hits.filter(h => !levels[h.levelIndex].violation).sort(byLevel);
+    const riskLevel = index < levels.length ? levels[index] : NORMAL_LEVEL;
     const suspect = r.level === 'high' || r.level === 'medium';
     const actions = [...new Set([
       ...issues.map(i => i.action),
-      ...early.map(e => e.action),
+      ...early.map(e => `Nhắc sớm: ${e.title.toLowerCase()} sắp chạm ngưỡng`),
       ...(suspect || r.dups.length ? ['Vấn đáp lại 1–2 bài tập đã nộp để xác minh'] : [])
-    ])];
-    // Vắng thi đã là vi phạm riêng → bỏ khỏi danh sách dấu hiệu nghi vấn
+    ].filter(Boolean))];
+    // Vắng thi đã là chỉ số riêng → bỏ khỏi danh sách dấu hiệu nghi vấn
     const reasons = r.reasons.filter(x => !x.startsWith('Vắng thi'));
-    return { ...r, reasons, risk, issues, early, suspect, actions };
+    return { ...r, reasons, risk: riskLevel.id, riskLevel, riskIndex: index, issues, early, suspect, actions };
   });
   rows.sort((a, b) =>
-    RISK_LEVELS[a.risk].order - RISK_LEVELS[b.risk].order
-    || (b.issues.filter(i => i.severity === 'alarm').length - a.issues.filter(i => i.severity === 'alarm').length)
+    a.riskIndex - b.riskIndex
     || (b.issues.length - a.issues.length)
     || (Number(b.suspect) - Number(a.suspect))
     || a.name.localeCompare(b.name, 'vi'));
   return { rows, watchMissing };
 }
 
-/* ---------- Tổng quan lớp (theo quy tắc) ---------- */
+/* ---------- Tổng quan lớp (theo mức) ---------- */
 export interface ClassOverview {
   total: number;
-  byRisk: Record<RiskLevel, number>;
+  byRisk: Record<string, number>; // id mức → số SV (gồm 'normal')
   suspect: number;
   topIssues: { kind: IssueKind; label: string; count: number }[];
   avgAbsent: number | null;
   avgMissingHomework: number | null;
-  examFailRate: number | null; // % SV có ít nhất 1 bài thi dưới ngưỡng (trong số SV có điểm)
+  examFailRate: number | null; // % SV có bài thi chạm mức vi phạm (trong số SV có điểm)
 }
 
-const ISSUE_TITLES: Record<IssueKind, string> = {
-  absent: 'Nghỉ học vượt ngưỡng', homework: 'Thiếu bài tập vượt ngưỡng', elearning: 'Chậm E-learning',
-  examLow: 'Điểm thi thấp', examAbsent: 'Vắng thi'
-};
-
-export function summarizeClass(rows: MonitorRow[]): ClassOverview {
-  const byRisk = { alarm: 0, warning: 0, early: 0, normal: 0 } as Record<RiskLevel, number>;
-  rows.forEach(r => { byRisk[r.risk]++; });
-  const topIssues = (Object.keys(ISSUE_TITLES) as IssueKind[])
-    .map(kind => ({ kind, label: ISSUE_TITLES[kind], count: rows.filter(r => r.issues.some(i => i.kind === kind)).length }))
+export function summarizeClass(rows: MonitorRow[], levels: MonitorLevel[]): ClassOverview {
+  const byRisk: Record<string, number> = { normal: 0 };
+  levels.forEach(l => { byRisk[l.id] = 0; });
+  rows.forEach(r => { byRisk[r.risk] = (byRisk[r.risk] || 0) + 1; });
+  const topIssues = METRICS.filter(d => d.key !== 'violations')
+    .map(d => ({ kind: d.key, label: d.label, count: rows.filter(r => r.issues.some(i => i.kind === d.key)).length }))
     .filter(x => x.count > 0)
     .sort((a, b) => b.count - a.count);
   const withExam = rows.filter(r => EXAM_CELLS.some(c => typeof r[c.key] === 'number'));
@@ -297,35 +248,30 @@ export function summarizeClass(rows: MonitorRow[]): ClassOverview {
     topIssues,
     avgAbsent: avg(rows.map(r => r.absentRate)),
     avgMissingHomework: avg(rows.map(r => r.missingHomework)),
-    examFailRate: withExam.length ? (withExam.filter(r => r.issues.some(i => i.kind === 'examLow')).length / withExam.length) * 100 : null
+    examFailRate: withExam.length ? (withExam.filter(r => r.issues.some(i => i.kind === 'examScore')).length / withExam.length) * 100 : null
   };
 }
 
-/* ---------- Phân bố cho biểu đồ ---------- */
-/** Trạng thái của 1 khoảng: quyết định màu cột (chỉ khoảng có vấn đề mới tô màu). */
-export type BinStatus = 'normal' | 'early' | 'warning' | 'alarm' | 'absent';
+/** Các mức kèm Bình thường, theo thứ tự nặng → nhẹ. */
+export const levelsWithNormal = (levels: MonitorLevel[]) => [...levels, NORMAL_LEVEL];
 
-/**
- * Màu trạng thái dùng chung cho biểu đồ và chi tiết SV (đã kiểm tra phân biệt được cả với người mù màu).
- * Luôn đi kèm chữ / nhãn nên màu không phải kênh thông tin duy nhất.
- */
-export const STATUS_COLORS: Record<BinStatus, string> = {
-  normal: '#bfbfbf',
-  early: '#fadb14',
-  warning: '#fa8c16',
-  alarm: '#cf1322',
-  absent: '#cf1322'
-};
+/** Tóm tắt số SV theo mức, vd "2 cấm thi, 5 báo động". */
+export const describeByRisk = (o: ClassOverview, levels: MonitorLevel[]) =>
+  levels.map(l => `${o.byRisk[l.id] || 0} ${l.name.toLowerCase()}`).join(', ');
+
+/* ---------- Phân bố cho biểu đồ ---------- */
+/** Màu cho khoảng không chạm mức nào. */
+export const NORMAL_COLOR = '#bfbfbf';
 
 export interface DistributionBin {
   label: string;
-  status: BinStatus;
+  color: string;
   count: number;
   keys: string[]; // SV thuộc khoảng này — bấm cột để mở danh sách
 }
 
 export interface Distribution {
-  key: 'absent' | 'homework' | 'elearning' | 'hk' | 'ck';
+  key: 'absent' | 'homework' | 'elearning' | 'rpoints' | 'hk' | 'ck';
   title: string;
   subtitle: string;
   bins: DistributionBin[];
@@ -333,70 +279,118 @@ export interface Distribution {
 
 const n1 = (v: number) => String(Math.round(v * 10) / 10);
 
-function binRows(rows: MonitorRow[], defs: { label: string; status: BinStatus; test: (r: MonitorRow) => boolean }[]): DistributionBin[] {
-  return defs.map(d => {
+type BinDef = { label: string; color: string; test: (r: MonitorRow) => boolean };
+
+function binRows(rows: MonitorRow[], defs: BinDef[]): DistributionBin[] {
+  return defs.filter(d => d.label).map(d => {
     const keys = rows.filter(d.test).map(r => r.key);
-    return { label: d.label, status: d.status, count: keys.length, keys };
+    return { label: d.label, color: d.color, count: keys.length, keys };
   });
 }
 
-/** Phân bố theo % (nghỉ học / thiếu bài tập), các mốc lấy từ ngưỡng đang cài đặt. */
-function percentBins(rows: MonitorRow[], get: (r: MonitorRow) => number | null, early: number, warn: number, alarm: number) {
+/** Mốc ngưỡng của 1 chỉ số theo các mức (mỗi giá trị lấy mức nặng nhất), sắp tăng dần. */
+function thresholdsOf(levels: MonitorLevel[], metric: MetricKey): { t: number; color: string }[] {
+  const out = new Map<number, string>();
+  levels.forEach(l => {
+    const t = l.thresholds[metric];
+    if (t != null && !out.has(t)) out.set(t, l.color);
+  });
+  return [...out.entries()].map(([t, color]) => ({ t, color })).sort((a, b) => a.t - b.t);
+}
+
+/** Chỉ số "càng cao càng xấu" (nghỉ học, thiếu BT, chậm E-learning): khoảng theo mốc ngưỡng. */
+function ascendingBins(
+  rows: MonitorRow[], get: (r: MonitorRow) => number | null, marks: { t: number; color: string }[], unit: string, zeroLabel: string, integer = false
+) {
   const has = (r: MonitorRow) => get(r) != null;
   const v = (r: MonitorRow) => get(r) as number;
-  return binRows(rows, [
-    { label: '0%', status: 'normal', test: r => has(r) && v(r) === 0 },
-    { label: `<${n1(early)}%`, status: 'normal', test: r => has(r) && v(r) > 0 && v(r) < early },
-    { label: `${n1(early)}–${n1(warn)}%`, status: 'early', test: r => has(r) && v(r) >= early && v(r) < warn },
-    { label: `${n1(warn)}–${n1(alarm)}%`, status: 'warning', test: r => has(r) && v(r) >= warn && v(r) <= alarm },
-    { label: `>${n1(alarm)}%`, status: 'alarm', test: r => has(r) && v(r) > alarm }
-  ]);
+  const first = marks.length ? marks[0].t : Infinity;
+  // Số đếm (bài): khoảng [t, next) ghi "t bài" hoặc "t–(next−1) bài"; không có khoảng "<1"
+  const range = (t: number, next: number) => (integer ? (next - t <= 1 ? `${t}` : `${t}–${next - 1}`) : `${n1(t)}–${n1(next)}`);
+  const below = first === Infinity ? `>0${unit}` : integer && first <= 1 ? '' : integer ? `1–${first - 1}${unit}` : `<${n1(first)}${unit}`;
+  const defs: BinDef[] = [
+    { label: zeroLabel, color: NORMAL_COLOR, test: r => has(r) && v(r) === 0 },
+    { label: first > 0 ? below : '', color: NORMAL_COLOR, test: r => has(r) && v(r) > 0 && v(r) < first },
+    ...marks.map((m, i): BinDef => {
+      const next = i + 1 < marks.length ? marks[i + 1].t : null;
+      return {
+        label: next != null ? `${range(m.t, next)}${unit}` : `≥${n1(m.t)}${unit}`,
+        color: m.color,
+        test: r => has(r) && v(r) > 0 && v(r) >= m.t && (next == null || v(r) < next)
+      };
+    })
+  ];
+  return binRows(rows, defs);
 }
 
-/** Phân bố điểm thi tổng hợp 1 đợt (30% TN + 70% TL theo công thức môn). */
-function examBins(rows: MonitorRow[], phase: 'hk' | 'ck', rules: MonitorRules) {
-  const score = (r: MonitorRow) => (phase === 'hk' ? r.hk : r.ck);
-  const absent = (r: MonitorRow) => r.absentPhases.includes(phase);
-  const has = (r: MonitorRow) => !absent(r) && score(r) != null;
-  const s = (r: MonitorRow) => score(r) as number;
-  return binRows(rows, [
-    { label: 'Vắng', status: 'absent', test: absent },
-    { label: `<${rules.examPass}`, status: 'warning', test: r => has(r) && s(r) < rules.examPass },
-    { label: `${rules.examPass}–${rules.earlyExamTo}`, status: 'early', test: r => has(r) && s(r) >= rules.examPass && s(r) <= rules.earlyExamTo },
-    { label: `${rules.earlyExamTo}–80`, status: 'normal', test: r => has(r) && s(r) > rules.earlyExamTo && s(r) < 80 },
-    { label: '≥80', status: 'normal', test: r => has(r) && s(r) >= 80 }
-  ]);
+/** Chỉ số "càng thấp càng xấu" (điểm thi, R-Point): khoảng theo mốc ngưỡng, thấp nhất trước. */
+function descendingBins(rows: MonitorRow[], get: (r: MonitorRow) => number | null, marks: { t: number; color: string }[], top?: number) {
+  const has = (r: MonitorRow) => get(r) != null;
+  const v = (r: MonitorRow) => get(r) as number;
+  const defs: BinDef[] = marks.map((m, i): BinDef => {
+    const prev = i > 0 ? marks[i - 1].t : null;
+    return {
+      label: prev != null ? `${n1(prev)}–${n1(m.t)}` : `<${n1(m.t)}`,
+      color: m.color,
+      test: r => has(r) && v(r) < m.t && (prev == null || v(r) >= prev)
+    };
+  });
+  const last = marks.length ? marks[marks.length - 1].t : -Infinity;
+  if (top != null && top > last) {
+    defs.push({ label: last === -Infinity ? `<${top}` : `${n1(last)}–${top}`, color: NORMAL_COLOR, test: r => has(r) && v(r) >= last && v(r) < top });
+    defs.push({ label: `≥${top}`, color: NORMAL_COLOR, test: r => has(r) && v(r) >= top });
+  } else {
+    defs.push({ label: last === -Infinity ? 'Có điểm' : `≥${n1(last)}`, color: NORMAL_COLOR, test: r => has(r) && v(r) >= last });
+  }
+  return binRows(rows, defs);
 }
 
-export function buildDistributions(rows: MonitorRow[], rules: MonitorRules): Distribution[] {
-  const avgOf = (vals: (number | null)[]) => avg(vals);
+export function buildDistributions(rows: MonitorRow[], levels: MonitorLevel[]): Distribution[] {
   const dists: Distribution[] = [
     {
-      key: 'absent', title: 'Nghỉ học', subtitle: `TB ${fmtPercent(avgOf(rows.map(r => r.absentRate)))}`,
-      bins: percentBins(rows, r => r.absentRate, rules.earlyAbsentFrom, rules.absentWarn, rules.absentAlarm)
+      key: 'absent', title: 'Nghỉ học', subtitle: `TB ${fmtPercent(avg(rows.map(r => r.absentRate)))}`,
+      bins: ascendingBins(rows, r => r.absentRate, thresholdsOf(levels, 'absent'), '%', '0%')
     },
     {
-      key: 'homework', title: 'Thiếu bài tập', subtitle: `TB ${fmtPercent(avgOf(rows.map(r => r.missingHomework)))}`,
-      bins: percentBins(rows, r => r.missingHomework, rules.earlyHomeworkFrom, rules.homeworkWarn, rules.homeworkAlarm)
+      key: 'homework', title: 'Thiếu bài tập', subtitle: `TB ${fmtPercent(avg(rows.map(r => r.missingHomework)))}`,
+      bins: ascendingBins(rows, r => r.missingHomework, thresholdsOf(levels, 'homework'), '%', '0%')
     },
     {
       key: 'elearning', title: 'Chậm E-learning', subtitle: `${rows.filter(r => (r.unprepared ?? 0) > 0).length} SV chậm`,
-      bins: binRows(rows, [
-        { label: 'Đúng hạn', status: 'normal', test: r => r.unprepared != null && r.unprepared < rules.elearningWarn },
-        { label: `${rules.elearningWarn} bài`, status: 'warning', test: r => r.unprepared != null && r.unprepared >= rules.elearningWarn && r.unprepared < rules.elearningAlarm },
-        { label: `≥${rules.elearningAlarm} bài`, status: 'alarm', test: r => r.unprepared != null && r.unprepared >= rules.elearningAlarm }
-      ])
+      bins: ascendingBins(rows, r => r.unprepared, thresholdsOf(levels, 'elearning'), ' bài', 'Đúng hạn', true)
     }
   ];
-  const hkScores = rows.filter(r => !r.absentPhases.includes('hk')).map(r => r.hk);
-  const ckScores = rows.filter(r => !r.absentPhases.includes('ck')).map(r => r.ck);
-  if (rows.some(r => r.hk != null || r.absentPhases.includes('hk'))) {
-    dists.push({ key: 'hk', title: 'Điểm Hackathon', subtitle: `TB ${fmtScore(avg(hkScores))}`, bins: examBins(rows, 'hk', rules) });
+  const rpMarks = thresholdsOf(levels, 'rpoints');
+  if (rpMarks.length && rows.some(r => r.rpoints != null)) {
+    dists.push({ key: 'rpoints', title: 'R-Point', subtitle: `TB ${fmtScore(avg(rows.map(r => r.rpoints)))}`, bins: descendingBins(rows, r => r.rpoints, rpMarks) });
   }
-  if (rows.some(r => r.ck != null || r.absentPhases.includes('ck'))) {
-    dists.push({ key: 'ck', title: 'Điểm thi cuối môn', subtitle: `TB ${fmtScore(avg(ckScores))}`, bins: examBins(rows, 'ck', rules) });
-  }
+  const examMarks = thresholdsOf(levels, 'examScore');
+  const absentColor = levels.find(l => l.thresholds.examAbsent)?.color || NORMAL_COLOR;
+  const examDist = (phase: 'hk' | 'ck', title: string): Distribution => {
+    const absent = (r: MonitorRow) => r.absentPhases.includes(phase);
+    const score = (r: MonitorRow) => (absent(r) ? null : phase === 'hk' ? r.hk : r.ck);
+    return {
+      key: phase, title, subtitle: `TB ${fmtScore(avg(rows.map(score)))}`,
+      bins: [
+        ...binRows(rows, [{ label: 'Vắng', color: absentColor, test: absent }]),
+        ...descendingBins(rows, score, examMarks, 80)
+      ]
+    };
+  };
+  if (rows.some(r => r.hk != null || r.absentPhases.includes('hk'))) dists.push(examDist('hk', 'Điểm Hackathon'));
+  if (rows.some(r => r.ck != null || r.absentPhases.includes('ck'))) dists.push(examDist('ck', 'Điểm thi cuối môn'));
   return dists;
+}
+
+/** Màu của 1 giá trị theo bảng mức (mức nặng nhất mà giá trị chạm); không chạm → undefined. */
+export function colorFor(levels: MonitorLevel[], metric: MetricKey, value: number | null): string | undefined {
+  if (value == null) return undefined;
+  const op = metricDef(metric).op;
+  const hit = levels.find(l => {
+    const t = l.thresholds[metric];
+    return t != null && (op === 'lt' ? value < t : value >= t);
+  });
+  return hit?.color;
 }
 
 /* ---------- Prompt cho AI ---------- */
@@ -404,23 +398,24 @@ const describeStudent = (r: MonitorRow) => [
   `Nghỉ học ${fmtPercent(r.absentRate)}, thiếu bài tập ${fmtPercent(r.missingHomework)}, chậm e-learning ${r.unprepared ?? '—'} bài`,
   `Hackathon TN ${fmtExamCell(r.hkTNCell)} / TL ${fmtExamCell(r.hkTLCell)}; cuối môn ${examCellLabel(r, 'ckTNCell')} ${fmtExamCell(r.ckTNCell)} / ${examCellLabel(r, 'ckTLCell')} ${fmtExamCell(r.ckTLCell)}`,
   ...r.makeupNotes,
-  r.issues.length ? `Vi phạm: ${r.issues.map(i => `${i.label} (${i.severity === 'alarm' ? 'báo động' : 'cảnh báo'})`).join('; ')}` : 'Không vi phạm',
+  `Mức: ${r.riskLevel.name}`,
+  r.issues.length ? `Vi phạm: ${r.issues.map(i => `${i.label} (${i.levelName.toLowerCase()})`).join('; ')}` : 'Không vi phạm',
   r.early.length ? `Sắp vượt ngưỡng: ${r.early.map(e => e.label).join('; ')}` : '',
   r.reasons.length ? `Dấu hiệu nghi vấn: ${r.reasons.join('; ')}` : ''
 ].filter(Boolean).join('\n');
 
-export function buildClassOverviewPrompt(rows: MonitorRow[], courseName: string): string {
-  const o = summarizeClass(rows);
-  const flagged = rows.filter(r => r.risk === 'alarm' || r.risk === 'warning' || r.suspect).slice(0, 40);
+export function buildClassOverviewPrompt(rows: MonitorRow[], courseName: string, levels: MonitorLevel[]): string {
+  const o = summarizeClass(rows, levels);
+  const flagged = rows.filter(r => r.riskLevel.violation || r.suspect).slice(0, 40);
   return `Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về lớp học môn "${courseName}" dựa trên số liệu dưới đây, gồm: tình hình chung, 2–3 vấn đề nổi bật nhất, và 3 việc giảng viên nên làm tuần này (gạch đầu dòng). Không bịa số liệu, chỉ dùng số liệu được cung cấp. Không dùng markdown tiêu đề.
 
 SỐ LIỆU LỚP
-- Sĩ số: ${o.total}; báo động ${o.byRisk.alarm}; cảnh báo ${o.byRisk.warning}; sắp vượt ngưỡng ${o.byRisk.early}; nghi vấn BTVN ${o.suspect}
+- Sĩ số: ${o.total}; ${describeByRisk(o, levels)}; nghi vấn BTVN ${o.suspect}
 - Nghỉ học TB ${fmtPercent(o.avgAbsent)}; thiếu bài tập TB ${fmtPercent(o.avgMissingHomework)}; tỉ lệ SV có bài thi dưới ngưỡng ${o.examFailRate == null ? '—' : `${o.examFailRate.toFixed(0)}%`}
 - Vấn đề theo số SV: ${o.topIssues.map(t => `${t.label} ${t.count}`).join(', ') || 'không có'}
 
 SINH VIÊN CẦN CHÚ Ý (${flagged.length})
-${flagged.map(r => `* ${r.name}: ${r.issues.map(i => i.label).join(', ') || 'không vi phạm'}${r.suspect ? ' | nghi vấn BTVN' : ''}`).join('\n')}`;
+${flagged.map(r => `* ${r.name} [${r.riskLevel.name}]: ${r.issues.map(i => i.label).join(', ') || 'không vi phạm'}${r.suspect ? ' | nghi vấn BTVN' : ''}`).join('\n')}`;
 }
 
 export function buildStudentPrompt(r: MonitorRow, courseName: string): string {
