@@ -1,17 +1,15 @@
-import React, { useEffect } from 'react';
-import { Drawer, Button, Tag, Typography, Flex, Alert, Collapse, Descriptions, Table, Tooltip, Space } from 'antd';
-import {
-  LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined,
-  PhoneOutlined, MailOutlined, IdcardOutlined, CalendarOutlined
-} from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Drawer, Button, Tag, Typography, Flex, Alert, Descriptions, Table, Tooltip, Space, Tabs } from 'antd';
+import { LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import { StudentAttendancePanel } from '~/src/components/StudentAttendancePanel';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
   MonitorRow, Issue, ExamCell, ExamCellKey, fmtPercent, fmtDate, examCellLabel, colorFor
 } from '~/src/core/studentMonitor';
-import { MonitorLevel, MetricKey, textOn, readableColor } from '~/src/core/monitorLevels';
+import { MonitorLevel, textOn, readableColor } from '~/src/core/monitorLevels';
 import { TestColumn, ANALYSIS_LEVELS, fmtScore } from '~/src/core/examAnalysis';
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
 type Monitor = ReturnType<typeof useStudentMonitor>;
 
@@ -97,32 +95,6 @@ const IssueItem: React.FC<{ issue: Issue; early?: boolean }> = ({ issue, early }
   </div>
 );
 
-/* ---------- Thanh tỉ lệ có vạch ngưỡng (nghỉ học / thiếu bài tập) ---------- */
-const Meter: React.FC<{ label: string; value: number | null; metric: MetricKey; levels: MonitorLevel[] }> = ({ label, value, metric, levels }) => {
-  const marks = [...new Map(levels.filter(l => l.thresholds[metric] != null).map(l => [l.thresholds[metric] as number, l.color])).entries()]
-    .map(([t, color]) => ({ t, color }));
-  const max = Math.max(Math.max(1, ...marks.map(m => m.t)) * 1.3, value ?? 0);
-  const pos = (v: number) => `${Math.min(100, (v / max) * 100)}%`;
-  const v = value ?? 0;
-  const color = colorFor(levels, metric, value) || '#1677ff';
-  return (
-    <Flex align="center" gap={12}>
-      <Text style={{ width: 96, flexShrink: 0 }}>{label}</Text>
-      <div style={{ flex: 1, position: 'relative', height: 30 }}>
-        <div style={{ position: 'absolute', top: 6, left: 0, right: 0, height: 8, background: '#f0f0f0', borderRadius: 4 }} />
-        <div style={{ position: 'absolute', top: 6, left: 0, width: pos(v), height: 8, background: color, borderRadius: 4 }} />
-        {marks.map(m => (
-          <React.Fragment key={m.t}>
-            <div style={{ position: 'absolute', top: 2, left: pos(m.t), width: 2, height: 16, background: m.color }} />
-            <Text type="secondary" style={{ position: 'absolute', top: 16, left: pos(m.t), transform: 'translateX(-50%)', fontSize: 12 }}>{m.t}%</Text>
-          </React.Fragment>
-        ))}
-      </div>
-      <Text strong style={{ width: 64, textAlign: 'right', flexShrink: 0 }}>{fmtPercent(value)}</Text>
-    </Flex>
-  );
-};
-
 /* ---------- Bảng điểm thi 2×2 + điểm tổng hợp từng đợt ---------- */
 const ExamValue: React.FC<{ value: ExamCell | number | null; levels: MonitorLevel[] }> = ({ value, levels }) => {
   if (value === 'absent') return <Text type="secondary">Vắng</Text>;
@@ -168,6 +140,19 @@ const ExamTable: React.FC<{ row: MonitorRow; levels: MonitorLevel[] }> = ({ row:
   );
 };
 
+/* ---------- Ô chỉ số nhanh ở đầu chi tiết: giá trị lớn, tô màu theo mức nếu chạm ngưỡng ---------- */
+const Kpi: React.FC<{ label: string; value: React.ReactNode; sub?: React.ReactNode; color?: string }> = ({ label, value, sub, color }) => (
+  <div style={{ padding: '8px 10px', borderRadius: 8, background: color ? `${color}12` : '#fafafa', border: `1px solid ${color ? `${color}55` : '#f0f0f0'}`, minWidth: 0 }}>
+    <Text type="secondary" style={{ fontSize: 12, display: 'block', whiteSpace: 'nowrap' }}>{label}</Text>
+    <Text strong style={{ fontSize: 16, lineHeight: '24px', color: color ? readableColor(color) : undefined, whiteSpace: 'nowrap', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</Text>
+    {sub && <Text type="secondary" style={{ fontSize: 12, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</Text>}
+  </div>
+);
+
+const examText = (v: ExamCell | number | null) => (v === 'absent' ? 'Vắng' : v == null ? '—' : fmtScore(v));
+
+export type DrawerTab = 'issues' | 'attendance' | 'exam' | 'homework' | 'contact';
+
 export const StudentMonitorDrawer: React.FC<{
   row: MonitorRow | null;
   index: number;
@@ -178,6 +163,9 @@ export const StudentMonitorDrawer: React.FC<{
   onNext: () => void;
   onClose: () => void;
 }> = ({ row: r, index, total, testCols, m, onPrev, onNext, onClose }) => {
+  // Giữ tab đang xem khi chuyển sang SV khác (vd duyệt điểm danh cả lớp)
+  const [tab, setTab] = useState<DrawerTab>('issues');
+
   // Phím ← → để chuyển sinh viên khi đang mở
   useEffect(() => {
     if (!r) return;
@@ -202,12 +190,108 @@ export const StudentMonitorDrawer: React.FC<{
   const tests = testCols.map(c => r.tests[c.key]).filter(t => t && (t.comment || t.link));
   const problems = r.issues.length + r.early.length;
   const hasSuspicion = r.suspect || r.dups.length > 0;
+  const att = m.attendanceOf(r);
+  const abs = r.absence;
+
+  const issuesTab = (
+    <Flex vertical gap={8}>
+      <Flex justify="space-between" align="center">
+        <Text type="secondary">{problems ? `${problems} chỉ số chạm ngưỡng, nặng nhất trước` : 'Không có vấn đề cần xử lý.'}</Text>
+        <Button size="small" icon={<RobotOutlined />} onClick={() => m.handleStudentAi(r)} loading={ai?.loading}>AI nhận xét</Button>
+      </Flex>
+      {ai?.error && <Alert type="error" showIcon title={ai.error} />}
+      {ai?.text && <Alert type="info" title={<span style={{ whiteSpace: 'pre-wrap' }}>{ai.text}</span>} />}
+      {r.issues.map(i => <IssueItem key={i.kind} issue={i} />)}
+      {r.early.map(e => <IssueItem key={`early-${e.kind}`} issue={e} early />)}
+      {hasSuspicion && (
+        <Alert
+          type="warning"
+          showIcon
+          title={`Nghi vấn BTVN — ${r.suspect ? ANALYSIS_LEVELS[r.level].label : 'trùng link bài nộp'}`}
+          description={<span>Xem chi tiết ở tab <a onClick={() => setTab('homework')}>Bài tập</a>.</span>}
+        />
+      )}
+    </Flex>
+  );
+
+  const examTab = (
+    <Flex vertical gap={12}>
+      <ExamTable row={r} levels={levels} />
+      {r.makeupNotes.map(note => <Alert key={note} type="info" showIcon title={note} />)}
+      {tests.length > 0 && (
+        <Flex vertical gap={10}>
+          <Text strong>Nhận xét của giảng viên chấm ({tests.length})</Text>
+          {tests.map((t, i) => (
+            <div key={i} style={{ background: '#fafafa', borderRadius: 6, padding: '8px 10px' }}>
+              <Flex justify="space-between" gap={8}>
+                <Text strong>{t.name}</Text>
+                {t.absent ? <Text type="secondary">Vắng thi</Text> : <Text>{fmtScore(t.point)}</Text>}
+              </Flex>
+              {t.comment && <Paragraph style={{ whiteSpace: 'pre-wrap', color: '#595959', margin: '4px 0 0' }} ellipsis={{ rows: 4, expandable: 'collapsible' }}>{t.comment}</Paragraph>}
+              {t.link && <a href={t.link} target="_blank" rel="noopener noreferrer">Mở bài làm</a>}
+            </div>
+          ))}
+        </Flex>
+      )}
+    </Flex>
+  );
+
+  const homeworkTab = (
+    <Flex vertical gap={12}>
+      <Flex justify="space-between" align="baseline">
+        <Text strong>Bài tập về nhà</Text>
+        <Text type="secondary">
+          {m.exerciseLoading.has(r.key) ? 'Đang tải…' : r.exercises ? `${r.exercises.length} bài · nộp ${fmtPercent(r.hw)} · điểm AI TB ${fmtScore(r.aiAvg)}` : ''}
+        </Text>
+      </Flex>
+      {r.exercises ? (
+        <Table
+          size="small"
+          pagination={false}
+          rowKey={(_, i) => String(i)}
+          dataSource={r.exercises}
+          columns={[
+            { title: 'Bài tập', dataIndex: 'title', ellipsis: true },
+            { title: 'Điểm AI', key: 'ai', width: 80, align: 'right', render: (_, e) => fmtScore(e.ai) },
+            { title: '', key: 'link', width: 70, render: (_, e) => e.link ? <a href={e.link} target="_blank" rel="noopener noreferrer">mở link</a> : null }
+          ]}
+        />
+      ) : <Text type="secondary">{m.exerciseLoading.has(r.key) ? 'Đang tải…' : 'Không tải được bài tập của sinh viên này.'}</Text>}
+      {hasSuspicion && (
+        <Flex vertical gap={6} style={{ background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 6, padding: '8px 10px' }}>
+          <Text strong>Nghi vấn BTVN — {r.suspect ? ANALYSIS_LEVELS[r.level].label : 'trùng link bài nộp'}</Text>
+          <Text type="secondary">{DISCLAIMER}</Text>
+          {r.reasons.length > 0 && <ul style={{ margin: 0, paddingLeft: 20 }}>{r.reasons.map(x => <li key={x}>{x}</li>)}</ul>}
+          {r.dups.map((d, i) => (
+            <div key={i}>{d.what} (<a href={d.link} target="_blank" rel="noopener noreferrer">mở link</a>) trùng với {d.others.join(', ')}</div>
+          ))}
+          <Text>→ Vấn đáp lại 1–2 bài tập đã nộp để xác minh.</Text>
+        </Flex>
+      )}
+    </Flex>
+  );
+
+  const contactTab = (
+    <Descriptions
+      size="small"
+      column={1}
+      bordered
+      items={[
+        { key: 'code', label: 'MSSV', children: <Text copyable>{r.code}</Text> },
+        { key: 'phone', label: 'SĐT', children: r.phone ? <Text copyable>{r.phone}</Text> : '—' },
+        { key: 'email', label: 'Email', children: r.email ? <Text copyable>{r.email}</Text> : '—' },
+        { key: 'dob', label: 'Ngày sinh', children: fmtDate(r.dateOfBirth) },
+        { key: 'class', label: 'Lớp', children: r.classLabel }
+      ]}
+    />
+  );
 
   return (
     <Drawer
       open
       onClose={onClose}
-      size={540}
+      size={560}
+      styles={{ body: { paddingTop: 12 } }}
       title={
         <Flex vertical>
           <Flex gap={4} align="center" wrap>
@@ -215,192 +299,55 @@ export const StudentMonitorDrawer: React.FC<{
             <span>{r.name}</span>
             <RiskTag row={r} />
           </Flex>
-          <Text type="secondary" style={{ fontWeight: 'normal' }}>{r.code} · {r.classLabel}</Text>
+          <Text type="secondary" style={{ fontWeight: 'normal', fontSize: 13 }}>
+            {r.code} · {r.classLabel}{r.phone ? <> · <Text type="secondary" copyable={{ text: r.phone }}>{r.phone}</Text></> : null}
+          </Text>
         </Flex>
       }
       extra={
-        <Space size={6} align="center">
-          <Tag color="blue" style={{ margin: 0, fontSize: 11, borderRadius: 4, padding: '1px 6px' }}>
-            Phím ← → duyệt SV
-          </Tag>
+        <Space size={4} align="center">
           <Text type="secondary" style={{ fontSize: 12 }}>{index + 1}/{total}</Text>
-          <Tooltip title="Sinh viên trước (phím ←)"><Button size="small" icon={<LeftOutlined />} onClick={onPrev} disabled={index <= 0} style={{ minWidth: 28, height: 28 }} /></Tooltip>
-          <Tooltip title="Sinh viên sau (phím →)"><Button size="small" icon={<RightOutlined />} onClick={onNext} disabled={index >= total - 1} style={{ minWidth: 28, height: 28 }} /></Tooltip>
+          <Tooltip title="Sinh viên trước (phím ←)"><Button icon={<LeftOutlined />} onClick={onPrev} disabled={index <= 0} /></Tooltip>
+          <Tooltip title="Sinh viên sau (phím →)"><Button icon={<RightOutlined />} onClick={onNext} disabled={index >= total - 1} /></Tooltip>
         </Space>
       }
     >
-      <Flex vertical gap={20}>
-        {/* Thông tin liên hệ nhanh: MSSV, SĐT, Email (hỗ trợ copy nhanh để GV/quản lý liên lạc ngay) */}
-        <div style={{
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
-          borderRadius: 8,
-          padding: '10px 14px',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-        }}>
-          <Flex vertical gap={6}>
-            <Flex justify="space-between" align="center" wrap gap={8}>
-              <Space size={16} wrap align="center">
-                <Space size={4}>
-                  <IdcardOutlined style={{ color: '#64748b', fontSize: 13 }} />
-                  <Text type="secondary" style={{ fontSize: 12 }}>MSSV:</Text>
-                  <Text copyable strong style={{ fontSize: 13 }}>{r.code}</Text>
-                </Space>
-                {r.phone && (
-                  <Space size={4}>
-                    <PhoneOutlined style={{ color: '#1677ff', fontSize: 13 }} />
-                    <Text copyable strong style={{ fontSize: 13, color: '#0958d9' }}>{r.phone}</Text>
-                  </Space>
-                )}
-                {r.email && (
-                  <Space size={4}>
-                    <MailOutlined style={{ color: '#1677ff', fontSize: 13 }} />
-                    <Text copyable style={{ fontSize: 13 }}>{r.email}</Text>
-                  </Space>
-                )}
-              </Space>
-              {r.dateOfBirth && (
-                <Space size={4}>
-                  <CalendarOutlined style={{ color: '#94a3b8', fontSize: 12 }} />
-                  <Text type="secondary" style={{ fontSize: 12 }}>{fmtDate(r.dateOfBirth)}</Text>
-                </Space>
-              )}
-            </Flex>
-          </Flex>
+      <Flex vertical gap={12}>
+        {/* Chỉ số nhanh: nhìn 1 lần là biết SV đang có vấn đề ở đâu */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
+          <Kpi
+            label="Nghỉ học"
+            value={fmtPercent(r.absentRate)}
+            sub={abs ? `${abs.absentDays} buổi${abs.maxStreak >= 2 ? ` · LT ${abs.maxStreak}` : ''}` : undefined}
+            color={colorFor(levels, 'absent', r.absentRate) || (abs ? colorFor(levels, 'absentStreak', abs.maxStreak) : undefined)}
+          />
+          <Kpi label="Thiếu bài tập" value={fmtPercent(r.missingHomework)} color={colorFor(levels, 'homework', r.missingHomework)} />
+          <Kpi label="Chậm E-learning" value={r.unprepared == null ? '—' : `${r.unprepared} bài`} color={colorFor(levels, 'elearning', r.unprepared)} />
+          <Kpi label="R-Point" value={r.rpoints ?? '—'} color={colorFor(levels, 'rpoints', r.rpoints)} />
+          <Kpi
+            label="Điểm thi"
+            value={`HK ${examText(r.absentPhases.includes('hk') ? 'absent' : r.hk)}`}
+            sub={`CK ${examText(r.absentPhases.includes('ck') ? 'absent' : r.ck)}`}
+            color={r.issues.find(i => i.kind === 'examScore' || i.kind === 'examAbsent')?.color}
+          />
         </div>
 
-        {/* 1. Cần xử lý: vấn đề + hành động đi kèm */}
-        <Section
-          title={problems ? `Cần xử lý (${problems})` : 'Cần xử lý'}
-          extra={<Button size="small" icon={<RobotOutlined />} onClick={() => m.handleStudentAi(r)} loading={ai?.loading}>AI nhận xét</Button>}
-        >
-          {ai?.error && <Alert type="error" showIcon title={ai.error} />}
-          {ai?.text && <Alert type="info" title={<span style={{ whiteSpace: 'pre-wrap' }}>{ai.text}</span>} />}
-          {problems === 0 && <Text type="secondary">Không có vấn đề cần xử lý.</Text>}
-          {r.issues.map(i => <IssueItem key={i.kind} issue={i} />)}
-          {r.early.map(e => <IssueItem key={`early-${e.kind}`} issue={e} early />)}
-        </Section>
-
-        {/* 2. Chỉ số học tập */}
-        <Section title="Chỉ số học tập">
-          <Meter label="Nghỉ học" value={r.absentRate} metric="absent" levels={levels} />
-          <Meter label="Thiếu bài tập" value={r.missingHomework} metric="homework" levels={levels} />
-          <Descriptions
-            size="small"
-            column={3}
-            items={[
-              ...(r.absence ? [
-                { key: 'abs', label: 'Buổi nghỉ', children: `${r.absence.absentDays} (${r.absence.unexcusedDays} không phép)` },
-                {
-                  key: 'streak', label: 'Nghỉ liên tiếp',
-                  children: r.absence.maxStreak >= 2
-                    ? <Text type="danger" strong>{r.absence.maxStreak} buổi</Text>
-                    : `${r.absence.maxStreak} buổi`
-                }
-              ] : []),
-              { key: 'el', label: 'Chậm E-learning', children: r.unprepared == null ? '—' : `${r.unprepared} bài` },
-              {
-                key: 'rp',
-                label: (
-                  <Tooltip title="R-Points: Điểm thưởng rèn luyện tích lũy từ các hoạt động học tập và thử thách">
-                    <span style={{ cursor: 'help', borderBottom: '1px dashed #bfbfbf' }}>R-Points</span>
-                  </Tooltip>
-                ),
-                children: r.rpoints ?? '—'
-              },
-              { key: 'ai', label: 'Điểm AI BT TB', children: fmtScore(r.aiAvg) }
-            ]}
-          />
-        </Section>
-
-        {/* 3. Điểm thi + nhận xét của GV chấm */}
-        <Section title="Điểm thi">
-          <ExamTable row={r} levels={levels} />
-          {r.makeupNotes.map(note => <Alert key={note} type="info" showIcon title={note} />)}
-          {tests.length > 0 && (
-            <Collapse
-              size="small"
-              items={[{
-                key: 'comments',
-                label: `Nhận xét của giảng viên chấm (${tests.length})`,
-                children: (
-                  <Flex vertical gap={12}>
-                    {tests.map((t, i) => (
-                      <div key={i}>
-                        <Flex justify="space-between" gap={8}>
-                          <Text strong>{t.name}</Text>
-                          {t.absent ? <Text type="secondary">Vắng thi</Text> : <Text>{fmtScore(t.point)}</Text>}
-                        </Flex>
-                        {t.comment && <div style={{ whiteSpace: 'pre-wrap', color: '#595959', marginTop: 4 }}>{t.comment}</div>}
-                        {t.link && <a href={t.link} target="_blank" rel="noopener noreferrer">Mở bài làm</a>}
-                      </div>
-                    ))}
-                  </Flex>
-                )
-              }]}
-            />
-          )}
-        </Section>
-
-        {/* 4. Bài tập về nhà + điểm AI của hệ thống (tự tải khi mở) */}
-        <Collapse
+        <Tabs
           size="small"
-          items={[{
-            key: 'exercises',
-            label: m.exerciseLoading.has(r.key) ? 'Bài tập về nhà — đang tải…'
-              : r.exercises ? `Bài tập về nhà — ${r.exercises.length} bài · điểm AI TB ${fmtScore(r.aiAvg)}`
-              : 'Bài tập về nhà — chưa tải được',
-            children: r.exercises ? (
-              <Table
-                size="small"
-                pagination={false}
-                rowKey={(_, i) => String(i)}
-                dataSource={r.exercises}
-                columns={[
-                  { title: 'Bài tập', dataIndex: 'title' },
-                  { title: 'Điểm AI', key: 'ai', width: 80, align: 'right', render: (_, e) => fmtScore(e.ai) },
-                  { title: '', key: 'link', width: 70, render: (_, e) => e.link ? <a href={e.link} target="_blank" rel="noopener noreferrer">mở link</a> : null }
-                ]}
-              />
-            ) : <Text type="secondary">{m.exerciseLoading.has(r.key) ? 'Đang tải…' : 'Không tải được bài tập của sinh viên này.'}</Text>
-          }]}
+          activeKey={tab}
+          onChange={(k) => setTab(k as DrawerTab)}
+          items={[
+            { key: 'issues', label: `Cần xử lý${problems ? ` (${problems})` : ''}`, children: issuesTab },
+            {
+              key: 'attendance',
+              label: `Điểm danh${abs?.absentDays ? ` (${abs.absentDays} nghỉ)` : ''}`,
+              children: <StudentAttendancePanel cls={att?.cls || null} s={att?.s || null} />
+            },
+            { key: 'exam', label: 'Điểm thi', children: examTab },
+            { key: 'homework', label: hasSuspicion ? 'Bài tập ⚠' : 'Bài tập', children: homeworkTab },
+            { key: 'contact', label: 'Liên hệ', children: contactTab }
+          ]}
         />
-
-        {/* 5. Nghi vấn BTVN (thu gọn) */}
-        {hasSuspicion && (
-          <Collapse
-            size="small"
-            items={[{
-              key: 'suspect',
-              label: <span>Nghi vấn BTVN — {r.suspect ? ANALYSIS_LEVELS[r.level].label : 'trùng link bài nộp'}</span>,
-              children: (
-                <Flex vertical gap={8}>
-                  <Text type="secondary">{DISCLAIMER}</Text>
-                  {r.reasons.length > 0 && <ul style={{ margin: 0, paddingLeft: 20 }}>{r.reasons.map(x => <li key={x}>{x}</li>)}</ul>}
-                  {r.dups.map((d, i) => (
-                    <div key={i}>{d.what} (<a href={d.link} target="_blank" rel="noopener noreferrer">mở link</a>) trùng với {d.others.join(', ')}</div>
-                  ))}
-                  <Text type="secondary">→ Vấn đáp lại 1–2 bài tập đã nộp để xác minh.</Text>
-                </Flex>
-              )
-            }]}
-          />
-        )}
-
-        {/* 6. Liên hệ */}
-        <Section title="Liên hệ">
-          <Descriptions
-            size="small"
-            column={1}
-            items={[
-              { key: 'code', label: 'MSSV', children: <Text copyable>{r.code}</Text> },
-              { key: 'email', label: 'Email', children: r.email ? <Text copyable>{r.email}</Text> : '—' },
-              { key: 'phone', label: 'SĐT', children: r.phone ? <Text copyable>{r.phone}</Text> : '—' },
-              { key: 'dob', label: 'Ngày sinh', children: fmtDate(r.dateOfBirth) },
-              { key: 'class', label: 'Lớp', children: r.classLabel }
-            ]}
-          />
-        </Section>
       </Flex>
     </Drawer>
   );

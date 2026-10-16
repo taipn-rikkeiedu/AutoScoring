@@ -10,7 +10,9 @@ import {
 } from '@ant-design/icons';
 import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
 import { StudentMonitorDrawer, RiskTag, WatchStar } from '~/src/components/StudentMonitorDrawer';
-import { StudentAbsenceView } from '~/src/components/StudentAbsenceView';
+import { DayKindTags, DayLeave } from '~/src/components/StudentAttendancePanel';
+import { fmtDay, weekday, isAbsentKind } from '~/src/core/attendance';
+import { readableColor } from '~/src/core/monitorLevels';
 import {
   MonitorRow, MONITOR_FILTERS, levelFilterKey, fmtPercent, CLASS_AI_KINDS, ClassAiKind
 } from '~/src/core/studentMonitor';
@@ -52,7 +54,6 @@ export const StudentMonitorTab: React.FC = () => {
 
   const multiClass = new Set(m.rows.map(r => r.classLabel)).size > 1;
   // SV đang xem: duyệt trước / sau theo đúng thứ tự danh sách đang lọc
-  // Mở từ Lịch nghỉ có thể là SV đang bị bộ lọc ẩn → duyệt trong toàn bộ danh sách
   const navRows = selectedKey && !m.visibleRows.some(r => r.key === selectedKey) ? m.rows : m.visibleRows;
   const selectedIndex = selectedKey ? navRows.findIndex(r => r.key === selectedKey) : -1;
   const selectedRow = selectedIndex >= 0 ? navRows[selectedIndex] : null;
@@ -64,6 +65,7 @@ export const StudentMonitorTab: React.FC = () => {
     {
       title: 'Sinh viên',
       key: 'name',
+      width: 230,
       sorter: (a, b) => a.name.localeCompare(b.name, 'vi'),
       render: (_, r) => (
         <Flex align="center" gap={8}>
@@ -73,16 +75,39 @@ export const StudentMonitorTab: React.FC = () => {
               {r.name}
             </div>
             <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-              {r.code ? `${r.code} · ` : ''}{r.classLabel}
+              {r.code}{multiClass ? ` · ${r.classLabel}` : ''}
             </Text>
           </div>
         </Flex>
       )
     },
     {
+      title: m.absentDate ? `Nghỉ ${weekday(m.absentDate)} ${fmtDay(m.absentDate)}` : 'Tình hình',
+      key: 'status',
+      render: (_, r) => {
+        if (m.absentDate) {
+          const day = m.attendanceOf(r)?.s.days[m.absentDate];
+          if (!day) return null;
+          const absent = day.marks.filter(x => isAbsentKind(x.kind));
+          return (
+            <Flex vertical gap={2} style={{ minWidth: 0 }}>
+              <Flex gap={6} align="center">
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {absent.length === day.marks.length && day.marks.length > 1 ? 'Cả ngày' : absent.map(x => `Ca ${x.period}`).join(', ')}
+                </Text>
+                <DayKindTags day={day} />
+              </Flex>
+              <DayLeave day={day} compact />
+            </Flex>
+          );
+        }
+        return <IssueSummary row={r} />;
+      }
+    },
+    {
       title: 'Mức',
       key: 'risk',
-      width: 170,
+      width: 150,
       align: 'right',
       sorter: (a, b) => getRiskRank(a) - getRiskRank(b),
       render: (_, r) => {
@@ -148,8 +173,7 @@ export const StudentMonitorTab: React.FC = () => {
           disabled={!m.rows.length}
           options={[
             { value: 'list', icon: <Tooltip title="Danh sách sinh viên"><UnorderedListOutlined /></Tooltip> },
-            { value: 'chart', icon: <Tooltip title="Biểu đồ thống kê"><BarChartOutlined /></Tooltip> },
-            { value: 'absence', icon: <Tooltip title="Lịch nghỉ học"><CalendarOutlined /></Tooltip> }
+            { value: 'chart', icon: <Tooltip title="Biểu đồ thống kê"><BarChartOutlined /></Tooltip> }
           ]}
         />
         <Tooltip title={`Mẫu giám sát đang áp dụng: ${m.activeTemplate.name}${m.activePerCourse ? ' (riêng môn này)' : ''} — bấm để quản lý mẫu & danh sách rà soát`}>
@@ -188,12 +212,6 @@ export const StudentMonitorTab: React.FC = () => {
           status="active"
           format={() => `${m.progress!.done}/${m.progress!.total}`}
         />
-      )}
-
-      {m.rows.length > 0 && m.view === 'absence' && (
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#fff', borderRadius: 8, padding: '0 12px 12px' }}>
-          <StudentAbsenceView classes={m.classAttendance} rows={m.rows} onOpenStudent={setSelectedKey} />
-        </div>
       )}
 
       {m.rows.length > 0 && m.view === 'chart' && (
@@ -259,10 +277,23 @@ export const StudentMonitorTab: React.FC = () => {
                 Lọc thêm{otherActive ? ` (${otherActive})` : ''}
               </Button>
             </Dropdown>
+            {m.absenceDates.length > 0 && (
+              <Select
+                size="small"
+                allowClear
+                prefix={<CalendarOutlined style={{ color: '#8c8c8c' }} />}
+                placeholder="Nghỉ ngày…"
+                value={m.absentDate || undefined}
+                onChange={(v) => m.setAbsentDate(v || '')}
+                popupMatchSelectWidth={false}
+                style={{ width: 132, flexShrink: 0 }}
+                options={m.absenceDates.map(d => ({ value: d.date, label: `${weekday(d.date)} ${fmtDay(d.date)} · ${d.count} SV nghỉ` }))}
+              />
+            )}
             {m.chartFilter && (
               <Tag color="blue" closable onClose={m.clearChartFilter} style={{ margin: 0 }}>{m.chartFilter.label}</Tag>
             )}
-            {(m.filters.length > 0 || m.chartFilter) && <Button size="small" type="link" onClick={m.clearFilters}>Bỏ lọc</Button>}
+            {(m.filters.length > 0 || m.chartFilter || m.absentDate) && <Button size="small" type="link" onClick={m.clearFilters}>Bỏ lọc</Button>}
           </Flex>
           <Flex gap={8} style={{ flexShrink: 0 }}>
             <Input.Search
@@ -271,7 +302,7 @@ export const StudentMonitorTab: React.FC = () => {
               allowClear
               value={m.query}
               onChange={(e) => m.setQuery(e.target.value)}
-              style={{ width: 170 }}
+              style={{ width: 150 }}
             />
             <Tooltip title={`Xuất Excel ${m.visibleRows.length} sinh viên đang hiển thị`}>
               <Button
@@ -329,6 +360,28 @@ export const StudentMonitorTab: React.FC = () => {
         onNext={() => goTo(selectedIndex + 1)}
         onClose={() => setSelectedKey(null)}
       />
+    </Flex>
+  );
+};
+
+/* ---------- Vấn đề chính của 1 SV trên dòng danh sách (nặng nhất trước, tối đa 3 nhãn) ---------- */
+const MAX_TAGS = 3;
+const IssueSummary: React.FC<{ row: MonitorRow }> = ({ row }) => {
+  const items = [
+    ...row.issues.map(i => ({ key: i.kind, label: i.label, color: i.color, tip: `${i.levelName}: ${i.title} ${i.threshold}`, dashed: false })),
+    ...row.early.map(e => ({ key: `e-${e.kind}`, label: `Sắp: ${e.label}`, color: e.color, tip: `${e.levelName}: ${e.title} ${e.threshold}`, dashed: true }))
+  ];
+  if (!items.length) return <Text type="secondary" style={{ fontSize: 12 }}>Không có vấn đề</Text>;
+  return (
+    <Flex gap={4} wrap>
+      {items.slice(0, MAX_TAGS).map(x => (
+        <Tooltip key={x.key} title={x.tip}>
+          <Tag style={{ margin: 0, color: readableColor(x.color), background: x.dashed ? 'transparent' : `${x.color}14`, borderColor: `${x.color}66`, borderStyle: x.dashed ? 'dashed' : 'solid' }}>
+            {x.label}
+          </Tag>
+        </Tooltip>
+      ))}
+      {items.length > MAX_TAGS && <Tag style={{ margin: 0 }}>+{items.length - MAX_TAGS}</Tag>}
     </Flex>
   );
 };

@@ -24,7 +24,7 @@ import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
 import {
   QldtOption, listQldtClasses, listQldtCourses, fetchClassDashboard, fetchStudentExercises, fetchClassAttendance, fetchClassLeaves
 } from '~/src/services/lms/examAnalysisService';
-import { ClassAttendance, parseClassAttendance } from '~/src/core/attendance';
+import { ClassAttendance, StudentAttendance, parseClassAttendance } from '~/src/core/attendance';
 
 interface MonitorPrefs {
   templateAssignment?: TemplateAssignment;
@@ -36,7 +36,7 @@ interface MonitorPrefs {
 }
 
 export interface AiResult { loading: boolean; text?: string; error?: string }
-export type MonitorView = 'list' | 'chart' | 'absence';
+export type MonitorView = 'list' | 'chart';
 export type TemplateScope = 'all' | 'course';
 /** Lọc theo 1 cột biểu đồ: đúng nhóm SV của cột đó. */
 export interface ChartFilter { label: string; keys: Set<string> }
@@ -52,6 +52,8 @@ export function useStudentMonitor() {
   const [baseRows, setBaseRows] = useState<MonitorBase[]>([]);
   const [testCols, setTestCols] = useState<TestColumn[]>([]);
   const [classAttendance, setClassAttendance] = useState<ClassAttendance[]>([]);
+  // Lọc "Nghỉ ngày …" (yyyy-mm-dd, '' = không lọc)
+  const [absentDate, setAbsentDate] = useState('');
   const [templates, setTemplates] = useState<MonitorTemplate[]>(STARTER_TEMPLATES);
   const [templateSource, setTemplateSource] = useState<TemplateSource>('local');
   const [templateError, setTemplateError] = useState<{ message: string; tableMissing: boolean } | null>(null);
@@ -228,6 +230,7 @@ export function useStudentMonitor() {
       setTestCols(sortTestColumns(cols.values()));
       setBaseRows(rows);
       setClassAttendance(attendance);
+      setAbsentDate('');
       logger.success(LOG_MODULE, `Tải ${selectedClassIds.length} lớp, ${rows.length} sinh viên.`);
     } catch (e: any) {
       setStatusText('Lỗi: ' + e.message);
@@ -256,13 +259,33 @@ export function useStudentMonitor() {
     return counts;
   }, [rows, levels]);
 
+  /* ---------- Điểm danh từng SV (theo dòng) + lọc nghỉ theo ngày ---------- */
+  const attendanceByKey = useMemo(() => {
+    const map = new Map<string, { cls: ClassAttendance; s: StudentAttendance }>();
+    baseRows.forEach(r => {
+      const cls = classAttendance.find(c => c.classLabel === r.classLabel);
+      const s = cls?.students[String(r.studentId)];
+      if (cls && s) map.set(r.key, { cls, s });
+    });
+    return map;
+  }, [baseRows, classAttendance]);
+  const attendanceOf = (r: { key: string }) => attendanceByKey.get(r.key) || null;
+  const absentOn = (r: { key: string }, date: string) => attendanceByKey.get(r.key)?.s.days[date]?.absent || false;
+
+  /** Các ngày học (mới nhất trước) kèm số SV nghỉ — cho ô lọc "Nghỉ ngày". */
+  const absenceDates = useMemo(() => {
+    const dates = [...new Set(classAttendance.flatMap(c => c.dates))].sort().reverse();
+    return dates.map(d => ({ date: d, count: rows.filter(r => absentOn(r, d)).length }));
+  }, [classAttendance, rows, attendanceByKey]);
+
   const visibleRows = useMemo(() => {
     const q = plainText(query);
     return rows.filter(r =>
       (!chartFilter || chartFilter.keys.has(r.key))
       && (!filters.length || filters.some(f => matchesFilter(r, f)))
+      && (!absentDate || absentOn(r, absentDate))
       && (!q || plainText(r.name).includes(q) || plainText(r.code).includes(q) || plainText(r.email).includes(q)));
-  }, [rows, filters, chartFilter, query]);
+  }, [rows, filters, chartFilter, query, absentDate, attendanceByKey]);
 
   /** Bấm 1 cột / 1 đoạn trên biểu đồ → mở danh sách đúng các SV đó. */
   const openChartBin = (title: string, bin: DistributionBin) => {
@@ -372,12 +395,12 @@ export function useStudentMonitor() {
 
   return {
     classes, selectedClassIds, courses, courseId, setCourseId, courseName,
-    rows, visibleRows, testCols, classAttendance, overview, filterCounts, watchList, watchMissing,
+    rows, visibleRows, testCols, classAttendance, attendanceOf, absenceDates, absentDate, setAbsentDate, overview, filterCounts, watchList, watchMissing,
     monitorConfig, levels, rules, watchText, setWatchText,
     templates, templateSource, templateError, templatesLoading, assignment, activeTemplate, activePerCourse,
     reloadTemplates, saveTemplate, deleteTemplate, applyTemplate, clearCourseTemplate, createTemplatesTable,
     canCreateTable: !!config.supabasePat?.trim(),
-    filters, toggleFilter, clearFilters: () => { setFilters([]); setChartFilter(null); }, query, setQuery,
+    filters, toggleFilter, clearFilters: () => { setFilters([]); setChartFilter(null); setAbsentDate(''); }, query, setQuery,
     view, setView, distributions, chartFilter, clearChartFilter: () => setChartFilter(null), openChartBin, openRiskLevel,
     busy, exporting, progress, statusText, classAi, studentAi,
     handleClassChange, handleLoad, handleClassAi, handleStudentAi, handleExport,

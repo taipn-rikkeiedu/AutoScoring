@@ -80,7 +80,8 @@ export const levelFilterKey = (id: string) => `level:${id}`;
 
 export const MONITOR_FILTERS: { key: MonitorFilter; label: string; group: 'issue' | 'suspect' }[] = [
   { key: 'absent', label: 'Nghỉ học', group: 'issue' },
-  { key: 'absentStreak', label: 'Nghỉ liên tiếp', group: 'issue' },
+  { key: 'absentStreak', label: 'Nghỉ liên tiếp (theo ngưỡng mẫu)', group: 'issue' },
+  { key: 'streak2', label: 'Nghỉ từ 2 buổi liên tiếp', group: 'issue' },
   { key: 'homework', label: 'Thiếu bài tập', group: 'issue' },
   { key: 'elearning', label: 'Chậm E-learning', group: 'issue' },
   { key: 'rpoints', label: 'R-Point thấp', group: 'issue' },
@@ -97,6 +98,7 @@ export function matchesFilter(r: MonitorRow, f: MonitorFilter): boolean {
     case 'suspect': return r.suspect;
     case 'dup': return r.dups.length > 0;
     case 'watch': return r.watch;
+    case 'streak2': return (r.absence?.maxStreak ?? 0) >= 2;
     default: return r.issues.some(i => i.kind === f);
   }
 }

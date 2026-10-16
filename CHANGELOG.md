@@ -4,6 +4,20 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.20.0] - 2026-10-16
+
+### ✨ Cải thiện
+- **Gộp Lịch nghỉ học vào Giám sát học tập**, bỏ chế độ 📅 riêng:
+  - Danh sách có thêm cột **Tình hình** (vấn đề chính của sinh viên, tô màu theo mức) — hết khoảng trống giữa tên và mức; mã SV gọn 1 dòng (chỉ ghi lớp khi chọn nhiều lớp).
+  - Ô lọc **Nghỉ ngày …** (chọn ngày học, kèm số SV nghỉ): danh sách chỉ còn sinh viên nghỉ ngày đó, cột giữa hiện ca nghỉ, có phép / không phép và đơn xin nghỉ (trạng thái, lý do, ảnh).
+  - Lọc thêm **Nghỉ từ 2 buổi liên tiếp**.
+- **Thiết kế lại chi tiết sinh viên** cho dễ nhìn:
+  - Dải **chỉ số nhanh** trên cùng: Nghỉ học (kèm số buổi, liên tiếp), Thiếu bài tập, Chậm E-learning, R-Point, Điểm thi — tô màu theo mức nếu chạm ngưỡng.
+  - Chia **tab** thay cho 1 trang dài: Cần xử lý · **Điểm danh** · Điểm thi · Bài tập · Liên hệ; giữ tab đang xem khi chuyển sinh viên (‹ › hoặc phím ← →).
+  - Tab **Điểm danh**: số buổi học / có phép / không phép / đi muộn / liên tiếp tối đa, lịch các buổi (mỗi ô 1 ngày, chia theo ca, khung đỏ = chuỗi nghỉ liên tiếp), danh sách buổi nghỉ kèm đơn xin nghỉ.
+
+---
+
 ## [5.19.1] - 2026-10-16
 
 ### 🐛 Sửa lỗi
