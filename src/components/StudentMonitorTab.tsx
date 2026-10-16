@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useState } from 'react';
 import {
-  Table, Button, Select, Input, InputNumber, Tag, Card, Progress, Drawer,
-  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Space, Dropdown, Checkbox, Segmented, Collapse
+  Table, Button, Select, Input, Tag, Card, Progress, Drawer,
+  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Dropdown, Checkbox, Segmented, Collapse
 } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
@@ -11,9 +11,10 @@ import {
 import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
 import { StudentMonitorDrawer, RiskTag, WatchStar } from '~/src/components/StudentMonitorDrawer';
 import {
-  MonitorRow, MonitorRules, MONITOR_FILTERS, MONITOR_PRESETS, MonitorPreset, fmtPercent
+  MonitorRow, MONITOR_FILTERS, fmtPercent
 } from '~/src/core/studentMonitor';
-import { AnalysisRules, ANALYSIS_LEVELS } from '~/src/core/examAnalysis';
+import { ANALYSIS_LEVELS } from '~/src/core/examAnalysis';
+import { MonitorTemplatesPanel } from '~/src/components/MonitorTemplatesPanel';
 
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -60,7 +61,6 @@ export const StudentMonitorTab: React.FC = () => {
   }, [m.statusText]);
 
   const multiClass = new Set(m.rows.map(r => r.classLabel)).size > 1;
-  const settingsChanged = m.watchList.length > 0 || m.preset !== 'standard';
   // SV đang xem: duyệt trước / sau theo đúng thứ tự danh sách đang lọc
   const selectedIndex = selectedKey ? m.visibleRows.findIndex(r => r.key === selectedKey) : -1;
   const selectedRow = selectedIndex >= 0 ? m.visibleRows[selectedIndex] : null;
@@ -124,9 +124,11 @@ export const StudentMonitorTab: React.FC = () => {
             { value: 'chart', icon: <Tooltip title="Biểu đồ thống kê"><BarChartOutlined /></Tooltip> }
           ]}
         />
-        <Tooltip title="Ngưỡng cảnh báo, nghi vấn & danh sách rà soát">
-          <Badge dot={settingsChanged}>
-            <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} />
+        <Tooltip title={`Mẫu giám sát đang áp dụng: ${m.activeTemplate.name}${m.activePerCourse ? ' (riêng môn này)' : ''} — bấm để quản lý mẫu & danh sách rà soát`}>
+          <Badge dot={m.watchList.length > 0}>
+            <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} style={{ maxWidth: 120 }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.activeTemplate.name}</span>
+            </Button>
           </Badge>
         </Tooltip>
       </Flex>
@@ -268,104 +270,38 @@ const Overview: React.FC<{ m: Monitor }> = ({ m }) => {
 };
 
 /* ---------- Cài đặt: ngưỡng, nghi vấn, danh sách rà soát ---------- */
-const SettingsDrawer: React.FC<{ open: boolean; onClose: () => void; m: Monitor }> = ({ open, onClose, m }) => {
-  const setMonitor = (k: keyof MonitorRules) => (v: number | null) => m.setMonitorRules(prev => ({ ...prev, [k]: v ?? 0 }));
-  const setRule = (k: keyof AnalysisRules) => (v: number | null) => m.setRules(prev => ({ ...prev, [k]: v ?? 0 }));
-  const num = (value: number, onChange: (v: number | null) => void, suffix?: string) => (
-    <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} suffix={suffix} style={{ width: 76 }} />
-  );
-  const row = (label: string, ...inputs: React.ReactNode[]) => (
-    <Flex justify="space-between" align="center" gap={8}>
-      <Text>{label}</Text>
-      <Space size={4}>{inputs.map((x, i) => <React.Fragment key={i}>{x}</React.Fragment>)}</Space>
-    </Flex>
-  );
-  const r = m.monitorRules;
-  const a = m.rules;
-  const presetKeys = Object.keys(MONITOR_PRESETS) as MonitorPreset[];
+const SettingsDrawer: React.FC<{ open: boolean; onClose: () => void; m: Monitor }> = ({ open, onClose, m }) => (
+  <Drawer title="Cài đặt giám sát" open={open} onClose={onClose} size={420}>
+    <Flex vertical gap={16}>
+      <MonitorTemplatesPanel m={m} />
+      <Divider style={{ margin: 0 }} />
 
-  return (
-    <Drawer title="Cài đặt giám sát" open={open} onClose={onClose} size={380}>
-      <Flex vertical gap={16}>
-        {/* Mức giám sát: chọn 1 lần là đặt sẵn toàn bộ ngưỡng */}
-        <Flex vertical gap={8}>
-          <Flex justify="space-between" align="center">
-            <Text strong>Mức giám sát</Text>
-            {m.preset === 'custom' && <Tag color="blue" style={{ margin: 0 }}>Đã chỉnh tay</Tag>}
-          </Flex>
-          <Segmented<MonitorPreset>
-            block
-            value={m.preset === 'custom' ? ('' as MonitorPreset) : m.preset}
-            onChange={m.applyPreset}
-            options={presetKeys.map(p => ({ value: p, label: MONITOR_PRESETS[p].label }))}
-          />
-          <Text type="secondary">
-            {m.preset === 'custom' ? 'Đang dùng ngưỡng chỉnh tay. Chọn Chuẩn hoặc Chặt để đặt lại.' : MONITOR_PRESETS[m.preset].description}
-          </Text>
-        </Flex>
-
+      {/* Danh sách rà soát: bấm ⭐ trên SV; dán tên chỉ khi đã có sẵn danh sách */}
+      <Flex vertical gap={8}>
+        <Text strong>⭐ Danh sách cần rà soát ({m.watchList.length} tên)</Text>
+        <Text type="secondary">Bấm ☆ cạnh tên sinh viên trong danh sách hoặc trong chi tiết để thêm / bỏ.</Text>
+        {m.rows.length > 0 && m.watchMissing.length > 0 && (
+          <Alert type="warning" showIcon title={`Không tìm thấy ${m.watchMissing.length} tên trong các lớp đã tải`} description={m.watchMissing.join(', ')} />
+        )}
         <Collapse
           size="small"
           items={[{
-            key: 'manual',
-            label: 'Điều chỉnh bằng tay',
+            key: 'paste',
+            label: 'Dán danh sách tên có sẵn',
             children: (
-              <Flex vertical gap={10}>
-                <Text type="secondary">SV có từ 2 lỗi cảnh báo, hoặc vắng thi, cũng là báo động.</Text>
-                <Flex justify="flex-end" gap={4}>
-                  <Text type="warning" strong style={{ width: 76, textAlign: 'center' }}>Cảnh báo</Text>
-                  <Text type="danger" strong style={{ width: 76, textAlign: 'center' }}>Báo động</Text>
-                </Flex>
-                {row('Nghỉ học (%)', num(r.absentWarn, setMonitor('absentWarn')), num(r.absentAlarm, setMonitor('absentAlarm')))}
-                {row('Thiếu bài tập (%)', num(r.homeworkWarn, setMonitor('homeworkWarn')), num(r.homeworkAlarm, setMonitor('homeworkAlarm')))}
-                {row('Chậm E-learning (bài)', num(r.elearningWarn, setMonitor('elearningWarn')), num(r.elearningAlarm, setMonitor('elearningAlarm')))}
-                {row('Bài thi dưới (điểm)', num(r.examPass, setMonitor('examPass')), <div style={{ width: 76 }} />)}
-
-                <Divider style={{ margin: '4px 0' }} />
-                <Text strong>Sắp vượt ngưỡng</Text>
-                {row('Nghỉ học từ (%)', num(r.earlyAbsentFrom, setMonitor('earlyAbsentFrom')))}
-                {row('Thiếu bài tập từ (%)', num(r.earlyHomeworkFrom, setMonitor('earlyHomeworkFrom')))}
-                {row('Bài thi đạt nhưng tới (điểm)', num(r.earlyExamTo, setMonitor('earlyExamTo')))}
-
-                <Divider style={{ margin: '4px 0' }} />
-                <Text strong>Nghi vấn BTVN ↔ điểm thi</Text>
-                {row('Tỉ lệ nộp BTVN từ (%)', num(a.hwMin, setRule('hwMin')))}
-                {row('Nghi vấn cao khi thi dưới', num(a.highBelow, setRule('highBelow')))}
-                {row('Cần rà soát khi thi dưới', num(a.midBelow, setRule('midBelow')))}
-                {row('hoặc chênh BTVN − thi từ', num(a.gapMin, setRule('gapMin')))}
-                {row('Điểm AI bài tập TB từ', num(a.aiHigh, setRule('aiHigh')))}
+              <Flex vertical gap={6}>
+                <TextArea
+                  rows={5}
+                  value={m.watchText}
+                  onChange={(e) => m.setWatchText(e.target.value)}
+                  placeholder={'Mỗi dòng 1 tên (hoặc cách nhau dấu phẩy), vd:\nĐinh Quang Hào\nNguyễn Duy Đạt'}
+                />
+                <Text type="secondary">So khớp cả tên gõ không dấu.</Text>
               </Flex>
             )
           }]}
         />
-
-        {/* Danh sách rà soát: bấm ⭐ trên SV; dán tên chỉ khi đã có sẵn danh sách */}
-        <Flex vertical gap={8}>
-          <Text strong>⭐ Danh sách cần rà soát ({m.watchList.length} tên)</Text>
-          <Text type="secondary">Bấm ☆ cạnh tên sinh viên trong danh sách hoặc trong chi tiết để thêm / bỏ.</Text>
-          {m.rows.length > 0 && m.watchMissing.length > 0 && (
-            <Alert type="warning" showIcon title={`Không tìm thấy ${m.watchMissing.length} tên trong các lớp đã tải`} description={m.watchMissing.join(', ')} />
-          )}
-          <Collapse
-            size="small"
-            items={[{
-              key: 'paste',
-              label: 'Dán danh sách tên có sẵn',
-              children: (
-                <Flex vertical gap={6}>
-                  <TextArea
-                    rows={5}
-                    value={m.watchText}
-                    onChange={(e) => m.setWatchText(e.target.value)}
-                    placeholder={'Mỗi dòng 1 tên (hoặc cách nhau dấu phẩy), vd:\nĐinh Quang Hào\nNguyễn Duy Đạt'}
-                  />
-                  <Text type="secondary">So khớp cả tên gõ không dấu.</Text>
-                </Flex>
-              )
-            }]}
-          />
-        </Flex>
       </Flex>
-    </Drawer>
-  );
-};
+    </Flex>
+  </Drawer>
+);

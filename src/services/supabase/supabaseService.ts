@@ -6,7 +6,7 @@ import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
  * SupabaseService (Direct Client)
  * Kết nối trực tiếp tới Supabase bằng @supabase/supabase-js (anon key),
  * không qua backend trung gian. Yêu cầu Row Level Security (RLS) đã được
- * cấu hình đúng trên 3 bảng care_notes/exercises/submissions vì anon key
+ * cấu hình đúng trên các bảng care_notes/exercises/submissions/monitor_templates vì anon key
  * nằm công khai trong mã nguồn extension.
  */
 export class SupabaseService {
@@ -74,7 +74,17 @@ export class SupabaseService {
         PRIMARY KEY (chapter, session, assignment_name)
       );
 
+      -- 4. Tạo bảng monitor_templates (mẫu giám sát học tập dùng chung)
+      CREATE TABLE IF NOT EXISTS monitor_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        monitor_rules JSONB NOT NULL,
+        analysis_rules JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+      );
+
       -- Bật Row Level Security (RLS)
+      ALTER TABLE monitor_templates ENABLE ROW LEVEL SECURITY;
       ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
       ALTER TABLE care_notes ENABLE ROW LEVEL SECURITY;
       ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
@@ -83,11 +93,13 @@ export class SupabaseService {
       DROP POLICY IF EXISTS "Public access to submissions" ON submissions;
       DROP POLICY IF EXISTS "Public access to care_notes" ON care_notes;
       DROP POLICY IF EXISTS "Public access to exercises" ON exercises;
+      DROP POLICY IF EXISTS "Public access to monitor_templates" ON monitor_templates;
 
       -- Cấu hình quyền đọc/ghi công khai (Zero Setup) cho các bảng
       CREATE POLICY "Public access to submissions" ON submissions FOR ALL USING (true) WITH CHECK (true);
       CREATE POLICY "Public access to care_notes" ON care_notes FOR ALL USING (true) WITH CHECK (true);
       CREATE POLICY "Public access to exercises" ON exercises FOR ALL USING (true) WITH CHECK (true);
+      CREATE POLICY "Public access to monitor_templates" ON monitor_templates FOR ALL USING (true) WITH CHECK (true);
     `;
 
     const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/db/query`, {
@@ -103,6 +115,40 @@ export class SupabaseService {
       const errText = await res.text();
       throw new Error(`Lỗi ${res.status}: ${errText}`);
     }
+  }
+
+  /* -------------------------------------------------------------
+   * Monitor Templates (mẫu giám sát học tập dùng chung)
+   * ------------------------------------------------------------- */
+  public static async listMonitorTemplates(config: AppConfig): Promise<any[]> {
+    const client = getSupabaseClient(config);
+    if (!client) throw new Error("Supabase chưa được cấu hình.");
+    const { data, error } = await client.from("monitor_templates").select("*").order("updated_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  public static async upsertMonitorTemplates(
+    config: AppConfig,
+    templates: { id: string; name: string; monitor: object; analysis: object }[]
+  ): Promise<void> {
+    const client = getSupabaseClient(config);
+    if (!client) throw new Error("Supabase chưa được cấu hình.");
+    const { error } = await client.from("monitor_templates").upsert(templates.map(t => ({
+      id: t.id,
+      name: t.name,
+      monitor_rules: t.monitor,
+      analysis_rules: t.analysis,
+      updated_at: new Date().toISOString()
+    })));
+    if (error) throw new Error(error.message);
+  }
+
+  public static async deleteMonitorTemplate(config: AppConfig, id: string): Promise<void> {
+    const client = getSupabaseClient(config);
+    if (!client) throw new Error("Supabase chưa được cấu hình.");
+    const { error } = await client.from("monitor_templates").delete().eq("id", id);
+    if (error) throw new Error(error.message);
   }
 
   /* -------------------------------------------------------------

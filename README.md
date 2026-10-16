@@ -26,7 +26,7 @@ Vượt trội hơn một công cụ chấm điểm thông thường, **REduX** 
 * **Xuất báo cáo định dạng Excel (.xlsx):** Tích hợp xuất trực tiếp bảng điểm tiếng Việt có dấu hoàn hảo, tự động định cấu hình độ rộng cột tối ưu.
 
 ### 3. ⚡ Tự động chạy DDL Migrations (One-Click Setup)
-* **Khởi tạo database tự động:** Khi cấu hình Supabase cho một dự án mới hoàn toàn trống trơn, bạn chỉ cần điền **Personal Access Token (PAT)** của Supabase và nhấn nút **"⚡ Khởi tạo cấu trúc bảng (Run Migrations)"**. Extension sẽ tự động gửi lệnh DDL để khởi tạo 3 bảng (`submissions`, `care_notes`, `exercises`) cùng các chính sách bảo mật RLS và chỉ mục mà không cần bạn phải thao tác thủ công trên SQL Editor của Supabase.
+* **Khởi tạo database tự động:** Khi cấu hình Supabase cho một dự án mới hoàn toàn trống trơn, bạn chỉ cần điền **Personal Access Token (PAT)** của Supabase và nhấn nút **"⚡ Khởi tạo cấu trúc bảng (Run Migrations)"**. Extension sẽ tự động gửi lệnh DDL để khởi tạo các bảng (`submissions`, `care_notes`, `exercises`, `monitor_templates`) cùng các chính sách bảo mật RLS và chỉ mục mà không cần bạn phải thao tác thủ công trên SQL Editor của Supabase.
 
 ### 4. 📞 Quản Lý Chăm Sóc Học Viên (Student Care)
 * **Tự động cào dữ liệu chăm sóc:** Đọc thông tin Mã SV, Tên học viên từ giao diện chăm sóc sinh viên của LMS (`/class/*/take-care`).
@@ -97,7 +97,7 @@ Nhấp vào biểu tượng **REduX** trên thanh công cụ trình duyệt ho�
      - Truy cập [Supabase Access Tokens](https://supabase.com/dashboard/account/tokens).
      - Bấm **Generate new token**, đặt tên và tạo token. Sao chép token này dán vào ô **Supabase Personal Access Token (PAT)** trong Extension.
   5. Nhìn xuống khu vực **Trạng thái CSDL trên Server**, bạn sẽ thấy thông báo đỏ `🔴 Chưa được khởi tạo`. 
-  6. Nhấn nút **⚡ Khởi tạo cấu trúc bảng (Run Migrations)**. Extension sẽ tự động gửi lệnh và tạo đầy đủ 3 bảng dữ liệu (`submissions`, `care_notes`, `exercises`) và phân quyền RLS trên dự án Supabase của bạn. Khi biểu tượng chuyển sang màu xanh `🟢 Đã khởi tạo đầy đủ`, database của bạn đã sẵn sàng!
+  6. Nhấn nút **⚡ Khởi tạo cấu trúc bảng (Run Migrations)**. Extension sẽ tự động gửi lệnh và tạo đầy đủ các bảng dữ liệu (`submissions`, `care_notes`, `exercises`, `monitor_templates`) và phân quyền RLS trên dự án Supabase của bạn. Khi biểu tượng chuyển sang màu xanh `🟢 Đã khởi tạo đầy đủ`, database của bạn đã sẵn sàng!
   7. *(Khuyên dùng bảo mật)*: Sau khi khởi tạo thành công CSDL, bạn có thể xóa chuỗi PAT khỏi ô cấu hình trong Extension để bảo mật. Extension vẫn đọc/ghi điểm bình thường bằng Anon Key.
 
 ---

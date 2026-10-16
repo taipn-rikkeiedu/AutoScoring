@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "5.10.0",
+  version: "5.11.0",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -45,6 +45,7 @@ export const STORAGE_KEYS = {
   uiSidebarCollapsed: "uiSidebarCollapsed",
   qldtAuthToken: "qldtAuthToken",
   studentMonitorPrefs: "studentMonitorPrefs",
+  monitorTemplates: "monitorTemplates",
   legacyExamAnalysisPrefs: "examAnalysisPrefs",
   cachedAiStatus: "cachedAiStatus",
   cachedSupabaseStatus: "cachedSupabaseStatus"

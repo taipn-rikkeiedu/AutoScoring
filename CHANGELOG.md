@@ -4,6 +4,16 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.11.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Mẫu giám sát (tạo / sửa / nhân bản / xoá)** trong Cài đặt giám sát, thay cho 2 mức cố định:
+  - Mỗi mẫu gồm tên + toàn bộ ngưỡng (vi phạm học tập, sắp vượt ngưỡng, nghi vấn BTVN). Chuẩn và Chặt là mẫu khởi đầu, sửa / xoá được (luôn giữ ít nhất 1 mẫu).
+  - **Áp dụng cho tất cả môn** hoặc **riêng môn đang chọn**; danh sách các môn đặt mẫu riêng, bỏ được để về mẫu mặc định. Nút Cài đặt hiện tên mẫu đang dùng.
+  - **Dùng chung qua Supabase** (bảng `monitor_templates`) khi đã bật đồng bộ; chưa có bảng thì bấm "Tạo bảng" (dùng PAT đã lưu) hoặc chạy lại khởi tạo cơ sở dữ liệu ở tab Cài đặt. Chưa bật Supabase thì mẫu lưu trên máy.
+
+---
+
 ## [5.10.0] - 2026-10-16
 
 ### ✨ Cải thiện

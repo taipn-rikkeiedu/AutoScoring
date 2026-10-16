@@ -4,14 +4,21 @@ import { STORAGE_KEYS } from '~/src/core/constants';
 import { logger } from '~/src/core/logger';
 import { exportToExcel } from '~/src/core/excelExporter';
 import {
-  AnalysisRules, TestColumn, DEFAULT_ANALYSIS_RULES, ANALYSIS_LEVELS,
+  TestColumn, ANALYSIS_LEVELS,
   toStudentExercises, parseWatchList, sortTestColumns, avg, round1, plainText
 } from '~/src/core/examAnalysis';
 import {
-  MonitorBase, MonitorRow, MonitorRules, MonitorFilter, DEFAULT_MONITOR_RULES, MONITOR_FILTERS, RISK_LEVELS,
+  MonitorBase, MonitorRow, MonitorFilter, MONITOR_FILTERS, RISK_LEVELS,
   parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS, examCellLabel,
-  buildDistributions, DistributionBin, MONITOR_PRESETS, MonitorPreset, detectPreset
+  buildDistributions, DistributionBin
 } from '~/src/core/studentMonitor';
+import {
+  MonitorTemplate, TemplateAssignment, DEFAULT_ASSIGNMENT, STARTER_TEMPLATES, resolveTemplate
+} from '~/src/core/monitorTemplates';
+import {
+  TemplateSource, loadMonitorTemplates, saveMonitorTemplate, removeMonitorTemplate, writeLocalTemplates
+} from '~/src/services/monitorTemplateStore';
+import { SupabaseService } from '~/src/services/supabase/supabaseService';
 import { callAiWithRateLimitRetry } from '~/src/services/aiService';
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
 import {
@@ -19,8 +26,9 @@ import {
 } from '~/src/services/lms/examAnalysisService';
 
 interface MonitorPrefs {
-  monitorRules?: Partial<MonitorRules>;
-  rules?: Partial<AnalysisRules>;
+  templateAssignment?: TemplateAssignment;
+  /** Ngưỡng của bản cũ (trước khi có mẫu) — chỉ đọc để chọn mẫu tương ứng. */
+  monitorRules?: { absentWarn?: number };
   watchText?: string;
   classIds?: string[];
   courseId?: string;
@@ -28,6 +36,7 @@ interface MonitorPrefs {
 
 export interface AiResult { loading: boolean; text?: string; error?: string }
 export type MonitorView = 'list' | 'chart';
+export type TemplateScope = 'all' | 'course';
 /** Lọc theo 1 cột biểu đồ: đúng nhóm SV của cột đó. */
 export interface ChartFilter { label: string; keys: Set<string> }
 
@@ -41,8 +50,11 @@ export function useStudentMonitor() {
   const [courseId, setCourseId] = useState('');
   const [baseRows, setBaseRows] = useState<MonitorBase[]>([]);
   const [testCols, setTestCols] = useState<TestColumn[]>([]);
-  const [monitorRules, setMonitorRules] = useState<MonitorRules>(DEFAULT_MONITOR_RULES);
-  const [rules, setRules] = useState<AnalysisRules>(DEFAULT_ANALYSIS_RULES);
+  const [templates, setTemplates] = useState<MonitorTemplate[]>(STARTER_TEMPLATES);
+  const [templateSource, setTemplateSource] = useState<TemplateSource>('local');
+  const [templateError, setTemplateError] = useState<{ message: string; tableMissing: boolean } | null>(null);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [assignment, setAssignment] = useState<TemplateAssignment>(DEFAULT_ASSIGNMENT);
   const [watchText, setWatchText] = useState('');
   const [filters, setFilters] = useState<MonitorFilter[]>([]);
   const [chartFilter, setChartFilter] = useState<ChartFilter | null>(null);
@@ -62,8 +74,8 @@ export function useStudentMonitor() {
     const keys = [STORAGE_KEYS.studentMonitorPrefs, STORAGE_KEYS.legacyExamAnalysisPrefs];
     chrome.storage.local.get(keys, (res) => {
       const prefs: MonitorPrefs = res[STORAGE_KEYS.studentMonitorPrefs] || res[STORAGE_KEYS.legacyExamAnalysisPrefs] || {};
-      setMonitorRules({ ...DEFAULT_MONITOR_RULES, ...(prefs.monitorRules || {}) });
-      setRules({ ...DEFAULT_ANALYSIS_RULES, ...(prefs.rules || {}) });
+      setAssignment(prefs.templateAssignment
+        || { ...DEFAULT_ASSIGNMENT, defaultId: prefs.monitorRules?.absentWarn === 5 ? 'strict' : DEFAULT_ASSIGNMENT.defaultId });
       setWatchText(prefs.watchText || '');
       savedSelection.current = { classIds: prefs.classIds, courseId: prefs.courseId };
       prefsLoaded.current = true;
@@ -74,9 +86,65 @@ export function useStudentMonitor() {
   useEffect(() => {
     if (!prefsLoaded.current) return;
     const selection = classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current;
-    const prefs: MonitorPrefs = { monitorRules, rules, watchText, ...selection };
+    const prefs: MonitorPrefs = { templateAssignment: assignment, watchText, ...selection };
     chrome.storage.local.set({ [STORAGE_KEYS.studentMonitorPrefs]: prefs });
-  }, [monitorRules, rules, watchText, selectedClassIds, courseId, classes]);
+  }, [assignment, watchText, selectedClassIds, courseId, classes]);
+
+  /* ---------- Mẫu giám sát: Supabase dùng chung, bản sao trên máy ---------- */
+  const reloadTemplates = async () => {
+    setTemplatesLoading(true);
+    const res = await loadMonitorTemplates(config);
+    setTemplates(res.templates);
+    setTemplateSource(res.source);
+    setTemplateError(res.error ? { message: res.error, tableMissing: !!res.tableMissing } : null);
+    if (res.error) logger.error(LOG_MODULE, 'Không đọc được mẫu giám sát trên Supabase, dùng bản trên máy.', res.error);
+    setTemplatesLoading(false);
+  };
+
+  useEffect(() => { reloadTemplates(); }, [config.supabaseSyncEnabled, config.supabaseUrl, config.supabaseAnonKey]);
+
+  const commitTemplates = (next: MonitorTemplate[]) => {
+    setTemplates(next);
+    writeLocalTemplates(next);
+  };
+
+  /** Tạo mới hoặc cập nhật (theo id). Lỗi Supabase thì ném ra để giao diện báo. */
+  const saveTemplate = async (t: MonitorTemplate) => {
+    await saveMonitorTemplate(config, templateSource, t);
+    const exists = templates.some(x => x.id === t.id);
+    commitTemplates(exists ? templates.map(x => (x.id === t.id ? t : x)) : [...templates, t]);
+  };
+
+  const deleteTemplate = async (id: string) => {
+    if (templates.length <= 1) throw new Error('Phải giữ lại ít nhất 1 mẫu giám sát.');
+    await removeMonitorTemplate(config, templateSource, id);
+    const next = templates.filter(t => t.id !== id);
+    commitTemplates(next);
+    // Môn đang dùng mẫu bị xoá → về mẫu mặc định; xoá mẫu mặc định → mẫu đầu tiên còn lại
+    setAssignment(prev => ({
+      defaultId: prev.defaultId === id ? next[0].id : prev.defaultId,
+      byCourse: Object.fromEntries(Object.entries(prev.byCourse).filter(([, v]) => v.templateId !== id))
+    }));
+  };
+
+  /** Áp dụng cho tất cả môn (bỏ mẫu riêng của các môn) hoặc riêng môn đang chọn. */
+  const applyTemplate = (id: string, scope: TemplateScope) => {
+    if (scope === 'all') { setAssignment({ defaultId: id, byCourse: {} }); return; }
+    if (!courseId) return;
+    setAssignment(prev => ({ ...prev, byCourse: { ...prev.byCourse, [courseId]: { templateId: id, courseName } } }));
+  };
+
+  const clearCourseTemplate = (id = courseId) => setAssignment(prev => {
+    const byCourse = { ...prev.byCourse };
+    delete byCourse[id];
+    return { ...prev, byCourse };
+  });
+
+  /** Tạo bảng trên Supabase bằng PAT đã lưu ở Cài đặt. */
+  const createTemplatesTable = async () => {
+    await SupabaseService.initializeDatabaseSchema(config, config.supabasePat);
+    await reloadTemplates();
+  };
 
   /* ---------- Lớp / môn ---------- */
   const loadClasses = async (want: Pick<MonitorPrefs, 'classIds' | 'courseId'> = {}) => {
@@ -149,7 +217,11 @@ export function useStudentMonitor() {
     }
   };
 
-  /* ---------- Đánh giá + lọc ---------- */
+  /* ---------- Đánh giá + lọc (theo mẫu đang áp dụng cho môn) ---------- */
+  const courseName = courses.find(c => c.value === courseId)?.label || '';
+  const { template: activeTemplate, perCourse: activePerCourse } = resolveTemplate(templates, assignment, courseId);
+  const monitorRules = activeTemplate.monitor;
+  const rules = activeTemplate.analysis;
   const watchList = useMemo(() => parseWatchList(watchText), [watchText]);
   const { rows, watchMissing } = useMemo(
     () => evaluateMonitor(baseRows, monitorRules, rules, watchList),
@@ -216,15 +288,7 @@ export function useStudentMonitor() {
     return (has ? list.filter(w => plainText(w) !== key) : [...list, name]).join('\n');
   });
 
-  /* ---------- Mức giám sát (Chuẩn / Chặt) ---------- */
-  const preset = detectPreset(monitorRules, rules);
-  const applyPreset = (p: MonitorPreset) => {
-    setMonitorRules(MONITOR_PRESETS[p].monitor);
-    setRules(MONITOR_PRESETS[p].analysis);
-  };
-
   /* ---------- AI viết nhận xét (chỉ chạy khi bấm) ---------- */
-  const courseName = courses.find(c => c.value === courseId)?.label || '';
   const aiCredentials = { provider: config.aiProvider, modelName: config.aiModelName, apiKey: config.aiApiKey, apiUrl: config.aiApiUrl };
 
   const handleClassAi = async () => {
@@ -280,12 +344,15 @@ export function useStudentMonitor() {
   return {
     classes, selectedClassIds, courses, courseId, setCourseId, courseName,
     rows, visibleRows, testCols, overview, filterCounts, watchList, watchMissing,
-    monitorRules, setMonitorRules, rules, setRules, watchText, setWatchText,
+    monitorRules, rules, watchText, setWatchText,
+    templates, templateSource, templateError, templatesLoading, assignment, activeTemplate, activePerCourse,
+    reloadTemplates, saveTemplate, deleteTemplate, applyTemplate, clearCourseTemplate, createTemplatesTable,
+    canCreateTable: !!config.supabasePat?.trim(),
     filters, toggleFilter, clearFilters: () => { setFilters([]); setChartFilter(null); }, query, setQuery,
     view, setView, distributions, chartFilter, clearChartFilter: () => setChartFilter(null), openChartBin, openRiskLevel,
     busy, progress, statusText, classAi, studentAi,
     handleClassChange, handleLoad, handleClassAi, handleStudentAi, handleExport,
-    exerciseLoading, loadStudentExercises, toggleWatch, preset, applyPreset,
+    exerciseLoading, loadStudentExercises, toggleWatch,
     reloadClasses: () => loadClasses(classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current)
   };
 }
