@@ -4,6 +4,16 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.26.0] - 2026-10-16
+
+### ⚡ Hiệu năng
+- **Cache dữ liệu danh mục QLĐT**: hệ đào tạo, danh sách lớp, môn của lớp, buổi của môn được giữ 10 phút — chuyển qua lại giữa Chấm hàng loạt / Giám sát / Chăm sóc hay mở lại popup không gọi lại API (trước đây mỗi lần chuyển tab gọi lại 4–6 request). Cache tách theo tài khoản, tự xoá khi tắt trình duyệt; request trùng đang chạy được dùng chung.
+  - Nút **Thử lại / Tải lại** danh sách lớp bỏ qua cache để lấy dữ liệu mới.
+  - Không cache dữ liệu thay đổi liên tục: bài nộp, tiến độ BTVN, điểm, điểm danh, chăm sóc học viên.
+- Token QLĐT dùng lại trong 60 giây và dùng chung cho các request song song — không đọc tab QLĐT ở mỗi request nữa (Giám sát gọi theo từng sinh viên), đặc biệt nhanh hơn khi tab QLĐT đang ngủ. API báo hết phiên (401) thì bỏ token ngay.
+
+---
+
 ## [5.25.4] - 2026-10-16
 
 ### 🐛 Sửa lỗi

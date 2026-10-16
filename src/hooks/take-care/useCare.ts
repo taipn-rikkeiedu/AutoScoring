@@ -30,9 +30,9 @@ export function useCare() {
   const prefsLoaded = useRef(false);
 
   /* ---------- Lớp (nhớ lần trước; đang mở trang chăm sóc của 1 lớp thì chọn sẵn lớp đó) ---------- */
-  const loadClasses = async (want?: string) => {
+  const loadClasses = async (want?: string, force = false) => {
     try {
-      const list = await listQldtClasses(await getQldtAuth());
+      const list = await listQldtClasses(await getQldtAuth(), force);
       setClasses(list);
       if (!list.length) setStatusText('Tài khoản QLĐT đang đăng nhập không có lớp nào (đã tìm theo từng hệ đào tạo).');
       if (want && list.some(c => c.value === want)) setClassId(want);
@@ -125,7 +125,7 @@ export function useCare() {
   };
 
   return {
-    classes, classId, setClassId, range, setRange, reloadClasses: () => loadClasses(classId),
+    classes, classId, setClassId, range, setRange, reloadClasses: () => loadClasses(classId, true),
     cases, visibleCases, meta, loading, statusText, statusCounts, statusFilters, toggleStatusFilter,
     clearStatusFilters: () => setStatusFilters([]), query, setQuery,
     history, loadHistory, saveCase, handleLoad, handleExport

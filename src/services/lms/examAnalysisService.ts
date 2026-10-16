@@ -1,4 +1,5 @@
 import { QldtAuthError, qldtGet } from './qldtApiClient';
+import { cachedQldtGet } from './qldtCache';
 
 export interface QldtOption {
   value: string;
@@ -19,11 +20,11 @@ let classCache: QldtClass[] = [];
  * QLĐT (từ 16/10/2026) lấy lớp theo từng hệ đào tạo: /systems/me → /classes/system/:id; /classes/system/0
  * (tất cả hệ, cách cũ) vẫn gọi kèm để không mất lớp nếu còn dùng được. Gộp, bỏ trùng theo id.
  */
-export async function listQldtClasses(auth: string): Promise<QldtOption[]> {
+export async function listQldtClasses(auth: string, force = false): Promise<QldtOption[]> {
   const tolerant = <T,>(p: Promise<T>, empty: T) => p.catch((e) => { if (e instanceof QldtAuthError) throw e; return empty; });
-  const systems = (await tolerant(qldtGet<{ id: number | string }[]>('/systems/me', auth), [])) || [];
+  const systems = (await tolerant(cachedQldtGet<{ id: number | string }[]>('/systems/me', auth, { force }), [])) || [];
   const ids = ['0', ...systems.map(s => String(s.id))];
-  const lists = await Promise.all(ids.map(id => tolerant(qldtGet<QldtClass[]>(`/classes/system/${id}`, auth), [] as QldtClass[])));
+  const lists = await Promise.all(ids.map(id => tolerant(cachedQldtGet<QldtClass[]>(`/classes/system/${id}`, auth, { force }), [] as QldtClass[])));
   const byId = new Map<string, QldtClass>();
   lists.flat().forEach(c => { if (c && !byId.has(String(c.id))) byId.set(String(c.id), c); });
   classCache = [...byId.values()];
@@ -34,12 +35,12 @@ export async function listQldtClasses(auth: string): Promise<QldtOption[]> {
 }
 
 /** Môn học của lớp: gộp môn đang gán cho lớp và môn trong chương trình (theo học kỳ). */
-export async function listQldtCourses(auth: string, classId: string): Promise<QldtOption[]> {
+export async function listQldtCourses(auth: string, classId: string, force = false): Promise<QldtOption[]> {
   const out = new Map<string, QldtOption>();
   const cached = classCache.find(c => String(c.id) === String(classId));
   (cached?.courses || []).forEach(c => out.set(String(c.id), { value: String(c.id), label: c.name }));
   try {
-    const detail = await qldtGet<any>(`/classes/${classId}`, auth);
+    const detail = await cachedQldtGet<any>(`/classes/${classId}`, auth, { force });
     for (const sem of detail?.specializes?.semesters || []) {
       for (const c of sem.courses || []) {
         if (!out.has(String(c.id))) out.set(String(c.id), { value: String(c.id), label: `${c.name} — ${sem.name}` });
@@ -65,8 +66,8 @@ export async function fetchStudentExercises(auth: string, studentId: string | nu
 }
 
 /** Danh sách buổi của môn (theo thứ tự buổi học). */
-export async function fetchCourseSessions(auth: string, courseId: string): Promise<{ id: string; name: string; position: number }[]> {
-  const list = (await qldtGet<any[]>(`/sessions/course/${courseId}`, auth)) || [];
+export async function fetchCourseSessions(auth: string, courseId: string, force = false): Promise<{ id: string; name: string; position: number }[]> {
+  const list = (await cachedQldtGet<any[]>(`/sessions/course/${courseId}`, auth, { force })) || [];
   return list
     .map(s => ({ id: String(s.id), name: String(s.name || `Buổi ${s.position ?? ''}`).trim(), position: Number(s.position) || 0 }))
     .sort((a, b) => a.position - b.position);

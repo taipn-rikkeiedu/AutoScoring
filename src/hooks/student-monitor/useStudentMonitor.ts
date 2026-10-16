@@ -163,15 +163,16 @@ export function useStudentMonitor() {
   };
 
   /* ---------- Lớp / môn ---------- */
-  const loadClasses = async (want: Pick<MonitorPrefs, 'classIds' | 'courseId'> = {}) => {
+  /** force: bỏ qua cache danh mục (nút Thử lại). */
+  const loadClasses = async (want: Pick<MonitorPrefs, 'classIds' | 'courseId'> = {}, force = false) => {
     try {
       const auth = await getQldtAuth();
-      const list = await listQldtClasses(auth);
+      const list = await listQldtClasses(auth, force);
       setClasses(list);
       setClassError(list.length ? '' : 'Tài khoản QLĐT đang đăng nhập không có lớp nào.');
       const keep = (want.classIds || []).filter(id => list.some(c => c.value === id));
       setSelectedClassIds(keep);
-      if (keep.length) await loadCourses(keep, want.courseId || '', auth);
+      if (keep.length) await loadCourses(keep, want.courseId || '', auth, force);
       setStatusText(`Đã tải ${list.length} lớp. Chọn lớp và môn học rồi bấm "Tải dữ liệu".`);
     } catch (e: any) {
       setStatusText('Không tải được danh sách lớp: ' + e.message);
@@ -180,10 +181,10 @@ export function useStudentMonitor() {
     }
   };
 
-  const loadCourses = async (classIds: string[], wantCourseId: string, auth?: string) => {
+  const loadCourses = async (classIds: string[], wantCourseId: string, auth?: string, force = false) => {
     if (!classIds.length) { setCourses([]); setCourseId(''); return; }
     try {
-      const list = await listQldtCourses(auth || await getQldtAuth(), classIds[0]);
+      const list = await listQldtCourses(auth || await getQldtAuth(), classIds[0], force);
       setCourses(list);
       setCourseId(list.some(c => c.value === wantCourseId) ? wantCourseId : '');
     } catch (e: any) {
@@ -417,6 +418,6 @@ export function useStudentMonitor() {
     busy, exporting, progress, statusText, classAi, studentAi,
     handleClassChange, handleLoad, handleClassAi, handleStudentAi, handleExport,
     exerciseLoading, loadStudentExercises, toggleWatch,
-    reloadClasses: () => loadClasses(classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current)
+    reloadClasses: () => loadClasses(classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current, true)
   };
 }

@@ -81,7 +81,29 @@ async function readTokensFromQldtTabs(): Promise<string[]> {
   return out;
 }
 
+/** Token vừa chọn: dùng lại trong chừng này để không phải đọc tab QLĐT ở mỗi request (Giám sát gọi theo từng SV). */
+const AUTH_MEMO_MS = 60_000;
+let authMemo: { auth: string; at: number } | null = null;
+let authInflight: Promise<string> | null = null;
+
+/** Bỏ token đang dùng (API trả 401): xoá cả bản lưu lẫn bản nhớ tạm. */
+function dropAuth() {
+  authMemo = null;
+  chrome.storage.local.remove(STORAGE_KEYS.qldtAuthToken);
+}
+
 export async function getQldtAuth(): Promise<string> {
+  if (authMemo && Date.now() - authMemo.at < AUTH_MEMO_MS && !isExpired(authMemo.auth)) return authMemo.auth;
+  // Nhiều request song song → chỉ đọc tab 1 lần
+  if (!authInflight) {
+    authInflight = resolveQldtAuth()
+      .then((auth) => { authMemo = { auth, at: Date.now() }; return auth; })
+      .finally(() => { authInflight = null; });
+  }
+  return authInflight;
+}
+
+async function resolveQldtAuth(): Promise<string> {
   const cached = (await chrome.storage.local.get(STORAGE_KEYS.qldtAuthToken))[STORAGE_KEYS.qldtAuthToken] as string | undefined;
   const candidates = [...new Set([...(await readTokensFromQldtTabs()).map(toAuthHeader), ...(cached ? [cached] : [])])];
   // Token còn hạn lâu nhất trước; token không rõ hạn (không phải JWT) xếp sau, giữ thứ tự tab → đã lưu
@@ -111,7 +133,7 @@ export function qldtGet<T = any>(path: string, auth: string): Promise<T> {
 
         if (response.status === 401) {
           // Token đã lưu hết hạn → xoá để lần sau báo đăng nhập lại thay vì dùng tiếp token hỏng
-          chrome.storage.local.remove(STORAGE_KEYS.qldtAuthToken);
+          dropAuth();
           return reject(new QldtAuthError('Phiên đăng nhập QLĐT đã hết hạn. Hãy mở qldt.rikkei.edu.vn, đăng nhập lại rồi thử lại.'));
         }
         if (response.status === 403) {
@@ -137,7 +159,7 @@ export function qldtGetRaw(path: string, auth: string): Promise<{ url: string; s
         if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
         if (!response || !response.success) return reject(new Error(response?.error || 'Không phản hồi từ background proxy'));
         if (response.status === 401) {
-          chrome.storage.local.remove(STORAGE_KEYS.qldtAuthToken);
+          dropAuth();
           return reject(new QldtAuthError('Phiên đăng nhập QLĐT đã hết hạn. Hãy mở qldt.rikkei.edu.vn, đăng nhập lại rồi thử lại.'));
         }
         resolve({ url, status: response.status ?? 0, text: response.text ?? '' });
@@ -161,7 +183,7 @@ export function qldtWrite<T = any>(method: 'PATCH', path: string, auth: string, 
         let json: any = null;
         try { json = response.text ? JSON.parse(response.text) : null; } catch { /* body không phải JSON */ }
         if (response.status === 401) {
-          chrome.storage.local.remove(STORAGE_KEYS.qldtAuthToken);
+          dropAuth();
           return reject(new QldtAuthError('Phiên đăng nhập QLĐT đã hết hạn. Hãy mở qldt.rikkei.edu.vn, đăng nhập lại rồi thử lại.'));
         }
         if (response.status === 403) return reject(new QldtAuthError('Tài khoản QLĐT đang đăng nhập không có quyền sửa dữ liệu này.'));

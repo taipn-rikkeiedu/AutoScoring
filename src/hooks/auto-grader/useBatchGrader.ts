@@ -62,12 +62,12 @@ export function useBatchGrader() {
   const prefsLoaded = useRef(false);
 
   /* ---------- Lớp / môn / buổi (nhớ lựa chọn lần trước) ---------- */
-  const loadSessions = async (cid: string, want = '', auth?: string) => {
+  const loadSessions = async (cid: string, want = '', auth?: string, force = false) => {
     setSessions([]);
     setSessionId('');
     if (!cid) return;
     try {
-      const list = await fetchCourseSessions(auth || await getQldtAuth(), cid);
+      const list = await fetchCourseSessions(auth || await getQldtAuth(), cid, force);
       setSessions(list.map(s => ({ value: s.id, label: s.name })));
       if (list.some(s => s.id === want)) setSessionId(want);
     } catch (e: any) {
@@ -75,7 +75,7 @@ export function useBatchGrader() {
     }
   };
 
-  const loadCourses = async (id: string, want: Prefs = {}, auth?: string) => {
+  const loadCourses = async (id: string, want: Prefs = {}, auth?: string, force = false) => {
     setCourses([]);
     setCourseId('');
     setSessions([]);
@@ -83,26 +83,27 @@ export function useBatchGrader() {
     if (!id) return;
     try {
       const a = auth || await getQldtAuth();
-      const list = await listQldtCourses(a, id);
+      const list = await listQldtCourses(a, id, force);
       setCourses(list);
       if (want.courseId && list.some(c => c.value === want.courseId)) {
         setCourseId(want.courseId);
-        await loadSessions(want.courseId, want.sessionId, a);
+        await loadSessions(want.courseId, want.sessionId, a, force);
       }
     } catch (e: any) {
       setStatusText('Không tải được môn học: ' + e.message);
     }
   };
 
-  const loadClasses = async (want: Prefs = {}) => {
+  /** force: bỏ qua cache danh mục (nút Thử lại). */
+  const loadClasses = async (want: Prefs = {}, force = false) => {
     try {
       const auth = await getQldtAuth();
-      const list = await listQldtClasses(auth);
+      const list = await listQldtClasses(auth, force);
       setClasses(list);
       if (!list.length) setStatusText('Tài khoản QLĐT đang đăng nhập không có lớp nào (đã tìm theo từng hệ đào tạo).');
       if (want.classId && list.some(c => c.value === want.classId)) {
         setClassId(want.classId);
-        await loadCourses(want.classId, want, auth);
+        await loadCourses(want.classId, want, auth, force);
       }
     } catch (e: any) {
       setStatusText('Không tải được danh sách lớp: ' + e.message);
@@ -342,7 +343,7 @@ export function useBatchGrader() {
 
   return {
     classes, classesTried, classId, courses, courseId, sessions, sessionId, setSessionId,
-    handleClassChange, handleCourseChange, reloadClasses: () => loadClasses({ classId, courseId, sessionId }),
+    handleClassChange, handleCourseChange, reloadClasses: () => loadClasses({ classId, courseId, sessionId }, true),
     students, visibleStudents, statusCounts, statusFilters, toggleStatusFilter, clearStatusFilters: () => setStatusFilters([]),
     query, setQuery, checked, setChecked, checkedItems,
     loading, loadProgress, grading, statusText, aiStatus, scale,
