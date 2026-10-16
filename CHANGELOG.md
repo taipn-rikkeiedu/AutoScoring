@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.20.3] - 2026-10-16
+
+### ✨ Cải thiện
+- **AI nhận xét sinh viên gọn hơn** (theo nguyên tắc thiết kế: cho thấy trạng thái hệ thống, tối giản): bỏ khung nhận xét chiếm chỗ trong tab Cần xử lý; trạng thái nằm ngay trên nút — "Đang viết…" → **"✓ Xem nhận xét AI"** (xanh lá) → bấm mở khung nổi có **Sao chép** và **Tạo lại**; tạo xong lần đầu thì khung tự mở. Lỗi thì nút đỏ "AI lỗi · thử lại", di chuột xem lý do.
+
+---
+
 ## [5.20.2] - 2026-10-16
 
 ### ✨ Cải thiện

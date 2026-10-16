@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Drawer, Button, Tag, Typography, Flex, Alert, Descriptions, Table, Tooltip, Space, Tabs } from 'antd';
-import { LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import { Drawer, Button, Tag, Typography, Flex, Alert, Descriptions, Table, Tooltip, Space, Tabs, Popover } from 'antd';
+import {
+  LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined, CheckCircleFilled, CopyOutlined, ReloadOutlined
+} from '@ant-design/icons';
+import type { AiResult } from '~/src/hooks/student-monitor/useStudentMonitor';
+import { useToast } from '~/src/core/ToastContext';
 import { StudentAttendancePanel } from '~/src/components/StudentAttendancePanel';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
@@ -139,6 +143,52 @@ const ExamTable: React.FC<{ row: MonitorRow; levels: MonitorLevel[] }> = ({ row:
   );
 };
 
+/**
+ * Nút AI nhận xét gọn: trạng thái nằm ngay trên nút (đang viết → xong màu xanh → lỗi màu đỏ),
+ * nội dung nhận xét mở trong khung nổi thay vì chiếm chỗ trong trang. Tạo xong lần đầu thì tự mở.
+ */
+const AiCommentButton: React.FC<{ ai?: AiResult; onRun: () => void }> = ({ ai, onRun }) => {
+  const { showToast } = useToast();
+  const [open, setOpen] = useState(false);
+  useEffect(() => { if (ai?.text && !ai.loading) setOpen(true); }, [ai?.text, ai?.loading]);
+
+  if (ai?.loading) return <Button size="small" icon={<RobotOutlined />} loading>Đang viết…</Button>;
+  if (ai?.error) {
+    return (
+      <Tooltip title={`${ai.error} — bấm để thử lại`}>
+        <Button size="small" danger icon={<ReloadOutlined />} onClick={onRun}>AI lỗi · thử lại</Button>
+      </Tooltip>
+    );
+  }
+  if (!ai?.text) return <Button size="small" icon={<RobotOutlined />} onClick={onRun}>AI nhận xét</Button>;
+
+  const copy = () => navigator.clipboard.writeText(ai.text!)
+    .then(() => showToast('Đã sao chép nhận xét AI.', 'success'))
+    .catch(() => showToast('Không sao chép được — kiểm tra quyền Clipboard.', 'error'));
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      trigger="click"
+      placement="bottomRight"
+      title={
+        <Flex justify="space-between" align="center" gap={12}>
+          <span>Nhận xét AI</span>
+          <Space size={4}>
+            <Button size="small" icon={<CopyOutlined />} onClick={copy}>Sao chép</Button>
+            <Button size="small" icon={<ReloadOutlined />} onClick={() => { setOpen(false); onRun(); }}>Tạo lại</Button>
+          </Space>
+        </Flex>
+      }
+      content={<div style={{ width: 380, maxWidth: '80vw', maxHeight: 320, overflowY: 'auto', whiteSpace: 'pre-wrap' }}>{ai.text}</div>}
+    >
+      <Button size="small" icon={<CheckCircleFilled />} style={{ color: '#389e0d', borderColor: '#b7eb8f', background: '#f6ffed' }}>
+        Xem nhận xét AI
+      </Button>
+    </Popover>
+  );
+};
+
 /* ---------- Ô chỉ số nhanh ở đầu chi tiết: giá trị lớn, tô màu theo mức nếu chạm ngưỡng ---------- */
 const Kpi: React.FC<{ label: string; value: React.ReactNode; sub?: React.ReactNode; color?: string }> = ({ label, value, sub, color }) => (
   <div style={{ padding: '8px 10px', borderRadius: 8, background: color ? `${color}12` : '#fafafa', border: `1px solid ${color ? `${color}55` : '#f0f0f0'}`, minWidth: 0 }}>
@@ -196,10 +246,8 @@ export const StudentMonitorDrawer: React.FC<{
     <Flex vertical gap={8}>
       <Flex justify="space-between" align="center">
         <Text type="secondary">{problems ? `${problems} chỉ số chạm ngưỡng, nặng nhất trước` : 'Không có vấn đề cần xử lý.'}</Text>
-        <Button size="small" icon={<RobotOutlined />} onClick={() => m.handleStudentAi(r)} loading={ai?.loading}>AI nhận xét</Button>
+        <AiCommentButton ai={ai} onRun={() => m.handleStudentAi(r)} />
       </Flex>
-      {ai?.error && <Alert type="error" showIcon title={ai.error} />}
-      {ai?.text && <Alert type="info" title={<span style={{ whiteSpace: 'pre-wrap' }}>{ai.text}</span>} />}
       {r.issues.map(i => <IssueItem key={i.kind} issue={i} />)}
       {r.early.map(e => <IssueItem key={`early-${e.kind}`} issue={e} early />)}
       {hasSuspicion && (
