@@ -4,6 +4,19 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.19.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Lịch nghỉ học** trong Giám sát học tập (nút 📅 cạnh Danh sách / Biểu đồ), dùng điểm danh `/attendance` và đơn xin nghỉ `/request-leave` của QLĐT (tải cùng lúc với dữ liệu lớp):
+  - **Theo ngày**: chọn ngày học (‹ ›), xem sinh viên nào nghỉ, ca nào (nghỉ ít nhất 1 ca là nghỉ ngày đó), có phép hay không, đơn xin nghỉ (Phê duyệt / Từ chối / Đang chờ, lý do, ảnh minh chứng), và đang ở buổi thứ mấy của chuỗi nghỉ liên tiếp.
+  - **Nghỉ liên tiếp**: sinh viên nghỉ từ N buổi học liên tiếp (mặc định 2, tính cả có phép; bỏ qua ngày không có lịch học), khoảng ngày, số buổi có phép / không phép, đánh dấu "đang nghỉ".
+  - **Bảng điểm danh** sinh viên × ngày (mỗi ô 1 ca: P = có phép, K = không phép), lọc chỉ sinh viên có nghỉ.
+  - Bấm tên sinh viên để mở chi tiết; chi tiết hiện số buổi nghỉ và nghỉ liên tiếp tối đa.
+- **Chỉ số "Nghỉ liên tiếp (buổi)"** trong bảng mức của mẫu giám sát; mẫu Chuẩn / Chặt: Cảnh báo từ 2 buổi, Báo động từ 3 buổi. Excel thêm cột số buổi nghỉ, nghỉ không phép, nghỉ liên tiếp tối đa.
+- Mã điểm danh: 4 = có mặt, 1 = nghỉ có phép, 0 = nghỉ không phép (suy ra từ dữ liệu); mã 3 chưa rõ nghĩa nên chưa tính là nghỉ.
+
+---
+
 ## [5.18.1] - 2026-10-16
 
 ### 🌿 Tinh giản tối đa Bảng danh sách Giám sát học tập (Minimalist & Anti-Clutter UI)
