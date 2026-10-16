@@ -4,6 +4,19 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.9.4] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- **Điểm thi trong Giám sát học tập lấy đúng điểm chính thức của QLĐT** (bảng điểm tổng kết) theo công thức từng môn, khớp trang Thống kê học tập:
+  - TB Hackathon = 30% trắc nghiệm + 70% tự luận.
+  - Môn thi tự luận: cuối môn = 30% trắc nghiệm + 70% tự luận.
+  - **Môn thi project** (vd IT215): cuối môn = 70% **điểm sản phẩm** + 30% **điểm kiến thức** (+ vấn đáp theo trọng số của môn); bảng điểm hiện "Kiến thức / Sản phẩm" thay cho "TN / TL".
+- **Bị tính "Vắng thi" sai** khi môn có nhiều lịch thi (thi kiến thức + thi lại trắc nghiệm cuối môn, thi bổ sung Hackathon) hoặc thi project: nay chỉ "Vắng thi" khi sinh viên không làm bài nào của đợt đó (tính cả thi bổ sung và điểm project).
+- **Thi bổ sung** hiện ghi chú điểm; nếu QLĐT chưa tính vào điểm đợt đó thì ghi rõ và không báo "điểm thi thấp" theo điểm cũ.
+- Excel thêm cột TB Hackathon, Tổng điểm thi, Thi bổ sung.
+
+---
+
 ## [5.9.3] - 2026-10-16
 
 ### ✨ Cải thiện

@@ -46,7 +46,11 @@ export interface TestResult {
   comment?: string;
   link?: string;
   date?: string;
+  makeup?: boolean;           // lịch "THI BỔ SUNG …"
 }
+
+/** Hình thức thi cuối môn: tự luận (TN + TL) hoặc project (kiến thức + sản phẩm + vấn đáp). */
+export type ExamType = 'ESSAY' | 'PROJECT';
 
 export interface StudentExercise {
   title: string;
@@ -70,7 +74,10 @@ export interface AnalysisRow {
   hw: number | null;          // tỉ lệ nộp BTVN (%)
   absentRate: number | null;  // tỉ lệ nghỉ học (%)
   tests: Record<string, TestResult>;
-  absentPhases: TestPhase[];  // các đợt thi SV vắng (bỏ khỏi điểm thi)
+  absentPhases: TestPhase[];  // các đợt thi SV không làm bài nào (bỏ khỏi điểm thi)
+  examType: ExamType;
+  makeupNotes: string[];      // ghi chú thi bổ sung
+  makeupPending: TestPhase[]; // đợt có thi bổ sung nhưng QLĐT chưa tính vào điểm
   hkTN: number | null; hkTL: number | null; ckTN: number | null; ckTL: number | null;
   hk: number | null; ck: number | null;
   exam: number | null;        // điểm thi tổng hợp: cuối môn, chưa có thì Hackathon
@@ -120,15 +127,13 @@ export function linkKey(u: string): string | null {
 }
 
 /* ---------- Chuẩn hoá dữ liệu dashboard 1 lớp ---------- */
-function combine(tn: number | null, tl: number | null, w: { tn: number; tl: number } | null): number | null {
-  if (tn == null && tl == null) return null;
-  if (tn == null) return tl;
-  if (tl == null) return tn;
-  return w ? tn * w.tn + tl * w.tl : (tn + tl) / 2;
-}
-
 /**
  * Chuyển dữ liệu `/classes/dashboard/{classId}/{courseId}` thành các dòng phân tích.
+ * Điểm lấy từ bảng điểm chính thức (finalResult) theo công thức của môn — khớp trang Thống kê học tập của QLĐT:
+ * - TB Hackathon = TN × hackathon_1 + TL × hackathon_2
+ * - Môn thi tự luận: cuối môn = TN × mutiple_choice_1 + TL × essay_1
+ * - Môn thi project: cuối môn = sản phẩm × project + kiến thức × quizzi + vấn đáp × interview_point
+ * Ô trống tính 0 như QLĐT. resultTest dùng để xem chi tiết (nhận xét, link) và xác định vắng thi / thi bổ sung.
  * `testCols` được bổ sung các bài thi gặp được (dùng chung khi gộp nhiều lớp).
  */
 export function parseClassDashboard(d: any, classLabel: string, testCols: Map<string, TestColumn>): AnalysisRow[] {
@@ -142,54 +147,82 @@ export function parseClassDashboard(d: any, classLabel: string, testCols: Map<st
       if (f) { formula = f; break outer; }
     }
   }
-  const wHk = formula?.hackathon ? { tn: formula.hackathon.multipleChoice, tl: formula.hackathon.essay } : null;
-  const fe = formula?.finalExam?.essay;
-  const wCk = fe ? { tn: fe.multipleChoice, tl: fe.written } : null;
+  const examType: ExamType = formula?.finalExam?.type === 'PROJECT' ? 'PROJECT' : 'ESSAY';
+  const wHk = { tn: formula?.hackathon?.multipleChoice ?? 0.3, tl: formula?.hackathon?.essay ?? 0.7 };
+  const wEssay = { tn: formula?.finalExam?.essay?.multipleChoice ?? 0.3, tl: formula?.finalExam?.essay?.written ?? 0.7 };
+  const wProject = {
+    product: formula?.finalExam?.project?.product ?? 0.7,
+    knowledge: formula?.finalExam?.project?.knowledge ?? 0.3,
+    interview: formula?.finalExam?.project?.interview ?? 0
+  };
 
   for (const it of list) {
     const s = it.student || {};
-    const fr = it.finalResult || {};
+    const fr = it.finalResult || null;
     const tests: Record<string, TestResult> = {};
     for (const t of it.resultTest || []) {
       const sch = t.testSchedule || {};
       const test = sch.test || t.test || {};
       const phase: TestPhase = /hackathon/i.test(sch.type || '') ? 'hk' : 'ck';
       const kind: TestKind = /tự luận|tu luan|essay/i.test(test.type || '') ? 'TL' : 'TN';
-      const key = `${phase}|${kind}|${test.testName || sch.id}`;
+      const key = `${sch.id ?? phase}|${kind}`;
       if (!testCols.has(key)) testCols.set(key, { key, phase, kind, name: test.testName || sch.type, date: sch.testStart || '' });
-      // Không nộp bài (submittedAt rỗng) mà điểm trống / 0 → vắng thi, không tính là 0 điểm
+      // Không nộp bài (submittedAt rỗng) mà điểm trống / 0 → vắng bài thi này
       const absent = 'submittedAt' in t && !t.submittedAt && !(Number(t.point) > 0);
       tests[key] = {
         point: absent || t.point == null ? null : Number(t.point), absent, phase, kind,
-        name: test.testName || sch.type, schedType: sch.type, comment: t.comment, link: t.link, date: sch.testStart
+        name: test.testName || sch.type, schedType: sch.type, comment: t.comment, link: t.link, date: sch.testStart,
+        makeup: /bổ sung|bo sung/i.test(sch.type || '')
       };
     }
+    const testList = Object.values(tests);
 
-    const pts = (phase: TestPhase, kind: TestKind) =>
-      avg(Object.values(tests).filter(t => t.phase === phase && t.kind === kind).map(t => t.point));
-    let hkTN = pts('hk', 'TN');
-    let hkTL = pts('hk', 'TL');
-    let ckTN = pts('ck', 'TN');
-    let ckTL = pts('ck', 'TL');
-    // Dự phòng khi không có resultTest: lấy từ bảng điểm tổng kết
-    if (!Object.keys(tests).length) {
-      const num = (k: string) => (fr[k] == null ? null : Number(fr[k]));
-      hkTN = num('hackathon_1'); hkTL = num('hackathon_2');
-      ckTN = avg([num('mutiple_choice_1'), num('mutiple_choice_2')]);
-      ckTL = avg([num('essay_1'), num('essay_2'), num('project')]);
+    // Vắng thi cả đợt: đợt có lịch thi nhưng SV không làm bài nào (tính cả thi bổ sung; môn project tính cả điểm project)
+    const hasProject = examType === 'PROJECT' && fr != null && (fr.project != null || Number(fr.doProject) === 1);
+    const absentPhases = (['hk', 'ck'] as TestPhase[]).filter(ph => {
+      const own = testList.filter(t => t.phase === ph);
+      if (!own.length || own.some(t => !t.absent)) return false;
+      return !(ph === 'ck' && hasProject);
+    });
+
+    // Điểm chính thức (ô trống = 0 như QLĐT); không có bảng điểm thì để trống
+    const n = (k: string) => (fr && fr[k] != null ? Number(fr[k]) : 0);
+    const official = fr != null;
+    const hkAbsent = absentPhases.includes('hk');
+    const ckAbsent = absentPhases.includes('ck');
+    const hkTN = official && !hkAbsent ? n('hackathon_1') : null;
+    const hkTL = official && !hkAbsent ? n('hackathon_2') : null;
+    const ckTN = official && !ckAbsent ? (examType === 'PROJECT' ? n('quizzi') : n('mutiple_choice_1')) : null;
+    const ckTL = official && !ckAbsent ? (examType === 'PROJECT' ? n('project') : n('essay_1')) : null;
+    const hk = hkTN != null && hkTL != null ? wHk.tn * hkTN + wHk.tl * hkTL : null;
+    const ck = ckTN == null || ckTL == null ? null
+      : examType === 'PROJECT'
+        ? wProject.product * ckTL + wProject.knowledge * ckTN + wProject.interview * n('interview_point')
+        : wEssay.tn * ckTN + wEssay.tl * ckTL;
+
+    // Thi bổ sung: ghi chú điểm, và báo nếu QLĐT chưa tính vào điểm đợt đó
+    const makeupNotes: string[] = [];
+    const makeupPending: TestPhase[] = [];
+    for (const ph of ['hk', 'ck'] as TestPhase[]) {
+      const mk = testList.filter(t => t.phase === ph && t.makeup && !t.absent);
+      if (!mk.length) continue;
+      const tn = mk.find(t => t.kind === 'TN')?.point ?? null;
+      const tl = mk.find(t => t.kind === 'TL')?.point ?? null;
+      const parts = [tn != null ? `TN ${fmtScore(tn)}` : '', tl != null ? `TL ${fmtScore(tl)}` : ''].filter(Boolean).join(', ');
+      const counted = ph === 'hk' && tn != null && tl != null && hk != null && Math.abs(wHk.tn * tn + wHk.tl * tl - hk) < 0.05;
+      makeupNotes.push(`Thi bổ sung ${PHASE_LABELS[ph]}: ${parts}${counted ? '' : ' — QLĐT chưa tính vào điểm đợt này'}`);
+      if (!counted) makeupPending.push(ph);
     }
-    // Vắng 1 phần của đợt thi thì không tính điểm tổng hợp đợt đó (trang QLĐT cũng chỉ đếm SV có đủ điểm)
-    const absentPhases = (['hk', 'ck'] as TestPhase[]).filter(ph => Object.values(tests).some(t => t.phase === ph && t.absent));
-    const hk = absentPhases.includes('hk') ? null : combine(hkTN, hkTL, wHk);
-    const ck = absentPhases.includes('ck') ? null : combine(ckTN, ckTL, wCk);
+
+    // "Năng lực tự làm": tự luận / sản phẩm project cuối môn, chưa có thì tự luận Hackathon
     const essayPhase: TestPhase | null = ckTL != null ? 'ck' : hkTL != null ? 'hk' : null;
 
     out.push({
       key: `${d?.classInfo?.id ?? classLabel}:${s.id}`,
       classLabel, studentId: s.id, name: s.fullName || '', code: s.studentCode || '', status: it.status || s.status || '',
-      hw: it.submissionRate != null ? Number(it.submissionRate) : (fr.homework != null ? Number(fr.homework) : null),
+      hw: it.submissionRate != null ? Number(it.submissionRate) : (fr?.homework != null ? Number(fr.homework) : null),
       absentRate: it.attendanceRate != null ? Number(it.attendanceRate) : null,
-      tests, absentPhases, hkTN, hkTL, ckTN, ckTL, hk, ck,
+      tests, absentPhases, examType, makeupNotes, makeupPending, hkTN, hkTL, ckTN, ckTL, hk, ck,
       exam: ck != null ? ck : hk,
       essay: ckTL != null ? ckTL : hkTL, essayPhase,
       aiAvg: null, aiCount: 0, exercises: null
@@ -253,7 +286,8 @@ export function flagRows<T extends AnalysisRow>(rows: T[], rules: AnalysisRules,
     const reasons: string[] = [];
     const dups = dupsByRow.get(r) || [];
     const ability = r.essay != null ? r.essay : r.exam;
-    const abilityLbl = r.essay != null && r.essayPhase ? `tự luận ${PHASE_LABELS[r.essayPhase]}` : 'thi';
+    const abilityLbl = r.essay == null || !r.essayPhase ? 'thi'
+      : r.essayPhase === 'ck' && r.examType === 'PROJECT' ? 'sản phẩm project' : `tự luận ${PHASE_LABELS[r.essayPhase]}`;
     const gap = r.hw != null && r.exam != null ? r.hw - r.exam : null;
 
     for (const ph of r.absentPhases) {

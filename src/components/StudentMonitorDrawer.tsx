@@ -3,7 +3,7 @@ import { Drawer, Button, Tag, Typography, Flex, Alert, Collapse, Descriptions, T
 import { LeftOutlined, RightOutlined, RobotOutlined } from '@ant-design/icons';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
-  MonitorRow, MonitorRules, ExamCell, RISK_LEVELS, STATUS_COLORS, fmtPercent, fmtDate
+  MonitorRow, MonitorRules, ExamCell, ExamCellKey, RISK_LEVELS, STATUS_COLORS, fmtPercent, fmtDate, examCellLabel
 } from '~/src/core/studentMonitor';
 import { TestColumn, ANALYSIS_LEVELS, fmtScore } from '~/src/core/examAnalysis';
 
@@ -87,9 +87,16 @@ const ExamValue: React.FC<{ value: ExamCell | number | null; rules: MonitorRules
 };
 
 const ExamTable: React.FC<{ row: MonitorRow; rules: MonitorRules }> = ({ row: r, rules }) => {
+  const parts = (a: ExamCellKey, b: ExamCellKey) => [
+    { label: examCellLabel(r, a).replace(/^(HK|CK) /, ''), value: r[a] },
+    { label: examCellLabel(r, b).replace(/^(HK|CK) /, ''), value: r[b] }
+  ];
   const data = [
-    { key: 'hk', phase: 'Hackathon', tn: r.hkTNCell, tl: r.hkTLCell, total: r.absentPhases.includes('hk') ? 'absent' as const : r.hk },
-    { key: 'ck', phase: 'Cuối môn', tn: r.ckTNCell, tl: r.ckTLCell, total: r.absentPhases.includes('ck') ? 'absent' as const : r.ck }
+    { key: 'hk', phase: 'Hackathon', parts: parts('hkTNCell', 'hkTLCell'), total: r.absentPhases.includes('hk') ? 'absent' as const : r.hk },
+    {
+      key: 'ck', phase: r.examType === 'PROJECT' ? 'Cuối môn (project)' : 'Cuối môn',
+      parts: parts('ckTNCell', 'ckTLCell'), total: r.absentPhases.includes('ck') ? 'absent' as const : r.ck
+    }
   ];
   return (
     <Table
@@ -98,10 +105,19 @@ const ExamTable: React.FC<{ row: MonitorRow; rules: MonitorRules }> = ({ row: r,
       pagination={false}
       dataSource={data}
       columns={[
-        { title: '', dataIndex: 'phase', key: 'phase' },
-        { title: 'Trắc nghiệm', key: 'tn', align: 'right', render: (_, d) => <ExamValue value={d.tn} rules={rules} /> },
-        { title: 'Tự luận', key: 'tl', align: 'right', render: (_, d) => <ExamValue value={d.tl} rules={rules} /> },
-        { title: <Tooltip title="Tính theo công thức của môn (vd 30% TN + 70% TL)">Tổng</Tooltip>, key: 'total', align: 'right', render: (_, d) => <ExamValue value={d.total} rules={rules} /> }
+        { title: 'Đợt thi', dataIndex: 'phase', key: 'phase' },
+        {
+          title: 'Thành phần', key: 'parts',
+          render: (_, d) => (
+            <Flex gap={16} wrap>
+              {d.parts.map(p => <span key={p.label}><Text type="secondary">{p.label} </Text><ExamValue value={p.value} rules={rules} /></span>)}
+            </Flex>
+          )
+        },
+        {
+          title: <Tooltip title="Theo công thức của môn trên QLĐT: Hackathon = 30% TN + 70% TL; cuối môn tự luận = 30% TN + 70% TL; cuối môn project = 70% sản phẩm + 30% kiến thức">Tổng</Tooltip>,
+          key: 'total', align: 'right', render: (_, d) => <ExamValue value={d.total} rules={rules} />
+        }
       ]}
     />
   );
@@ -190,6 +206,7 @@ export const StudentMonitorDrawer: React.FC<{
         {/* 3. Điểm thi + nhận xét của GV chấm */}
         <Section title="Điểm thi">
           <ExamTable row={r} rules={rules} />
+          {r.makeupNotes.map(note => <Alert key={note} type="info" showIcon title={note} />)}
           {tests.length > 0 && (
             <Collapse
               size="small"

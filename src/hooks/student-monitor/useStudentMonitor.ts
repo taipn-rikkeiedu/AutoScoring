@@ -9,7 +9,7 @@ import {
 } from '~/src/core/examAnalysis';
 import {
   MonitorBase, MonitorRow, MonitorRules, MonitorFilter, DEFAULT_MONITOR_RULES, MONITOR_FILTERS, RISK_LEVELS,
-  parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS,
+  parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS, examCellLabel,
   buildDistributions, DistributionBin
 } from '~/src/core/studentMonitor';
 import { callAiWithRateLimitRetry } from '~/src/services/aiService';
@@ -264,7 +264,10 @@ export function useStudentMonitor() {
         'Sắp vượt ngưỡng': r.early.map(e => e.label).join('; '),
         'Nghỉ học (%)': round1(r.absentRate), 'Thiếu bài tập (%)': round1(r.missingHomework), 'Chậm E-learning': r.unprepared
       };
-      EXAM_CELLS.forEach(c => { record[c.label] = r[c.key] === 'absent' ? 'Vắng' : round1(r[c.key] as number | null); });
+      EXAM_CELLS.forEach(c => { record[c.key === 'ckTNCell' || c.key === 'ckTLCell' ? `Cuối môn - ${examCellLabel(r, c.key)}` : c.label] = r[c.key] === 'absent' ? 'Vắng' : round1(r[c.key] as number | null); });
+      record['TB Hackathon'] = round1(r.hk);
+      record['Tổng điểm thi'] = round1(r.ck);
+      record['Thi bổ sung'] = r.makeupNotes.join('; ');
       Object.assign(record, {
         'R-Points': r.rpoints,
         'Nghi vấn BTVN': r.suspect ? ANALYSIS_LEVELS[r.level].label : '',

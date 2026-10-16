@@ -7,13 +7,20 @@
  * - Nghi vấn (BTVN cao nhưng thi thấp, trùng link) là nhãn riêng, không tính vào mức rủi ro.
  */
 import {
-  AnalysisRow, AnalysisRules, FlaggedRow, TestColumn, TestPhase, TestKind,
+  AnalysisRow, AnalysisRules, FlaggedRow, TestColumn, TestPhase, TestKind, ExamType,
   parseClassDashboard, flagRows, avg, fmtScore, PHASE_LABELS
 } from './examAnalysis';
 
 /** Điểm 1 phần thi: số điểm, 'absent' khi SV vắng thi, null khi chưa có bài thi này. */
 export type ExamCell = number | 'absent' | null;
 export type ExamCellKey = 'hkTNCell' | 'hkTLCell' | 'ckTNCell' | 'ckTLCell';
+
+/** Nhãn ô điểm: môn thi project thì cuối môn là Kiến thức (trắc nghiệm) + Sản phẩm (project). */
+export function examCellLabel(r: { examType: ExamType }, key: ExamCellKey): string {
+  if (r.examType === 'PROJECT' && key === 'ckTNCell') return 'Kiến thức';
+  if (r.examType === 'PROJECT' && key === 'ckTLCell') return 'Sản phẩm';
+  return EXAM_CELLS.find(c => c.key === key)!.label;
+}
 
 export const EXAM_CELLS: { key: ExamCellKey; phase: TestPhase; kind: TestKind; label: string }[] = [
   { key: 'hkTNCell', phase: 'hk', kind: 'TN', label: 'HK TN' },
@@ -132,14 +139,8 @@ export function parseMonitorClass(d: any, classLabel: string, testCols: Map<stri
   const rows = parseClassDashboard(d, classLabel, testCols);
   return rows.map((a, i) => {
     const it = list[i] || {};
-    const tests = Object.values(a.tests);
-    const cell = (phase: TestPhase, kind: TestKind, fallback: number | null): ExamCell => {
-      if (!tests.length) return fallback; // không có resultTest → điểm từ bảng tổng kết
-      const own = tests.filter(t => t.phase === phase && t.kind === kind);
-      if (!own.length) return null;
-      if (own.some(t => t.absent)) return 'absent';
-      return avg(own.map(t => t.point));
-    };
+    // Điểm chính thức của QLĐT; đợt SV không làm bài nào thì ghi Vắng
+    const cell = (phase: TestPhase, value: number | null): ExamCell => (a.absentPhases.includes(phase) ? 'absent' : value);
     const submission = it.submissionRate != null ? Number(it.submissionRate) : null;
     return {
       ...a,
@@ -149,8 +150,8 @@ export function parseMonitorClass(d: any, classLabel: string, testCols: Map<stri
       missingHomework: submission != null ? Math.max(0, 100 - submission) : null,
       unprepared: it.elearningProgress != null ? Number(it.elearningProgress) : null,
       rpoints: it.rpoints != null ? Number(it.rpoints) : null,
-      hkTNCell: cell('hk', 'TN', a.hkTN), hkTLCell: cell('hk', 'TL', a.hkTL),
-      ckTNCell: cell('ck', 'TN', a.ckTN), ckTLCell: cell('ck', 'TL', a.ckTL)
+      hkTNCell: cell('hk', a.hkTN), hkTLCell: cell('hk', a.hkTL),
+      ckTNCell: cell('ck', a.ckTN), ckTLCell: cell('ck', a.ckTL)
     };
   });
 }
@@ -187,9 +188,10 @@ function evaluateIssues(r: MonitorBase, rules: MonitorRules): Issue[] {
       action: 'Nhắc hoàn thành E-learning trước buổi học'
     });
   }
-  const low = EXAM_CELLS.filter(c => typeof r[c.key] === 'number' && (r[c.key] as number) < rules.examPass);
+  // Đợt có thi bổ sung mà QLĐT chưa tính thì không báo điểm thấp theo điểm cũ (đã có ghi chú thi bổ sung)
+  const low = EXAM_CELLS.filter(c => typeof r[c.key] === 'number' && (r[c.key] as number) < rules.examPass && !r.makeupPending.includes(c.phase));
   if (low.length) {
-    const label = low.map(c => `${c.label} ${fmtScore(r[c.key] as number)}`).join(', ');
+    const label = low.map(c => `${examCellLabel(r, c.key)} ${fmtScore(r[c.key] as number)}`).join(', ');
     issues.push({
       kind: 'examLow', severity: 'warning', label, title: 'Điểm thi thấp', value: label,
       threshold: `dưới ${rules.examPass} điểm`,
@@ -227,7 +229,7 @@ function evaluateEarly(r: MonitorBase, rules: MonitorRules, issues: Issue[]): Ea
     return typeof v === 'number' && v >= rules.examPass && v <= rules.earlyExamTo;
   });
   if (borderline.length) {
-    const label = borderline.map(c => `${c.label} ${fmtScore(r[c.key] as number)}`).join(', ');
+    const label = borderline.map(c => `${examCellLabel(r, c.key)} ${fmtScore(r[c.key] as number)}`).join(', ');
     early.push({
       kind: 'exam', label, title: 'Điểm thi sát ngưỡng', value: label,
       threshold: `${rules.examPass}–${rules.earlyExamTo} điểm`, action: 'Điểm thi sát ngưỡng đạt, nên theo dõi thêm'
@@ -400,7 +402,8 @@ export function buildDistributions(rows: MonitorRow[], rules: MonitorRules): Dis
 /* ---------- Prompt cho AI ---------- */
 const describeStudent = (r: MonitorRow) => [
   `Nghỉ học ${fmtPercent(r.absentRate)}, thiếu bài tập ${fmtPercent(r.missingHomework)}, chậm e-learning ${r.unprepared ?? '—'} bài`,
-  `Hackathon TN ${fmtExamCell(r.hkTNCell)} / TL ${fmtExamCell(r.hkTLCell)}; cuối môn TN ${fmtExamCell(r.ckTNCell)} / TL ${fmtExamCell(r.ckTLCell)}`,
+  `Hackathon TN ${fmtExamCell(r.hkTNCell)} / TL ${fmtExamCell(r.hkTLCell)}; cuối môn ${examCellLabel(r, 'ckTNCell')} ${fmtExamCell(r.ckTNCell)} / ${examCellLabel(r, 'ckTLCell')} ${fmtExamCell(r.ckTLCell)}`,
+  ...r.makeupNotes,
   r.issues.length ? `Vi phạm: ${r.issues.map(i => `${i.label} (${i.severity === 'alarm' ? 'báo động' : 'cảnh báo'})`).join('; ')}` : 'Không vi phạm',
   r.early.length ? `Sắp vượt ngưỡng: ${r.early.map(e => e.label).join('; ')}` : '',
   r.reasons.length ? `Dấu hiệu nghi vấn: ${r.reasons.join('; ')}` : ''
