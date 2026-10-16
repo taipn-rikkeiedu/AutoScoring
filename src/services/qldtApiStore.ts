@@ -1,14 +1,31 @@
 /**
  * Kho lưu response API QLĐT (apiportal.rikkei.edu.vn) đã thu thập — ghi lại khi duyệt web QLĐT hoặc quét chủ động.
  * Lưu bằng IndexedDB của extension (dữ liệu lớn, dùng chung giữa background và trang extension).
- * Mỗi URL giữ 1 bản ghi mới nhất (đếm số lần gặp).
+ * - GET: mỗi URL giữ 1 bản ghi mới nhất (đếm số lần gặp).
+ * - Ghi (POST / PUT / PATCH / DELETE) mà trang QLĐT gửi đi: giữ từng lần gửi (method, URL, body, response)
+ *   để biết API lưu dữ liệu — extension chỉ quan sát, không tự gửi.
  */
 
 const DB_NAME = 'reduxQldtApi';
 const STORE = 'records';
-const DB_VERSION = 1;
+const WRITE_STORE = 'writes';
+const DB_VERSION = 2;
 
-export type ApiSource = 'recorded' | 'crawled';
+export type ApiSource = 'recorded' | 'crawled' | 'write';
+
+/** 1 lần trang QLĐT gửi request ghi dữ liệu. */
+export interface ApiWriteRecord {
+  id?: number;
+  api: string;                    // vd "PATCH /take-care-students/:id"
+  method: string;
+  url: string;
+  path: string;
+  params: Record<string, string>;
+  requestBody: unknown;           // body đã gửi (JSON hoặc chuỗi)
+  status: number;
+  at: string;
+  response: unknown;
+}
 
 export interface ApiRecord {
   url: string;                    // URL đầy đủ (khoá)
@@ -38,16 +55,29 @@ export function parseBody(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
 
+/**
+ * Một kết nối dùng chung cho mọi thao tác: mở nhiều kết nối cùng lúc trong lúc nâng cấp phiên bản kho (v1 → v2)
+ * có thể bị treo. Trang khác nâng cấp kho → đóng kết nối này, lần sau mở lại.
+ */
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'url' }).createIndex('api', 'api');
+      if (!db.objectStoreNames.contains(WRITE_STORE)) db.createObjectStore(WRITE_STORE, { keyPath: 'id', autoIncrement: true }).createIndex('api', 'api');
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => { dbPromise = null; };
+      resolve(db);
+    };
+    req.onerror = () => { dbPromise = null; reject(req.error); };
   });
+  return dbPromise;
 }
 
 async function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T> | void): Promise<T | undefined> {
@@ -55,8 +85,8 @@ async function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => I
   return new Promise((resolve, reject) => {
     const t = db.transaction(STORE, mode);
     const req = run(t.objectStore(STORE));
-    t.oncomplete = () => { db.close(); resolve(req ? (req as IDBRequest<T>).result : undefined); };
-    t.onerror = () => { db.close(); reject(t.error); };
+    t.oncomplete = () => { resolve(req ? (req as IDBRequest<T>).result : undefined); };
+    t.onerror = () => { reject(t.error); };
   });
 }
 
@@ -74,8 +104,8 @@ export async function saveApiRecords(records: Omit<ApiRecord, 'hits'>[]): Promis
         store.put({ ...rec, hits: (prev?.hits || 0) + 1 });
       };
     });
-    t.oncomplete = () => { db.close(); resolve(); };
-    t.onerror = () => { db.close(); reject(t.error); };
+    t.oncomplete = () => { resolve(); };
+    t.onerror = () => { reject(t.error); };
   });
 }
 
@@ -83,8 +113,35 @@ export async function getAllApiRecords(): Promise<ApiRecord[]> {
   return ((await tx<ApiRecord[]>('readonly', s => s.getAll())) || []);
 }
 
+export async function saveApiWrite(rec: Omit<ApiWriteRecord, 'id'>): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const t = db.transaction(WRITE_STORE, 'readwrite');
+    t.objectStore(WRITE_STORE).add(rec);
+    t.oncomplete = () => { resolve(); };
+    t.onerror = () => { reject(t.error); };
+  });
+}
+
+export async function getAllApiWrites(): Promise<ApiWriteRecord[]> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(WRITE_STORE, 'readonly');
+    const req = t.objectStore(WRITE_STORE).getAll();
+    t.oncomplete = () => { resolve((req.result as ApiWriteRecord[]) || []); };
+    t.onerror = () => { reject(t.error); };
+  });
+}
+
 export async function clearApiRecords(): Promise<void> {
   await tx('readwrite', s => s.clear());
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const t = db.transaction(WRITE_STORE, 'readwrite');
+    t.objectStore(WRITE_STORE).clear();
+    t.oncomplete = () => { resolve(); };
+    t.onerror = () => { reject(t.error); };
+  });
 }
 
 /** Tóm tắt theo mẫu API (không đọc response, dùng cho bảng hiển thị). */
@@ -98,8 +155,16 @@ export interface ApiSummary {
   sampleUrl: string;
 }
 
-export function summarizeRecords(records: ApiRecord[]): ApiSummary[] {
+export function summarizeRecords(records: ApiRecord[], writes: ApiWriteRecord[] = []): ApiSummary[] {
   const map = new Map<string, ApiSummary>();
+  writes.forEach(w => {
+    const s = map.get(w.api) || { api: w.api, urls: 0, hits: 0, sources: ['write' as ApiSource], lastAt: '', queryKeys: [], sampleUrl: w.url };
+    s.urls++;
+    s.hits++;
+    if (w.at > s.lastAt) s.lastAt = w.at;
+    Object.keys(w.params).forEach(k => { if (!s.queryKeys.includes(k)) s.queryKeys.push(k); });
+    map.set(w.api, s);
+  });
   records.forEach(r => {
     const s = map.get(r.api) || { api: r.api, urls: 0, hits: 0, sources: [], lastAt: '', queryKeys: [], sampleUrl: r.url };
     s.urls++;
@@ -120,19 +185,26 @@ function fieldsOf(response: unknown): string[] {
 }
 
 /** File JSON xuất ra: danh mục API + toàn bộ response, nhóm theo mẫu API. */
-export function buildExport(records: ApiRecord[]) {
+export function buildExport(records: ApiRecord[], writes: ApiWriteRecord[] = []) {
   const apis: Record<string, Omit<ApiRecord, 'api'>[]> = {};
   [...records].sort((a, b) => a.url.localeCompare(b.url)).forEach(({ api, ...rest }) => {
     (apis[api] ||= []).push(rest);
+  });
+  // Request ghi dữ liệu theo thứ tự thời gian (gồm body đã gửi + response)
+  const writeApis: Record<string, Omit<ApiWriteRecord, 'api' | 'id'>[]> = {};
+  [...writes].sort((a, b) => a.at.localeCompare(b.at)).forEach(({ api, id, ...rest }) => {
+    (writeApis[api] ||= []).push(rest);
   });
   return {
     exportedAt: new Date().toISOString(),
     host: 'apiportal.rikkei.edu.vn',
     note: 'Dữ liệu gốc từ QLĐT, có thông tin cá nhân sinh viên. Bảo quản cẩn thận, không chia sẻ, không đưa lên git.',
-    catalog: summarizeRecords(records).map(s => ({
+    catalog: summarizeRecords(records, writes).map(s => ({
       ...s,
-      fields: fieldsOf(records.find(r => r.api === s.api)?.response)
+      fields: fieldsOf(records.find(r => r.api === s.api)?.response),
+      requestFields: fieldsOf(writes.find(w => w.api === s.api)?.requestBody)
     })),
-    apis
+    apis,
+    writes: writeApis
   };
 }

@@ -10,7 +10,7 @@ import { STORAGE_KEYS } from '~/src/core/constants';
 import { useToast } from '~/src/core/ToastContext';
 import { logger } from '~/src/core/logger';
 import {
-  ApiSummary, buildExport, clearApiRecords, getAllApiRecords, summarizeRecords
+  ApiSummary, buildExport, clearApiRecords, getAllApiRecords, getAllApiWrites, summarizeRecords
 } from '~/src/services/qldtApiStore';
 import { CrawlProgress, crawlQldt } from '~/src/services/qldtApiCrawler';
 
@@ -37,8 +37,8 @@ export const QldtApiTab: React.FC = () => {
   const refresh = async () => {
     setLoadingList(true);
     try {
-      const records = await getAllApiRecords();
-      setSummary(summarizeRecords(records));
+      const [records, writes] = await Promise.all([getAllApiRecords(), getAllApiWrites()]);
+      setSummary(summarizeRecords(records, writes));
       setSizeMb(new Blob([JSON.stringify(records.map(r => r.response))]).size / 1024 / 1024);
     } catch (e: any) {
       logger.error(LOG_MODULE, 'Không đọc được kho API.', e.message);
@@ -94,16 +94,16 @@ export const QldtApiTab: React.FC = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const records = await getAllApiRecords();
-      if (!records.length) { showToast('Chưa có dữ liệu API nào để xuất.', 'warning'); return; }
-      const blob = new Blob([JSON.stringify(buildExport(records), null, 2)], { type: 'application/json' });
+      const [records, writes] = await Promise.all([getAllApiRecords(), getAllApiWrites()]);
+      if (!records.length && !writes.length) { showToast('Chưa có dữ liệu API nào để xuất.', 'warning'); return; }
+      const blob = new Blob([JSON.stringify(buildExport(records, writes), null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
       a.href = URL.createObjectURL(blob);
       a.download = `qldt-api-${stamp}.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-      showToast(`Đã xuất ${records.length} response (${summarizeRecords(records).length} API).`, 'success');
+      showToast(`Đã xuất ${records.length} response GET + ${writes.length} request ghi (${summarizeRecords(records, writes).length} API).`, 'success');
     } catch (e: any) {
       showToast('Không xuất được: ' + e.message, 'error');
     } finally {
@@ -135,6 +135,7 @@ export const QldtApiTab: React.FC = () => {
         <Space size={4} wrap>
           {s.sources.includes('recorded') && <Tag color="blue" style={{ margin: 0 }}>Ghi lại</Tag>}
           {s.sources.includes('crawled') && <Tag color="purple" style={{ margin: 0 }}>Quét</Tag>}
+          {s.sources.includes('write') && <Tag color="volcano" style={{ margin: 0 }}>Ghi dữ liệu</Tag>}
         </Space>
       )
     },
@@ -147,7 +148,7 @@ export const QldtApiTab: React.FC = () => {
         type="warning"
         showIcon
         title="Dữ liệu thu thập là dữ liệu gốc của QLĐT, gồm thông tin cá nhân sinh viên (SĐT, email, ngày sinh, CCCD, địa chỉ…)."
-        description="Chỉ lưu trên máy này. Bảo quản file JSON cẩn thận, không chia sẻ, không đưa lên git. Extension chỉ đọc (GET), không gửi request ghi / sửa / xoá nào lên QLĐT."
+        description="Chỉ lưu trên máy này. Bảo quản file JSON cẩn thận, không chia sẻ, không đưa lên git. Extension không tự gửi request ghi / sửa / xoá nào lên QLĐT — chỉ ghi lại request do chính bạn thao tác trên trang QLĐT."
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 12 }}>
@@ -155,7 +156,9 @@ export const QldtApiTab: React.FC = () => {
         <Card size="small" title="Ghi lại khi duyệt QLĐT" extra={<Switch checked={recording} onChange={toggleRecording} />}>
           <Flex vertical gap={8}>
             <Text type="secondary">
-              Bật lên rồi dùng QLĐT bình thường: mọi API (GET) mà trang gọi đều được lưu lại — kể cả API extension chưa biết.
+              Bật lên rồi dùng QLĐT bình thường: mọi request trang gọi tới API đều được lưu — GET kèm response, và các request ghi
+              (POST / PUT / PATCH / DELETE, vd lưu ca chăm sóc) kèm body đã gửi + response. Extension chỉ quan sát, không tự gửi;
+              bỏ qua đăng nhập / mật khẩu, không lưu token.
               Trang đang mở cần tải lại sau khi bật.
             </Text>
             <Flex gap={8} align="center">

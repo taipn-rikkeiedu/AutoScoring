@@ -1,7 +1,8 @@
 /**
- * Chạy trong MAIN world của trang QLĐT: bắt response các request GET tới apiportal.rikkei.edu.vn
- * mà chính trang web gọi, rồi chuyển sang script cầu nối (qldt-api-relay) qua window.postMessage.
- * Chỉ đọc response, không sửa request; bỏ qua request đăng nhập / token / mật khẩu.
+ * Chạy trong MAIN world của trang QLĐT: quan sát các request tới apiportal.rikkei.edu.vn mà chính trang web gửi
+ * (GET và các request ghi POST / PUT / PATCH / DELETE), rồi chuyển sang script cầu nối (qldt-api-relay)
+ * qua window.postMessage. Chỉ quan sát — không sửa, không tự gửi request.
+ * Bỏ qua request đăng nhập / token / mật khẩu; không đọc header (không lấy token Authorization).
  */
 export default defineContentScript({
   matches: ['https://qldt.rikkei.edu.vn/*'],
@@ -13,20 +14,39 @@ export default defineContentScript({
     w.__reduxQldtHook = true;
 
     const SOURCE = 'redux-qldt-api';
-    const SKIP = /login|logout|password|token|otp|refresh/i;
+    const SKIP_PATH = /login|logout|password|token|otp|refresh|auth/i;
+    const SECRET_FIELD = /"(password|passwd|pwd|otp|token|accessToken|refreshToken)"\s*:/i;
+    const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
     const isTarget = (url: string, method: string) => {
-      if ((method || 'GET').toUpperCase() !== 'GET') return false;
+      if (!METHODS.has((method || 'GET').toUpperCase())) return false;
       try {
         const u = new URL(url, location.href);
-        return u.hostname === 'apiportal.rikkei.edu.vn' && !SKIP.test(u.pathname);
+        return u.hostname === 'apiportal.rikkei.edu.vn' && !SKIP_PATH.test(u.pathname);
       } catch {
         return false;
       }
     };
 
-    const report = (url: string, status: number, body: string) => {
-      window.postMessage({ source: SOURCE, url: new URL(url, location.href).href, status, body }, location.origin);
+    /** Body đã gửi → chuỗi (FormData: chỉ tên trường, tệp ghi "[tệp]"). */
+    const bodyText = (body: any): string => {
+      if (body == null) return '';
+      if (typeof body === 'string') return body;
+      if (body instanceof URLSearchParams) return body.toString();
+      if (body instanceof FormData) {
+        const o: Record<string, string> = {};
+        body.forEach((v, k) => { o[k] = typeof v === 'string' ? v : '[tệp]'; });
+        return JSON.stringify(o);
+      }
+      if (body instanceof Blob || body instanceof ArrayBuffer) return '[dữ liệu nhị phân]';
+      try { return JSON.stringify(body); } catch { return String(body); }
+    };
+
+    const report = (method: string, url: string, status: number, body: string, requestBody: string) => {
+      if (requestBody && SECRET_FIELD.test(requestBody)) return; // không bao giờ ghi body có mật khẩu / token
+      window.postMessage({
+        source: SOURCE, method: method.toUpperCase(), url: new URL(url, location.href).href, status, body, requestBody
+      }, location.origin);
     };
 
     /* fetch */
@@ -36,7 +56,10 @@ export default defineContentScript({
       try {
         const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
         const method = init?.method || (input instanceof Request ? input.method : 'GET');
-        if (isTarget(url, method)) res.clone().text().then(text => report(url, res.status, text)).catch(() => {});
+        if (isTarget(url, method)) {
+          const reqBody = bodyText(init?.body);
+          res.clone().text().then(text => report(method, url, res.status, text, reqBody)).catch(() => {});
+        }
       } catch { /* không ảnh hưởng trang */ }
       return res;
     };
@@ -49,15 +72,16 @@ export default defineContentScript({
       // eslint-disable-next-line prefer-rest-params
       return open.apply(this, arguments as any);
     };
-    XMLHttpRequest.prototype.send = function (this: any) {
+    XMLHttpRequest.prototype.send = function (this: any, body?: any) {
       const info = this.__redux;
       if (info && isTarget(info.url, info.method)) {
+        const reqBody = bodyText(body);
         this.addEventListener('loadend', () => {
           try {
-            const body = this.responseType === '' || this.responseType === 'text'
+            const text = this.responseType === '' || this.responseType === 'text'
               ? this.responseText
               : this.responseType === 'json' ? JSON.stringify(this.response) : '';
-            if (body) report(info.url, this.status, body);
+            report(info.method, info.url, this.status, text, reqBody);
           } catch { /* bỏ qua */ }
         });
       }

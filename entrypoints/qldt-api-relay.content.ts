@@ -16,8 +16,8 @@ export default defineContentScript({
 
     window.addEventListener('message', (e) => {
       if (e.source !== window || e.data?.source !== 'redux-qldt-api' || !enabled) return;
-      const { url, status, body } = e.data;
-      chrome.runtime.sendMessage({ type: 'QLDT_API_RECORD', url, status, body }).catch(() => { /* extension đang tải lại */ });
+      const { method, url, status, body, requestBody } = e.data;
+      chrome.runtime.sendMessage({ type: 'QLDT_API_RECORD', method, url, status, body, requestBody }).catch(() => { /* extension đang tải lại */ });
     });
   }
 });

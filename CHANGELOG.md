@@ -4,6 +4,17 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.23.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Thu thập API QLĐT ghi lại cả request ghi dữ liệu** (POST / PUT / PATCH / DELETE) mà trang QLĐT gửi đi khi bạn thao tác (vd lưu ca chăm sóc học viên): method, URL, **body đã gửi** và response, giữ từng lần gửi. Bảng danh sách có nhãn "Ghi dữ liệu"; file JSON thêm mục `writes` (nhóm theo API, theo thứ tự thời gian) và `requestFields` trong danh mục.
+  - Extension chỉ quan sát, không tự gửi request ghi nào; bỏ qua đăng nhập / token / mật khẩu (kể cả body có trường mật khẩu, token), không lưu header Authorization; tệp đính kèm chỉ ghi "[tệp]".
+
+### 🐛 Sửa lỗi
+- Kho API dùng một kết nối IndexedDB chung — tránh treo khi nâng cấp kho (thêm nơi lưu request ghi) lúc nhiều thao tác đọc / ghi chạy cùng lúc.
+
+---
+
 ## [5.22.1] - 2026-10-16
 
 ### 🐛 Sửa lỗi

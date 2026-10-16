@@ -1,5 +1,5 @@
 import { BACKGROUND_FETCH_PROXY, STORAGE_KEYS, UI_MESSAGES } from '~/src/core/constants';
-import { saveApiRecords, describeApiUrl, parseBody } from '~/src/services/qldtApiStore';
+import { saveApiRecords, saveApiWrite, describeApiUrl, parseBody } from '~/src/services/qldtApiStore';
 
 export default defineBackground(() => {
   const allowedFetchHosts = new Set<string>(BACKGROUND_FETCH_PROXY.allowedHosts);
@@ -204,10 +204,14 @@ export default defineBackground(() => {
 
     // Response API QLĐT do trang web gọi (bật "Ghi API" trong extension) → lưu vào kho API
     if (message.type === "QLDT_API_RECORD") {
-      const { url, status, body } = message;
-      saveApiRecords([{
-        url, ...describeApiUrl(url), status, source: 'recorded', at: new Date().toISOString(), response: parseBody(body)
-      }]).catch((err) => console.error("REduX: không lưu được API QLĐT", err));
+      const { url, status, body, requestBody } = message;
+      const method = String(message.method || 'GET').toUpperCase();
+      const at = new Date().toISOString();
+      const save = method === 'GET'
+        ? saveApiRecords([{ url, ...describeApiUrl(url), status, source: 'recorded', at, response: parseBody(body) }])
+        // Request ghi dữ liệu (POST / PUT / PATCH / DELETE): giữ từng lần gửi kèm body
+        : saveApiWrite({ ...describeApiUrl(url, method), method, url, status, at, requestBody: parseBody(requestBody || ''), response: parseBody(body) });
+      save.catch((err) => console.error("REduX: không lưu được API QLĐT", err));
       return false;
     }
 
