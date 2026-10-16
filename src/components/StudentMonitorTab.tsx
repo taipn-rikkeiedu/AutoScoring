@@ -1,17 +1,17 @@
 import React, { Suspense, lazy, useState } from 'react';
 import {
   Table, Button, Select, Input, Tag, Card, Progress, Drawer,
-  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Dropdown, Checkbox, Segmented, Collapse
+  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Dropdown, Checkbox, Segmented, Collapse, Tabs
 } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
   CloudDownloadOutlined, DownloadOutlined, SettingOutlined, RobotOutlined, FilterOutlined,
-  UnorderedListOutlined, BarChartOutlined
+  UnorderedListOutlined, BarChartOutlined, ReloadOutlined, CheckCircleFilled
 } from '@ant-design/icons';
 import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
 import { StudentMonitorDrawer, RiskTag, WatchStar } from '~/src/components/StudentMonitorDrawer';
 import {
-  MonitorRow, MONITOR_FILTERS, levelFilterKey, fmtPercent
+  MonitorRow, MONITOR_FILTERS, levelFilterKey, fmtPercent, colorFor, CLASS_AI_KINDS, ClassAiKind
 } from '~/src/core/studentMonitor';
 import { ANALYSIS_LEVELS } from '~/src/core/examAnalysis';
 import { readableColor } from '~/src/core/monitorLevels';
@@ -85,6 +85,15 @@ export const StudentMonitorTab: React.FC = () => {
       )
     },
     { title: 'Mức', key: 'risk', width: 136, render: (_, r) => <RiskTag row={r} /> },
+    {
+      title: 'R-Point', key: 'rpoints', width: 84, align: 'right',
+      sorter: (x, y) => (x.rpoints ?? Infinity) - (y.rpoints ?? Infinity),
+      render: (_, r) => {
+        if (r.rpoints == null) return <Text type="secondary">—</Text>;
+        const color = colorFor(m.levels, 'rpoints', r.rpoints);
+        return color ? <Text strong style={{ color: readableColor(color) }}>{r.rpoints}</Text> : <Text>{r.rpoints}</Text>;
+      }
+    },
     { title: 'Vấn đề', key: 'issues', render: (_, r) => <IssueTags row={r} /> }
   ];
 
@@ -264,23 +273,49 @@ export const StudentMonitorTab: React.FC = () => {
 /* ---------- Tổng quan lớp ---------- */
 const Overview: React.FC<{ m: Monitor }> = ({ m }) => {
   const o = m.overview;
+  const [kind, setKind] = useState<ClassAiKind>('overall');
   const top = o.topIssues.slice(0, 2).map(t => `${t.label.toLowerCase()} (${t.count} SV)`).join(', ');
   const summary = `${top ? `Nhiều nhất: ${top}` : 'Không có vi phạm'} · nghỉ học TB ${fmtPercent(o.avgAbsent)} · thiếu BT TB ${fmtPercent(o.avgMissingHomework)}`;
+  const current = m.classAi[kind];
+  const meta = CLASS_AI_KINDS.find(k => k.key === kind)!;
+
   return (
     <Flex vertical gap={8}>
-      <Flex justify="space-between" align="center" gap={8}>
-        <Text type="secondary" ellipsis={{ tooltip: summary }} style={{ minWidth: 0 }}>{summary}</Text>
-        <Button size="small" icon={<RobotOutlined />} onClick={m.handleClassAi} loading={m.classAi?.loading} style={{ flexShrink: 0 }}>
-          AI tổng quan lớp
-        </Button>
-      </Flex>
-      {m.classAi?.error && <Alert type="error" showIcon title={m.classAi.error} />}
-      {m.classAi?.text && (
-        <Alert
-          type="info"
-          title={<Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 3, expandable: 'collapsible' }}>{m.classAi.text}</Paragraph>}
+      <Text type="secondary" ellipsis={{ tooltip: summary }} style={{ minWidth: 0 }}>{summary}</Text>
+      {/* AI tổng quan: mỗi loại 1 tab, bấm tạo riêng; kết quả giữ lại khi chuyển tab */}
+      <Card size="small" styles={{ body: { padding: '0 12px 12px' } }}>
+        <Tabs
+          size="small"
+          activeKey={kind}
+          onChange={(k) => setKind(k as ClassAiKind)}
+          tabBarExtraContent={(
+            <Button
+              size="small"
+              type={current?.text ? 'default' : 'primary'}
+              icon={current?.text ? <ReloadOutlined /> : <RobotOutlined />}
+              loading={current?.loading}
+              onClick={() => m.handleClassAi(kind)}
+            >
+              {current?.text ? 'Tạo lại' : 'AI nhận xét'}
+            </Button>
+          )}
+          items={CLASS_AI_KINDS.map(k => ({
+            key: k.key,
+            label: (
+              <span>
+                {k.label}
+                {m.classAi[k.key]?.text && <CheckCircleFilled style={{ color: '#52c41a', marginLeft: 4, fontSize: 12 }} />}
+              </span>
+            )
+          }))}
         />
-      )}
+        {current?.error && <Alert type="error" showIcon title={current.error} />}
+        {current?.loading && <Text type="secondary">Đang viết nhận xét {meta.label.toLowerCase()}…</Text>}
+        {current?.text && !current.loading && (
+          <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} ellipsis={{ rows: 8, expandable: 'collapsible' }}>{current.text}</Paragraph>
+        )}
+        {!current && <Text type="secondary">{meta.hint} Bấm "AI nhận xét" để tạo.</Text>}
+      </Card>
     </Flex>
   );
 };

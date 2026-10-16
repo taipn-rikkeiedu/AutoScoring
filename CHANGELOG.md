@@ -4,6 +4,17 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.16.0] - 2026-10-16
+
+### ✨ Cải thiện
+- **AI tổng quan lớp chia theo loại**, mỗi loại một tab, bấm tạo riêng, kết quả giữ lại khi chuyển tab (có dấu ✓ ở tab đã tạo):
+  - **Toàn lớp**: tình hình chung, số sinh viên theo mức, vấn đề nổi bật, việc cần làm tuần này.
+  - **Bài tập**, **Vắng nghỉ**, **R-Point**, **E-learning**: số liệu của chỉ số (TB, thấp nhất, cao nhất), số sinh viên theo từng mức kèm ngưỡng, danh sách sinh viên chạm ngưỡng kèm vấn đề khác để AI chỉ ra mối liên hệ, và việc nên làm.
+  - **Điểm thi**: điểm Hackathon / cuối môn, vắng thi, phần thi dưới ngưỡng theo mức, đối chiếu tỉ lệ nộp BTVN và nghi vấn BTVN.
+- **Cột R-Point** trong danh sách sinh viên (sắp xếp được, tô màu theo mức nếu chạm ngưỡng). Lưu ý: QLĐT hiện trả R-Point trống cho mọi sinh viên nên cột hiện "—" cho tới khi QLĐT có dữ liệu.
+
+---
+
 ## [5.15.0] - 2026-10-16
 
 ### 🚀 Tính năng mới

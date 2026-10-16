@@ -9,7 +9,7 @@ import {
 } from '~/src/core/examAnalysis';
 import {
   MonitorBase, MonitorRow, MonitorFilter, MONITOR_FILTERS, levelFilterKey, describeByRisk,
-  parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassOverviewPrompt, buildStudentPrompt, EXAM_CELLS, examCellLabel,
+  parseMonitorClass, evaluateMonitor, matchesFilter, summarizeClass, buildClassAiPrompt, ClassAiKind, buildStudentPrompt, EXAM_CELLS, examCellLabel,
   buildDistributions, DistributionBin
 } from '~/src/core/studentMonitor';
 import {
@@ -63,7 +63,8 @@ export function useStudentMonitor() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; text: string } | null>(null);
   const [statusText, setStatusText] = useState('Chọn lớp + môn học rồi bấm "Tải dữ liệu". Cần đăng nhập QLĐT ít nhất một lần.');
-  const [classAi, setClassAi] = useState<AiResult | null>(null);
+  // AI tổng quan lớp theo từng loại (toàn lớp / bài tập / vắng nghỉ / R-Point / E-learning / điểm thi)
+  const [classAi, setClassAi] = useState<Partial<Record<ClassAiKind, AiResult>>>({});
   const [studentAi, setStudentAi] = useState<Record<string, AiResult>>({});
   const prefsLoaded = useRef(false);
   // Lớp/môn đã lưu: giữ nguyên tới khi tải được danh sách lớp (tránh ghi đè rỗng khi chưa đăng nhập QLĐT)
@@ -185,7 +186,7 @@ export function useStudentMonitor() {
     if (busy) return;
     if (!selectedClassIds.length || !courseId) { setStatusText('Hãy chọn ít nhất 1 lớp và 1 môn học.'); return; }
     setBusy(true);
-    setClassAi(null);
+    setClassAi({});
     setStudentAi({});
     setChartFilter(null);
     try {
@@ -294,14 +295,14 @@ export function useStudentMonitor() {
   /* ---------- AI viết nhận xét (chỉ chạy khi bấm) ---------- */
   const aiCredentials = { provider: config.aiProvider, modelName: config.aiModelName, apiKey: config.aiApiKey, apiUrl: config.aiApiUrl };
 
-  const handleClassAi = async () => {
-    if (!rows.length || classAi?.loading) return;
-    setClassAi({ loading: true });
+  const handleClassAi = async (kind: ClassAiKind) => {
+    if (!rows.length || classAi[kind]?.loading) return;
+    setClassAi(prev => ({ ...prev, [kind]: { loading: true } }));
     try {
-      const text = await callAiWithRateLimitRetry(buildClassOverviewPrompt(rows, courseName, levels), aiCredentials);
-      setClassAi({ loading: false, text: text.trim() });
+      const text = await callAiWithRateLimitRetry(buildClassAiPrompt(kind, rows, courseName, levels), aiCredentials);
+      setClassAi(prev => ({ ...prev, [kind]: { loading: false, text: text.trim() } }));
     } catch (e: any) {
-      setClassAi({ loading: false, error: e.message });
+      setClassAi(prev => ({ ...prev, [kind]: { loading: false, error: e.message } }));
     }
   };
 

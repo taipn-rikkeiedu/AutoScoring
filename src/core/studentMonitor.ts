@@ -428,3 +428,109 @@ export function buildStudentPrompt(r: MonitorRow, courseName: string): string {
 ${describeStudent(r)}
 ${comments ? `Nhận xét của giảng viên chấm thi:\n${comments}` : ''}`;
 }
+
+/* ---------- AI tổng quan theo từng loại (toàn lớp / từng chỉ số) ---------- */
+export type ClassAiKind = 'overall' | 'homework' | 'absent' | 'rpoints' | 'elearning' | 'exam';
+
+export const CLASS_AI_KINDS: { key: ClassAiKind; label: string; hint: string }[] = [
+  { key: 'overall', label: 'Toàn lớp', hint: 'Tình hình chung, số sinh viên theo mức, vấn đề nổi bật và việc cần làm tuần này.' },
+  { key: 'homework', label: 'Bài tập', hint: 'Tỉ lệ thiếu bài tập, sinh viên vượt ngưỡng theo mức, nghi vấn BTVN và cách xử lý.' },
+  { key: 'absent', label: 'Vắng nghỉ', hint: 'Tỉ lệ nghỉ học, sinh viên vượt ngưỡng theo mức, liên hệ với các chỉ số khác và cách xử lý.' },
+  { key: 'rpoints', label: 'R-Point', hint: 'Phân bố R-Point, sinh viên dưới ngưỡng theo mức và cách xử lý.' },
+  { key: 'elearning', label: 'E-learning', hint: 'Số bài E-learning chậm, sinh viên vượt ngưỡng theo mức và cách nhắc nhở.' },
+  { key: 'exam', label: 'Điểm thi', hint: 'Điểm Hackathon / cuối môn, sinh viên vắng thi, điểm thấp, đối chiếu với BTVN.' }
+];
+
+const PROMPT_RULES = 'Chỉ dùng số liệu dưới đây, không bịa thêm. Không dùng markdown tiêu đề. Không kết luận gian lận; nghi vấn chỉ là dấu hiệu cần xác minh.';
+const MAX_LISTED = 30;
+
+/** Số SV theo từng mức đối với 1 chỉ số, vd "Cấm thi (≥ 20%): 4 SV". */
+function countByLevel(rows: MonitorRow[], levels: MonitorLevel[], metric: MetricKey): string {
+  const lines = levels
+    .filter(l => l.thresholds[metric] != null)
+    .map(l => {
+      const n = rows.filter(r => [...r.issues, ...r.early].some(i => i.kind === metric && i.levelId === l.id)).length;
+      return `${l.name} (${formatThreshold(metric, l.thresholds[metric] as number)}): ${n} SV`;
+    });
+  return lines.join('; ') || 'mẫu giám sát không đặt ngưỡng cho chỉ số này';
+}
+
+/** SV chạm ngưỡng của 1 chỉ số (nặng nhất trước), kèm các vấn đề khác để AI thấy mối liên hệ. */
+function listByMetric(rows: MonitorRow[], metric: MetricKey): string {
+  const hits = rows
+    .map(r => ({ r, hit: [...r.issues, ...r.early].find(i => i.kind === metric) }))
+    .filter((x): x is { r: MonitorRow; hit: Issue } => !!x.hit)
+    .sort((a, b) => a.hit.levelIndex - b.hit.levelIndex);
+  if (!hits.length) return 'Không có sinh viên nào chạm ngưỡng.';
+  const lines = hits.slice(0, MAX_LISTED).map(({ r, hit }) => {
+    const others = r.issues.filter(i => i.kind !== metric && i.kind !== 'violations').map(i => i.label);
+    return `* ${r.name} [${hit.levelName}]: ${hit.value}${others.length ? ` | vấn đề khác: ${others.join(', ')}` : ''}${r.suspect ? ' | nghi vấn BTVN' : ''}`;
+  });
+  return `${lines.join('\n')}${hits.length > MAX_LISTED ? `\n(và ${hits.length - MAX_LISTED} SV khác)` : ''}`;
+}
+
+const stats = (vals: (number | null)[]) => {
+  const v = vals.filter((x): x is number => x != null);
+  if (!v.length) return 'chưa có dữ liệu';
+  return `TB ${fmtScore(avg(v))}, thấp nhất ${fmtScore(Math.min(...v))}, cao nhất ${fmtScore(Math.max(...v))} (${v.length} SV có dữ liệu)`;
+};
+
+function metricPrompt(courseName: string, focus: string, data: string): string {
+  return `Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về ${focus} của lớp môn "${courseName}", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), mối liên hệ với chỉ số khác nếu thấy rõ, và 3 việc giảng viên nên làm (gạch đầu dòng). ${PROMPT_RULES}
+
+${data}`;
+}
+
+/** Prompt AI tổng quan lớp theo loại. */
+export function buildClassAiPrompt(kind: ClassAiKind, rows: MonitorRow[], courseName: string, levels: MonitorLevel[]): string {
+  const total = `Sĩ số: ${rows.length}`;
+  switch (kind) {
+    case 'overall':
+      return buildClassOverviewPrompt(rows, courseName, levels);
+    case 'homework':
+      return metricPrompt(courseName, 'tình hình THIẾU BÀI TẬP (BTVN)', `SỐ LIỆU
+- ${total}; tỉ lệ thiếu bài tập: ${stats(rows.map(r => r.missingHomework))} (%)
+- Theo mức: ${countByLevel(rows, levels, 'homework')}
+- Nghi vấn BTVN (nộp BTVN tốt nhưng thi thấp / trùng link): ${rows.filter(r => r.suspect || r.dups.length).length} SV
+
+SINH VIÊN CHẠM NGƯỠNG
+${listByMetric(rows, 'homework')}`);
+    case 'absent':
+      return metricPrompt(courseName, 'tình hình VẮNG NGHỈ (chuyên cần)', `SỐ LIỆU
+- ${total}; tỉ lệ nghỉ học: ${stats(rows.map(r => r.absentRate))} (%)
+- Theo mức: ${countByLevel(rows, levels, 'absent')}
+
+SINH VIÊN CHẠM NGƯỠNG
+${listByMetric(rows, 'absent')}`);
+    case 'rpoints':
+      return metricPrompt(courseName, 'điểm R-POINT', `SỐ LIỆU
+- ${total}; R-Point: ${stats(rows.map(r => r.rpoints))}
+- Theo mức: ${countByLevel(rows, levels, 'rpoints')}
+
+SINH VIÊN CHẠM NGƯỠNG
+${listByMetric(rows, 'rpoints')}`);
+    case 'elearning':
+      return metricPrompt(courseName, 'tình hình CHẬM E-LEARNING', `SỐ LIỆU
+- ${total}; số bài E-learning chậm: ${stats(rows.map(r => r.unprepared))}; ${rows.filter(r => (r.unprepared ?? 0) > 0).length} SV có chậm ít nhất 1 bài
+- Theo mức: ${countByLevel(rows, levels, 'elearning')}
+
+SINH VIÊN CHẠM NGƯỠNG
+${listByMetric(rows, 'elearning')}`);
+    case 'exam': {
+      const absentHk = rows.filter(r => r.absentPhases.includes('hk')).length;
+      const absentCk = rows.filter(r => r.absentPhases.includes('ck')).length;
+      const examRows = rows.filter(r => r.issues.some(i => i.kind === 'examScore' || i.kind === 'examAbsent') || r.early.some(i => i.kind === 'examScore'));
+      const lines = examRows.slice(0, MAX_LISTED).map(r =>
+        `* ${r.name} [${r.riskLevel.name}]: Hackathon ${fmtScore(r.hk)} (TN ${fmtExamCell(r.hkTNCell)} / TL ${fmtExamCell(r.hkTLCell)}); cuối môn ${fmtScore(r.ck)} (${examCellLabel(r, 'ckTNCell')} ${fmtExamCell(r.ckTNCell)} / ${examCellLabel(r, 'ckTLCell')} ${fmtExamCell(r.ckTLCell)}); nộp BTVN ${fmtPercent(r.hw)}${r.suspect ? ' | nghi vấn BTVN' : ''}`);
+      return metricPrompt(courseName, 'kết quả ĐIỂM THI (Hackathon và cuối môn)', `SỐ LIỆU
+- ${total}; điểm Hackathon: ${stats(rows.filter(r => !r.absentPhases.includes('hk')).map(r => r.hk))}; vắng Hackathon ${absentHk} SV
+- Điểm cuối môn: ${stats(rows.filter(r => !r.absentPhases.includes('ck')).map(r => r.ck))}; vắng thi cuối môn ${absentCk} SV
+- Phần thi dưới ngưỡng theo mức: ${countByLevel(rows, levels, 'examScore')}
+- Nghi vấn BTVN (BTVN tốt nhưng thi thấp): ${rows.filter(r => r.suspect).length} SV
+${rows.some(r => r.makeupNotes.length) ? `- Có ${rows.filter(r => r.makeupNotes.length).length} SV thi bổ sung` : ''}
+
+SINH VIÊN CẦN CHÚ Ý VỀ ĐIỂM THI (${examRows.length})
+${lines.join('\n') || 'Không có.'}${examRows.length > MAX_LISTED ? `\n(và ${examRows.length - MAX_LISTED} SV khác)` : ''}`);
+    }
+  }
+}
