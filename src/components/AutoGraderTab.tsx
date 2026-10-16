@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useBatchGrader } from '~/src/hooks/auto-grader/useBatchGrader';
 import { useSettings } from '~/src/hooks/settings/useSettings';
+import { QldtDiagnoseButton } from './QldtDiagnoseButton';
 import { extractComment } from '~/src/core/utils';
 import {
   BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, SESSION_AI_KINDS, SessionAiKind, criteriaOf, itemFeedback, studentAverage
@@ -238,6 +239,21 @@ export const AutoGraderTab: React.FC = () => {
           {g.students.length ? 'Tải lại' : 'Tải bài nộp'}
         </Button>
       </Flex>
+
+      {g.classesTried && !g.classes.length && (
+        <Alert
+          type="warning"
+          showIcon
+          title="Chưa tải được danh sách lớp QLĐT"
+          description={<>{g.statusText} Đã đăng nhập mà vẫn lỗi: F5 tab QLĐT rồi bấm Thử lại, hoặc bấm Chẩn đoán và gửi kết quả.</>}
+          action={(
+            <Space direction="vertical" size={4}>
+              <Button size="small" icon={<ReloadOutlined />} onClick={g.reloadClasses} block>Thử lại</Button>
+              <QldtDiagnoseButton />
+            </Space>
+          )}
+        />
+      )}
 
       {g.loadProgress && (
         <Progress

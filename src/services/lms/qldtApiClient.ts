@@ -23,7 +23,7 @@ export function toAuthHeader(rawToken: string): string {
 }
 
 /** Hạn (giây) ghi trong JWT; null nếu token không phải JWT. */
-function jwtExp(auth: string): number | null {
+export function jwtExp(auth: string): number | null {
   const part = auth.replace(/^Bearer\s+/i, '').split('.')[1];
   if (!part) return null;
   try {

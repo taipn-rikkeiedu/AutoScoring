@@ -42,6 +42,7 @@ export function useBatchGrader() {
   const { config, aiStatus } = useApp();
   const { showToast } = useToast();
   const [classes, setClasses] = useState<QldtOption[]>([]);
+  const [classesTried, setClassesTried] = useState(false);
   const [classId, setClassId] = useState('');
   const [courses, setCourses] = useState<QldtOption[]>([]);
   const [courseId, setCourseId] = useState('');
@@ -106,6 +107,8 @@ export function useBatchGrader() {
     } catch (e: any) {
       setStatusText('Không tải được danh sách lớp: ' + e.message);
       logger.error(LOG_MODULE, 'Không tải được danh sách lớp QLĐT.', e.message);
+    } finally {
+      setClassesTried(true);
     }
   };
 
@@ -338,7 +341,7 @@ export function useBatchGrader() {
   };
 
   return {
-    classes, classId, courses, courseId, sessions, sessionId, setSessionId,
+    classes, classesTried, classId, courses, courseId, sessions, sessionId, setSessionId,
     handleClassChange, handleCourseChange, reloadClasses: () => loadClasses({ classId, courseId, sessionId }),
     students, visibleStudents, statusCounts, statusFilters, toggleStatusFilter, clearStatusFilters: () => setStatusFilters([]),
     query, setQuery, checked, setChecked, checkedItems,

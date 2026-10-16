@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useState } from 'react';
 import {
   Table, Button, Select, Input, Tag, Card, Progress, Drawer,
-  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Dropdown, Checkbox, Segmented, Collapse, Tabs
+  Typography, Empty, Alert, Tooltip, Badge, Divider, Flex, Dropdown, Checkbox, Segmented, Collapse, Tabs, Space
 } from 'antd';
 import type { TableColumnsType } from 'antd';
 import {
@@ -9,6 +9,7 @@ import {
   UnorderedListOutlined, BarChartOutlined, ReloadOutlined, CheckCircleFilled, RightOutlined, CalendarOutlined
 } from '@ant-design/icons';
 import { useStudentMonitor, MonitorView } from '~/src/hooks/student-monitor/useStudentMonitor';
+import { QldtDiagnoseButton } from './QldtDiagnoseButton';
 import { StudentMonitorDrawer, RiskTag, WatchStar } from '~/src/components/StudentMonitorDrawer';
 import { DayKindTags, DayLeave } from '~/src/components/StudentAttendancePanel';
 import { fmtDay, weekday, isAbsentKind } from '~/src/core/attendance';
@@ -202,9 +203,12 @@ export const StudentMonitorTab: React.FC = () => {
             </span>
           }
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={() => m.reloadClasses()}>
-              Thử lại
-            </Button>
+            <Space direction="vertical" size={4}>
+              <Button size="small" icon={<ReloadOutlined />} onClick={() => m.reloadClasses()} block>
+                Thử lại
+              </Button>
+              <QldtDiagnoseButton />
+            </Space>
           }
         />
       )}

@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.25.3] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Chẩn đoán kết nối QLĐT**: khi không tải được danh sách lớp, tab Chấm hàng loạt hiện cảnh báo kèm nút **Thử lại** và **Chẩn đoán** (tab Giám sát cũng có). Chẩn đoán kiểm tra từng bước — tab QLĐT đang mở / đang ngủ, các khoá lưu trữ và hạn token, token extension đang dùng, kết quả gọi `/systems/me` và `/classes/system/*` — rồi hiện kết quả để sao chép. Không bao giờ in token đầy đủ (chỉ vài ký tự đầu, độ dài và hạn).
+
+---
+
 ## [5.25.2] - 2026-10-16
 
 ### 🐛 Sửa lỗi
