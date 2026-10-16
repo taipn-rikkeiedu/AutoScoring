@@ -1,154 +1,169 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Table, Button, Tag, Dropdown, Card, Select, Progress, Space, Typography, Tooltip, Empty, Flex, Input, Drawer, Alert, Collapse, ConfigProvider
+  Table, Button, Tag, Dropdown, Card, Select, Progress, Space, Typography, Tooltip, Empty, Flex, Input, Drawer, Alert,
+  Collapse, Popover, Segmented, ConfigProvider
 } from 'antd';
 import type { TableColumnsType, MenuProps } from 'antd';
 import {
-  CloudDownloadOutlined, CopyOutlined, FileTextOutlined, TableOutlined, EyeOutlined, SyncOutlined,
-  GithubOutlined, SearchOutlined, CheckOutlined, ArrowsAltOutlined, ShrinkOutlined
+  CloudDownloadOutlined, CopyOutlined, FileTextOutlined, TableOutlined, SyncOutlined, GithubOutlined, SearchOutlined,
+  ThunderboltOutlined, SettingOutlined, LeftOutlined, RightOutlined, DownOutlined, StopOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import { useBatchGrader } from '~/src/hooks/auto-grader/useBatchGrader';
 import { useSettings } from '~/src/hooks/settings/useSettings';
 import { extractComment } from '~/src/core/utils';
-import { BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, criteriaOf, studentAverage, submittedCount } from '~/src/core/batchGrading';
+import { BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, criteriaOf, studentAverage } from '~/src/core/batchGrading';
 
 const { Text, Paragraph } = Typography;
 type Grader = ReturnType<typeof useBatchGrader>;
 
-type Row =
-  | { key: string; kind: 'student'; stu: BatchStudent; children: Row[] }
-  | { key: string; kind: 'item'; item: BatchItem };
+const STRICTNESS = [
+  { value: 'Dễ dãi, bỏ qua lỗi nhỏ', label: 'Dễ' },
+  { value: 'Bình thường', label: 'Chuẩn' },
+  { value: 'Rất khắt khe, trừ điểm nặng mọi lỗi nhỏ', label: 'Khắt khe' }
+];
 
-const STUDENT_KEY = (id: string) => `s:${id}`;
-
-/** Màu trạng thái buổi trên QLĐT. */
+/** "ĐANG CHỜ KIỂM TRA" → "Đang chờ kiểm tra". */
+const sentenceCase = (s: string) => (s ? s.charAt(0) + s.slice(1).toLowerCase() : s);
 const statusColor = (s: string) =>
   /^HOÀN THÀNH$/i.test(s) ? 'green' : /CHƯA/i.test(s) ? 'orange' : /CHỜ/i.test(s) ? 'blue' : 'default';
-
-/** "ĐANG CHỜ KIỂM TRA" → "Đang chờ kiểm tra" cho dễ đọc. */
-const sentenceCase = (s: string) => (s ? s.charAt(0) + s.slice(1).toLowerCase() : s);
-
+/** Nhãn ngắn cho ô lọc: "ĐANG CHỜ KIỂM TRA" → "Chờ kiểm tra". */
+const shortStatus = (s: string) => sentenceCase(s.replace(/^ĐANG\s+/i, ''));
+/** Nhận xét để hiển thị: bỏ thẻ <score> nếu báo cáo không theo mẫu. */
+const commentOf = (report?: string) =>
+  (extractComment(report || '') || report || '').replace(/<score>[\s\S]*?<\/score>/gi, '').trim();
+/** Bỏ tiền tố "[Bài tập]" lặp lại ở mọi đề. */
+const cleanTitle = (t: string) => t.replace(/^\s*\[[^\]]*\]\s*/, '') || t;
 const shortLink = (url: string) => url.replace(/^https?:\/\/(www\.)?github\.com\//, '').replace(/^https?:\/\//, '');
+const isGradeable = (i: BatchItem) => !!i.link && i.status !== 'success';
+const isBusy = (i: BatchItem) => i.status === 'downloading' || i.status === 'grading';
+
+/** Màu điểm theo tỉ lệ thang: ≥ 80% xanh, ≥ 50% vàng, còn lại đỏ. */
+const scoreTone = (score: string | null | undefined, scale: string) => {
+  const ratio = parseFloat(score || '0') / (parseFloat(scale) || 10);
+  return ratio >= 0.8 ? { color: '#389e0d', bg: '#f6ffed', border: '#b7eb8f' }
+    : ratio >= 0.5 ? { color: '#d48806', bg: '#fffbe6', border: '#ffe58f' }
+      : { color: '#cf1322', bg: '#fff1f0', border: '#ffa39e' };
+};
+
+/* ---------- Ô tình trạng 1 bài: cùng kích thước, màu theo tình trạng ---------- */
+const ItemCell: React.FC<{ item: BatchItem; scale: string }> = ({ item, scale }) => {
+  const base: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+    width: 72, height: 24, borderRadius: 4, fontSize: 12, border: '1px solid', whiteSpace: 'nowrap'
+  };
+  let style: React.CSSProperties;
+  let content: React.ReactNode;
+  if (!item.link) {
+    style = { ...base, color: '#bfbfbf', borderColor: '#f0f0f0', borderStyle: 'dashed' };
+    content = 'Chưa nộp';
+  } else if (isBusy(item)) {
+    style = { ...base, color: '#1677ff', background: '#e6f4ff', borderColor: '#91caff' };
+    content = <><SyncOutlined spin /> Đang chấm</>;
+  } else if (item.status === 'error') {
+    style = { ...base, color: '#cf1322', background: '#fff1f0', borderColor: '#ffa39e' };
+    content = 'Lỗi';
+  } else if (item.status === 'success') {
+    const tone = scoreTone(item.score, scale);
+    style = { ...base, color: tone.color, background: tone.bg, borderColor: tone.border, fontWeight: 600, fontSize: 13 };
+    content = item.score;
+  } else {
+    style = { ...base, color: '#595959', borderColor: '#d9d9d9' };
+    content = 'Chưa chấm';
+  }
+  return (
+    <Tooltip title={<>{cleanTitle(item.title)}{item.status === 'error' && item.error ? <><br />{item.error}</> : null}</>}>
+      <span style={style}>{content}</span>
+    </Tooltip>
+  );
+};
 
 export const AutoGraderTab: React.FC = () => {
   const g = useBatchGrader();
   const { gradingScale, setGradingScale, strictnessLevel, setStrictnessLevel } = useSettings();
-  const [expanded, setExpanded] = useState<React.Key[]>([]);
-  const [detailKey, setDetailKey] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const busy = g.loading || !!g.grading;
 
-  React.useEffect(() => {
+  useEffect(() => {
     window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: g.statusText }));
     return () => { window.dispatchEvent(new CustomEvent('appGlobalStatus', { detail: null })); };
   }, [g.statusText]);
 
-  const detailItem = detailKey ? g.students.flatMap(s => s.items).find(i => i.key === detailKey) || null : null;
+  // Cột bài: theo thứ tự đề của buổi
+  const homework = useMemo(() => {
+    const seen = new Map<string, string>();
+    g.students.forEach(s => s.items.forEach(i => { if (!seen.has(i.homeworkId)) seen.set(i.homeworkId, i.title); }));
+    return [...seen.entries()].map(([id, title], n) => ({ id, title, label: `Bài ${n + 1}` }));
+  }, [g.students]);
 
-  const dataSource: Row[] = g.visibleStudents.map(stu => ({
-    key: STUDENT_KEY(stu.studentId),
-    kind: 'student',
-    stu,
-    children: stu.items.map(item => ({ key: item.key, kind: 'item' as const, item }))
-  }));
+  const stats = useMemo(() => {
+    const items = g.students.flatMap(s => s.items);
+    const submitted = items.filter(i => i.link);
+    return {
+      students: g.students.length,
+      submitted: submitted.length,
+      graded: submitted.filter(i => i.status === 'success').length,
+      errors: submitted.filter(i => i.status === 'error').length,
+      toGrade: submitted.filter(i => i.status !== 'success').length,
+      missing: items.length - submitted.length
+    };
+  }, [g.students]);
 
-  const scoreCell = (item: BatchItem) => {
-    if (!item.link) return <Text type="secondary">—</Text>;
-    if (item.status === 'downloading') return <Tag color="blue" icon={<SyncOutlined spin />} style={{ margin: 0 }}>Tải code</Tag>;
-    if (item.status === 'grading') return <Tag color="orange" icon={<SyncOutlined spin />} style={{ margin: 0 }}>Đang chấm</Tag>;
-    if (item.status === 'error') {
-      return <Tooltip title={item.error}><Tag color="error" style={{ margin: 0 }}>Lỗi</Tag></Tooltip>;
-    }
-    if (item.status === 'success') {
-      const high = parseFloat(item.score || '0') / (parseFloat(g.scale) || 10) >= 0.8;
-      return (
-        <Tooltip title="Sao chép nhận xét & điểm">
-          <Button
-            size="small"
-            shape="round"
-            icon={<CopyOutlined />}
-            style={{ fontWeight: 600, color: high ? '#389e0d' : '#d48806', borderColor: high ? '#b7eb8f' : '#ffe58f' }}
-            onClick={(e) => { e.stopPropagation(); g.copyItemComment(item); }}
-          >
-            {item.score}/{g.scale}
-          </Button>
-        </Tooltip>
-      );
-    }
-    return <Text type="secondary">Chưa chấm</Text>;
+  // Chọn theo SV = chấm các bài chưa chấm (hoặc lỗi) của SV đó
+  const gradeableKeys = (s: BatchStudent) => s.items.filter(isGradeable).map(i => i.key);
+  const selectedStudentIds = g.visibleStudents
+    .filter(s => { const keys = gradeableKeys(s); return keys.length > 0 && keys.every(k => g.checked.has(k)); })
+    .map(s => s.studentId);
+  const setStudentSelection = (ids: React.Key[]) => {
+    const want = new Set(ids.map(String));
+    g.setChecked(prev => {
+      const next = new Set(prev);
+      g.visibleStudents.forEach(s => gradeableKeys(s).forEach(k => (want.has(s.studentId) ? next.add(k) : next.delete(k))));
+      return next;
+    });
   };
 
-  const columns: TableColumnsType<Row> = [
+  const openIndex = openId ? g.visibleStudents.findIndex(s => s.studentId === openId) : -1;
+  const openStudent = openIndex >= 0 ? g.visibleStudents[openIndex] : null;
+
+  const columns: TableColumnsType<BatchStudent> = [
     {
-      title: 'Sinh viên / Bài tập',
+      title: 'Sinh viên',
       key: 'name',
+      fixed: 'left',
+      width: 190,
       ellipsis: true,
-      // Dòng bài tập: tên đề trải sang cả cột trạng thái cho đủ chỗ
-      onCell: (r) => (r.kind === 'item' ? { colSpan: 2 } : {}),
-      render: (_, r) => r.kind === 'student' ? (
-        <span>
-          <Text strong>{r.stu.name}</Text>
-          {r.stu.code && <Text type="secondary"> · {r.stu.code}</Text>}
-        </span>
-      ) : (
+      render: (_, s) => (
         <Flex vertical style={{ minWidth: 0 }}>
-          <Text ellipsis={{ tooltip: r.item.title }}>{r.item.title}</Text>
-          <Text type="secondary" ellipsis style={{ fontSize: 12 }}>
-            {r.item.link
-              ? <a href={r.item.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                  <GithubOutlined /> {shortLink(r.item.link)}
-                </a>
-              : 'Chưa nộp'}
-            {r.item.sysAi && ` · AI hệ thống ${r.item.sysAi}`}
-          </Text>
+          <Text strong ellipsis>{s.name}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{s.code}</Text>
         </Flex>
       )
     },
     {
-      title: 'Trạng thái',
+      title: 'Trạng thái buổi',
       key: 'status',
-      width: 210,
-      onCell: (r) => (r.kind === 'item' ? { colSpan: 0 } : {}),
-      render: (_, r) => r.kind === 'student' ? (
-        <Space size={6} style={{ whiteSpace: 'nowrap' }}>
-          <Tag color={statusColor(r.stu.status)} style={{ margin: 0 }}>{sentenceCase(r.stu.status) || 'Chưa có'}</Tag>
-          <Text type={submittedCount(r.stu) ? 'secondary' : 'danger'}>nộp {submittedCount(r.stu)}/{r.stu.items.length}</Text>
-        </Space>
-      ) : null
+      width: 150,
+      render: (_, s) => <Tag color={statusColor(s.status)} style={{ margin: 0 }}>{sentenceCase(s.status) || 'Chưa có'}</Tag>
     },
-    {
-      title: 'Điểm',
-      key: 'score',
-      width: 120,
-      align: 'center',
-      render: (_, r) => {
-        if (r.kind === 'item') return scoreCell(r.item);
-        const avg = studentAverage(r.stu);
-        return avg != null ? <Text strong>TB {avg}</Text> : null;
+    ...homework.map(h => ({
+      title: <Tooltip title={cleanTitle(h.title)}><span style={{ cursor: 'help', borderBottom: '1px dotted #bfbfbf' }}>{h.label}</span></Tooltip>,
+      key: h.id,
+      width: 88,
+      align: 'center' as const,
+      render: (_: unknown, s: BatchStudent) => {
+        const item = s.items.find(i => i.homeworkId === h.id);
+        return item ? <ItemCell item={item} scale={g.scale} /> : null;
       }
-    },
+    })),
     {
-      title: '',
-      key: 'actions',
-      width: 92,
-      align: 'right',
-      render: (_, r) => r.kind === 'item' ? (
-        <Space size={0}>
-          <Tooltip title="Xem đề, tiêu chí & nhận xét">
-            <Button type="text" size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); setDetailKey(r.item.key); }} />
-          </Tooltip>
-          {r.item.link && (
-            <Tooltip title={r.item.status === 'success' ? 'Chấm lại' : 'Chấm bài này'}>
-              <Button
-                type="text"
-                size="small"
-                icon={<SyncOutlined />}
-                disabled={!!g.grading || r.item.status === 'grading' || r.item.status === 'downloading' || g.aiStatus !== 'success'}
-                onClick={(e) => { e.stopPropagation(); g.handleGradeOne(r.item); }}
-              />
-            </Tooltip>
-          )}
-        </Space>
-      ) : null
+      title: 'TB',
+      key: 'avg',
+      width: 56,
+      align: 'center',
+      render: (_, s) => {
+        const avg = studentAverage(s);
+        return avg != null ? <Text strong>{avg}</Text> : <Text type="secondary">—</Text>;
+      }
     }
   ];
 
@@ -158,15 +173,29 @@ export const AutoGraderTab: React.FC = () => {
     { key: 'markdown', icon: <FileTextOutlined />, label: 'Bảng Markdown', onClick: () => g.handleCopyReport('markdown') }
   ];
 
-  const allExpanded = dataSource.length > 0 && expanded.length >= dataSource.length;
+  const strictLabel = STRICTNESS.find(x => x.value === strictnessLevel)?.label || 'Chuẩn';
+  const gradingSettings = (
+    <Flex vertical gap={12} style={{ width: 240 }}>
+      <Flex vertical gap={4}>
+        <Text type="secondary">Mức độ chấm</Text>
+        <Segmented block value={strictnessLevel} onChange={(v) => setStrictnessLevel(String(v))} options={STRICTNESS} />
+      </Flex>
+      <Flex vertical gap={4}>
+        <Text type="secondary">Thang điểm</Text>
+        <Segmented block value={gradingScale} onChange={(v) => setGradingScale(String(v))} options={[{ value: '10', label: 'Thang 10' }, { value: '100', label: 'Thang 100' }]} />
+      </Flex>
+    </Flex>
+  );
+
+  const percent = stats.submitted ? Math.round((stats.graded / stats.submitted) * 100) : 0;
 
   return (
     <Flex vertical gap={12} style={{ height: '100%', padding: 16, overflow: 'hidden' }}>
-      {/* Lớp → môn → buổi */}
+      {/* 1. Chọn buổi */}
       <Flex gap={8}>
         <Select
           style={{ flex: 3, minWidth: 0 }}
-          placeholder="Chọn lớp"
+          placeholder="Lớp"
           options={g.classes}
           value={g.classId || undefined}
           onChange={g.handleClassChange}
@@ -178,7 +207,7 @@ export const AutoGraderTab: React.FC = () => {
         />
         <Select
           style={{ flex: 3, minWidth: 0 }}
-          placeholder={g.classId ? 'Chọn môn' : 'Chọn lớp trước'}
+          placeholder="Môn học"
           options={g.courses}
           value={g.courseId || undefined}
           onChange={g.handleCourseChange}
@@ -188,7 +217,7 @@ export const AutoGraderTab: React.FC = () => {
         />
         <Select
           style={{ flex: 3, minWidth: 0 }}
-          placeholder={g.courseId ? 'Chọn buổi' : 'Chọn môn trước'}
+          placeholder="Buổi"
           options={g.sessions}
           value={g.sessionId || undefined}
           onChange={g.setSessionId}
@@ -196,8 +225,14 @@ export const AutoGraderTab: React.FC = () => {
           optionFilterProp="label"
           disabled={busy || !g.courseId}
         />
-        <Button type="primary" icon={<CloudDownloadOutlined />} onClick={g.handleLoad} loading={g.loading} disabled={!g.sessionId || !!g.grading}>
-          Tải bài nộp
+        <Button
+          type={g.students.length ? 'default' : 'primary'}
+          icon={g.students.length ? <ReloadOutlined /> : <CloudDownloadOutlined />}
+          onClick={g.handleLoad}
+          loading={g.loading}
+          disabled={!g.sessionId || !!g.grading}
+        >
+          {g.students.length ? 'Tải lại' : 'Tải bài nộp'}
         </Button>
       </Flex>
 
@@ -209,124 +244,124 @@ export const AutoGraderTab: React.FC = () => {
         />
       )}
 
-      {/* Lọc theo trạng thái buổi + tìm SV */}
+      {/* 2. Tổng quan buổi + hành động chính */}
       {g.students.length > 0 && (
-        <Flex gap={6} align="center">
-          {g.statusCounts.map(s => (
-            <Tag.CheckableTag
-              key={s.label}
-              checked={g.statusFilters.includes(s.label)}
-              onChange={() => g.toggleStatusFilter(s.label)}
-              style={{ border: '1px solid #d9d9d9', margin: 0, whiteSpace: 'nowrap' }}
-            >
-              {s.label === NOT_SUBMITTED_FILTER ? s.label : sentenceCase(s.label)} <b>{s.count}</b>
-            </Tag.CheckableTag>
-          ))}
-          <div style={{ flex: 1 }} />
+        <Card size="small" styles={{ body: { padding: '10px 12px' } }}>
+          <Flex justify="space-between" align="center" gap={12}>
+            <Flex vertical gap={4} style={{ flex: 1, minWidth: 0 }}>
+              {g.grading ? (
+                <Text ellipsis={{ tooltip: g.grading.text }}>
+                  <Text strong>Đang chấm {g.grading.done + 1}/{g.grading.total}</Text> · {g.grading.text}
+                </Text>
+              ) : (
+                <Text>
+                  <Text strong>{stats.graded}/{stats.submitted}</Text> bài đã chấm
+                  <Text type="secondary"> · {stats.students} SV · {stats.missing} bài chưa nộp</Text>
+                  {stats.errors > 0 && <Text type="danger"> · {stats.errors} lỗi</Text>}
+                </Text>
+              )}
+              <Progress
+                size="small"
+                showInfo={false}
+                percent={g.grading ? Math.round((g.grading.done / g.grading.total) * 100) : percent}
+                status={g.grading ? 'active' : 'normal'}
+              />
+            </Flex>
+            <Space size={8}>
+              <Popover content={gradingSettings} title="Cách chấm" trigger="click" placement="bottomRight">
+                <Button icon={<SettingOutlined />} disabled={!!g.grading}>{strictLabel} · {gradingScale}</Button>
+              </Popover>
+              {g.grading ? (
+                <Button danger icon={<StopOutlined />} onClick={g.handleCancel}>Dừng</Button>
+              ) : (
+                <Tooltip title={g.aiStatus !== 'success' ? 'Chưa kết nối được AI — kiểm tra tab Cài đặt' : 'Chấm các bài chưa chấm của sinh viên đã chọn'}>
+                  <Button
+                    type="primary"
+                    icon={<ThunderboltOutlined />}
+                    onClick={g.handleGradeChecked}
+                    disabled={g.loading || !g.checkedItems.length || g.aiStatus !== 'success'}
+                  >
+                    Chấm {g.checkedItems.length} bài
+                  </Button>
+                </Tooltip>
+              )}
+            </Space>
+          </Flex>
+        </Card>
+      )}
+
+      {/* 3. Lọc */}
+      {g.students.length > 0 && (
+        <Flex gap={8} align="center">
+          <Flex gap={6} style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
+            {g.statusCounts.map(s => (
+              <Tag.CheckableTag
+                key={s.label}
+                checked={g.statusFilters.includes(s.label)}
+                onChange={() => g.toggleStatusFilter(s.label)}
+                style={{ border: '1px solid #d9d9d9', margin: 0, whiteSpace: 'nowrap' }}
+              >
+                {s.label === NOT_SUBMITTED_FILTER ? 'Chưa nộp' : shortStatus(s.label)} {s.count}
+              </Tag.CheckableTag>
+            ))}
+          </Flex>
           <Input
             allowClear
-            size="small"
             prefix={<SearchOutlined />}
-            placeholder="Tìm tên, MSSV"
+            placeholder="Tìm sinh viên"
             value={g.query}
             onChange={(e) => g.setQuery(e.target.value)}
-            style={{ width: 140, flexShrink: 0 }}
+            style={{ width: 160, flexShrink: 0 }}
           />
-          <Tooltip title={allExpanded ? 'Thu gọn tất cả' : 'Mở tất cả sinh viên'}>
-            <Button
-              size="small"
-              icon={allExpanded ? <ShrinkOutlined /> : <ArrowsAltOutlined />}
-              onClick={() => setExpanded(allExpanded ? [] : dataSource.map(r => r.key))}
-            />
-          </Tooltip>
           <Dropdown menu={{ items: copyMenu }} disabled={busy}>
-            <Tooltip title="Sao chép báo cáo cả buổi"><Button size="small" icon={<CopyOutlined />} /></Tooltip>
+            <Button icon={<CopyOutlined />} style={{ flexShrink: 0 }}>Sao chép <DownOutlined /></Button>
           </Dropdown>
         </Flex>
       )}
 
+      {/* 4. Danh sách: 1 dòng / SV, mỗi bài 1 ô */}
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#fff', borderRadius: 8 }}>
+        {/* Dòng đã chọn không tô nền (mặc định chọn sẵn gần hết → cả bảng xanh, khó đọc) */}
         <ConfigProvider theme={{ components: { Table: { rowSelectedBg: 'transparent', rowSelectedHoverBg: '#fafafa' } } }}>
-        <Table<Row>
+        <Table<BatchStudent>
           size="small"
           sticky
           pagination={false}
-          dataSource={dataSource}
+          rowKey="studentId"
+          dataSource={g.visibleStudents}
           columns={columns}
+          scroll={{ x: 'max-content' }}
           loading={g.loading && !g.students.length}
-          expandable={{
-            expandedRowKeys: expanded,
-            onExpandedRowsChange: (keys) => setExpanded([...keys]),
-            indentSize: 12
-          }}
-          onRow={(r) => ({
-            onClick: () => {
-              if (r.kind === 'student') setExpanded(prev => (prev.includes(r.key) ? prev.filter(k => k !== r.key) : [...prev, r.key]));
-              else setDetailKey(r.item.key);
-            },
+          onRow={(s) => ({
+            // Bấm ô checkbox chỉ để chọn, không mở chi tiết
+            onClick: (e) => { if (!(e.target as HTMLElement).closest('.ant-table-selection-column')) setOpenId(s.studentId); },
             style: { cursor: 'pointer' }
           })}
           rowSelection={{
-            checkStrictly: false,
-            selectedRowKeys: [...g.checked],
-            onChange: (keys) => g.setChecked(new Set(keys.map(String).filter(k => !k.startsWith('s:')))),
-            getCheckboxProps: (r) => ({
-              disabled: r.kind === 'item' ? !r.item.link : !submittedCount(r.stu)
-            })
+            selectedRowKeys: selectedStudentIds,
+            onChange: setStudentSelection,
+            getCheckboxProps: (s) => ({ disabled: !gradeableKeys(s).length || !!g.grading }),
+            columnWidth: 36
           }}
           locale={{
             emptyText: <Empty description={g.students.length
               ? 'Không có sinh viên nào khớp bộ lọc.'
-              : 'Chọn lớp → môn → buổi rồi bấm "Tải bài nộp". Bài nộp được khớp đúng đề theo ID trên QLĐT.'} />
+              : 'Chọn lớp, môn và buổi rồi bấm "Tải bài nộp". Bài nộp được khớp đúng đề theo ID trên QLĐT.'} />
           }}
         />
         </ConfigProvider>
       </div>
 
-      {g.grading && (
-        <Card size="small">
-          <Flex justify="space-between" align="center" gap={8}>
-            <Text ellipsis style={{ minWidth: 0 }}>{g.grading.text}</Text>
-            <Button size="small" danger onClick={g.handleCancel}>Dừng</Button>
-          </Flex>
-          <Progress percent={Math.round((g.grading.done / g.grading.total) * 100)} format={() => `${g.grading!.done}/${g.grading!.total}`} status="active" />
-        </Card>
-      )}
-
-      {/* Cách chấm + bắt đầu chấm */}
-      <Flex justify="space-between" align="center" gap={8}>
-        <Space>
-          <Select
-            value={strictnessLevel}
-            onChange={setStrictnessLevel}
-            style={{ width: 120 }}
-            options={[
-              { value: 'Dễ dãi, bỏ qua lỗi nhỏ', label: '🟢 Chấm dễ' },
-              { value: 'Bình thường', label: '🟡 Chuẩn' },
-              { value: 'Rất khắt khe, trừ điểm nặng mọi lỗi nhỏ', label: '🔴 Khắt khe' }
-            ]}
-          />
-          <Select
-            value={gradingScale}
-            onChange={setGradingScale}
-            style={{ width: 110 }}
-            options={[{ value: '10', label: 'Thang 10' }, { value: '100', label: 'Thang 100' }]}
-          />
-        </Space>
-        <Tooltip title={g.aiStatus !== 'success' ? 'Chưa kết nối được AI — kiểm tra tab Cài đặt' : undefined}>
-          <Button
-            type="primary"
-            icon={<CheckOutlined />}
-            onClick={g.handleGradeChecked}
-            disabled={!!g.grading || g.loading || !g.checkedItems.length || g.aiStatus !== 'success'}
-            loading={!!g.grading}
-          >
-            {g.grading ? 'Đang chấm…' : `Chấm ${g.checkedItems.length} bài đã chọn`}
-          </Button>
-        </Tooltip>
-      </Flex>
-
-      <ItemDetailDrawer item={detailItem} g={g} onClose={() => setDetailKey(null)} />
+      <StudentGradeDrawer
+        student={openStudent}
+        index={openIndex}
+        total={g.visibleStudents.length}
+        homework={homework}
+        g={g}
+        onPrev={() => openIndex > 0 && setOpenId(g.visibleStudents[openIndex - 1].studentId)}
+        onNext={() => openIndex < g.visibleStudents.length - 1 && setOpenId(g.visibleStudents[openIndex + 1].studentId)}
+        onClose={() => setOpenId(null)}
+      />
     </Flex>
   );
 };
@@ -372,7 +407,7 @@ const AssignmentView: React.FC<{ text: string; images?: string[] }> = ({ text, i
             const heading = /^#{1,6}\s+(.*)$/.exec(line);
             return (
               <div key={j} style={heading ? { fontWeight: 600, marginTop: j ? 4 : 0 } : undefined}>
-                {line ? <RichLine text={heading ? heading[1] : line} /> : '\u00a0'}
+                {line ? <RichLine text={heading ? heading[1] : line} /> : ' '}
               </div>
             );
           })}
@@ -382,89 +417,143 @@ const AssignmentView: React.FC<{ text: string; images?: string[] }> = ({ text, i
   </div>
 );
 
-/* ---------- Chi tiết 1 bài: đề, tiêu chí, nhận xét ---------- */
-const ItemDetailDrawer: React.FC<{ item: BatchItem | null; g: Grader; onClose: () => void }> = ({ item, g, onClose }) => {
-  const block = (text: string) => (
-    <Paragraph style={{ whiteSpace: 'pre-wrap', margin: 0, maxHeight: 260, overflowY: 'auto' }}>{text}</Paragraph>
-  );
+/* ---------- Chi tiết 1 SV: từng bài với điểm, nhận xét, đề ---------- */
+const StudentGradeDrawer: React.FC<{
+  student: BatchStudent | null;
+  index: number;
+  total: number;
+  homework: { id: string; label: string }[];
+  g: Grader;
+  onPrev: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}> = ({ student: s, index, total, homework, g, onPrev, onNext, onClose }) => {
+  // Phím ← → để chuyển sinh viên
+  useEffect(() => {
+    if (!s) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft') onPrev();
+      if (e.key === 'ArrowRight') onNext();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); };
+  }, [s, onPrev, onNext]);
+
+  if (!s) return null;
+  const avg = studentAverage(s);
+  const canGrade = g.aiStatus === 'success' && !g.grading;
+
   return (
     <Drawer
-      open={!!item}
+      open
       onClose={onClose}
-      size={460}
-      title={item ? <Flex vertical><Text strong ellipsis>{item.title}</Text><Text type="secondary" style={{ fontWeight: 400 }}>{item.studentName}</Text></Flex> : null}
-      extra={item?.link && (
-        <Button
-          size="small"
-          icon={<SyncOutlined />}
-          disabled={!!g.grading || item.status === 'grading' || item.status === 'downloading' || g.aiStatus !== 'success'}
-          onClick={() => g.handleGradeOne(item)}
-        >
-          {item.status === 'success' ? 'Chấm lại' : 'Chấm'}
-        </Button>
-      )}
-    >
-      {item && (
-        <Flex vertical gap={12}>
-          {item.link
-            ? <a href={item.link} target="_blank" rel="noopener noreferrer"><GithubOutlined /> {shortLink(item.link)}</a>
-            : <Alert type="warning" showIcon title="Sinh viên chưa nộp bài này." />}
-
-          {item.status === 'error' && <Alert type="error" showIcon title={item.error} />}
-          {item.status === 'success' && (
-            <Card
-              size="small"
-              title={`Nhận xét — ${item.score}/${g.scale}`}
-              extra={
-                <Space size={4}>
-                  <Button size="small" icon={<CopyOutlined />} onClick={() => g.copyItemComment(item)}>Sao chép</Button>
-                  <Button
-                    size="small"
-                    onClick={() => (window as any).showReportModal?.({
-                      title: `${item.studentName} — ${item.title}`, score: item.score, report: item.report || '',
-                      language: item.language, astMetrics: item.astMetrics, imagesAttached: item.imagesAttached, imagesSkipped: item.imagesSkipped
-                    })}
-                  >
-                    Báo cáo đầy đủ
-                  </Button>
-                </Space>
-              }
-            >
-              {block(extractComment(item.report || '') || item.report || '')}
-              {(item.assignmentImagesAttached || item.assignmentImagesMissing) ? (
-                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-                  Ảnh của đề: đã gửi kèm {item.assignmentImagesAttached || 0}
-                  {item.assignmentImagesMissing ? `, không gửi được ${item.assignmentImagesMissing}` : ''}.
-                </Text>
-              ) : null}
-            </Card>
-          )}
-
-          <Collapse
-            size="small"
-            defaultActiveKey={item.status === 'success' ? [] : ['assignment']}
-            items={[
-              {
-                key: 'assignment',
-                label: item.images.length ? `Đề bài · ${item.images.length} ảnh (gửi kèm cho AI)` : 'Đề bài',
-                children: <AssignmentView text={item.assignment || '(Đề không có mô tả)'} images={item.images} />
-              },
-              {
-                key: 'criteria',
-                label: item.criteria ? 'Tiêu chí chấm' : 'Tiêu chí chấm (mặc định — đề chưa có tiêu chí trên QLĐT)',
-                children: <AssignmentView text={criteriaOf(item)} />
-              },
-              ...(item.comment ? [{ key: 'comment', label: 'Nhận xét hiện có trên QLĐT', children: block(item.comment) }] : []),
-              ...(item.fileList?.length ? [{
-                key: 'files',
-                label: `Tệp mã nguồn đã đọc (${item.fileList.length})`,
-                children: <div style={{ fontFamily: 'monospace', fontSize: 12, maxHeight: 200, overflowY: 'auto' }}>{item.fileList.map(f => <div key={f}>{f}</div>)}</div>
-              }] : [])
-            ]}
-          />
-          {item.sysAi && <Text type="secondary">Điểm AI của hệ thống QLĐT: {item.sysAi} (chỉ để tham khảo, extension luôn chấm lại).</Text>}
+      size={520}
+      title={
+        <Flex vertical>
+          <Flex gap={8} align="center" wrap>
+            <span>{s.name}</span>
+            <Tag color={statusColor(s.status)} style={{ margin: 0, fontWeight: 'normal' }}>{sentenceCase(s.status) || 'Chưa có trạng thái'}</Tag>
+          </Flex>
+          <Text type="secondary" style={{ fontWeight: 'normal' }}>
+            {s.code}{avg != null ? ` · điểm TB ${avg}/${g.scale}` : ''}
+          </Text>
         </Flex>
-      )}
+      }
+      extra={
+        <Space size={4}>
+          <Text type="secondary">{index + 1}/{total}</Text>
+          <Tooltip title="Sinh viên trước (←)"><Button icon={<LeftOutlined />} onClick={onPrev} disabled={index <= 0} /></Tooltip>
+          <Tooltip title="Sinh viên sau (→)"><Button icon={<RightOutlined />} onClick={onNext} disabled={index >= total - 1} /></Tooltip>
+        </Space>
+      }
+    >
+      <Flex vertical gap={12}>
+        {s.items.map(item => {
+          const label = homework.find(h => h.id === item.homeworkId)?.label || 'Bài';
+          return (
+            <Card
+              key={item.key}
+              size="small"
+              title={<Text strong ellipsis={{ tooltip: item.title }}>{label} · {cleanTitle(item.title)}</Text>}
+              extra={<ItemCell item={item} scale={g.scale} />}
+            >
+              <Flex vertical gap={10}>
+                {item.link ? (
+                  <a href={item.link} target="_blank" rel="noopener noreferrer"><GithubOutlined /> {shortLink(item.link)}</a>
+                ) : (
+                  <Text type="secondary">Sinh viên chưa nộp bài này.</Text>
+                )}
+
+                {item.status === 'error' && <Alert type="error" showIcon title="Chấm lỗi" description={item.error} />}
+
+                {item.status === 'success' && (
+                  <Paragraph style={{ whiteSpace: 'pre-wrap', margin: 0 }} ellipsis={{ rows: 6, expandable: 'collapsible' }}>
+                    {commentOf(item.report)}
+                  </Paragraph>
+                )}
+
+                {item.link && (
+                  <Flex gap={8} wrap>
+                    {item.status === 'success' && (
+                      <Button type="primary" icon={<CopyOutlined />} onClick={() => g.copyItemComment(item)}>Chép nhận xét & điểm</Button>
+                    )}
+                    <Button
+                      icon={<ThunderboltOutlined />}
+                      loading={isBusy(item)}
+                      disabled={!canGrade || isBusy(item)}
+                      onClick={() => g.handleGradeOne(item)}
+                    >
+                      {item.status === 'success' || item.status === 'error' ? 'Chấm lại' : 'Chấm bài này'}
+                    </Button>
+                    {item.status === 'success' && (
+                      <Button
+                        type="text"
+                        onClick={() => (window as any).showReportModal?.({
+                          title: `${s.name} — ${cleanTitle(item.title)}`, score: item.score, report: item.report || '',
+                          language: item.language, astMetrics: item.astMetrics, imagesAttached: item.imagesAttached, imagesSkipped: item.imagesSkipped
+                        })}
+                      >
+                        Báo cáo đầy đủ
+                      </Button>
+                    )}
+                  </Flex>
+                )}
+
+                {(item.sysAi || item.comment || item.assignmentImagesAttached || item.assignmentImagesMissing) ? (
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {[
+                      item.sysAi && `AI hệ thống QLĐT: ${item.sysAi}`,
+                      item.comment && 'đã có nhận xét trên QLĐT',
+                      (item.assignmentImagesAttached || item.assignmentImagesMissing)
+                        && `ảnh của đề gửi kèm ${item.assignmentImagesAttached || 0}${item.assignmentImagesMissing ? `, thiếu ${item.assignmentImagesMissing}` : ''}`
+                    ].filter(Boolean).join(' · ')}
+                  </Text>
+                ) : null}
+
+                <Collapse
+                  size="small"
+                  ghost
+                  items={[
+                    {
+                      key: 'assignment',
+                      label: item.images.length ? `Đề bài (${item.images.length} ảnh)` : 'Đề bài',
+                      children: <AssignmentView text={item.assignment || '(Đề không có mô tả)'} images={item.images} />
+                    },
+                    {
+                      key: 'criteria',
+                      label: item.criteria ? 'Tiêu chí chấm' : 'Tiêu chí chấm (mặc định)',
+                      children: <AssignmentView text={criteriaOf(item)} />
+                    },
+                    ...(item.comment ? [{ key: 'comment', label: 'Nhận xét hiện có trên QLĐT', children: <AssignmentView text={item.comment} /> }] : [])
+                  ]}
+                />
+              </Flex>
+            </Card>
+          );
+        })}
+      </Flex>
     </Drawer>
   );
 };

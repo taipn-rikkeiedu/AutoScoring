@@ -4,6 +4,18 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.14.0] - 2026-10-16
+
+### ✨ Cải thiện
+- **Thiết kế lại giao diện Chấm hàng loạt** cho dễ nhìn, dễ thao tác:
+  - **Mỗi sinh viên một dòng**, mỗi bài của buổi là một cột (Bài 1, Bài 2… — di chuột vào tiêu đề cột để xem tên đề). Ô bài cùng kích thước, màu theo tình trạng: điểm (xanh ≥ 80%, vàng ≥ 50%, đỏ dưới 50%), Chưa chấm, Đang chấm, Lỗi, Chưa nộp (viền nét đứt). Bỏ bảng lồng nhau và checkbox 2 cấp.
+  - **Tổng quan buổi** ngay trên đầu: số bài đã chấm / đã nộp, số SV, bài chưa nộp, số lỗi kèm thanh tiến độ; khi đang chấm hiện bài đang chấm và nút **Dừng**.
+  - Nút chính **Chấm N bài** đặt cạnh tổng quan; chọn theo sinh viên = chấm các bài chưa chấm / lỗi của sinh viên đó. Cách chấm (mức độ, thang điểm) gom vào nút **Chuẩn · 10**.
+  - Bấm vào sinh viên mở **ngăn chi tiết** (‹ › hoặc phím ← → để chuyển sinh viên): từng bài với điểm, nhận xét, nút **Chép nhận xét & điểm**, **Chấm lại**, **Báo cáo đầy đủ**, đề bài và tiêu chí.
+  - Ô lọc trạng thái buổi gọn một dòng; nút có chữ rõ ràng thay cho biểu tượng không nhãn; bỏ tiền tố "[Bài tập]" lặp lại; dòng đã chọn không tô nền xanh.
+
+---
+
 ## [5.13.0] - 2026-10-16
 
 ### ✨ Cải thiện
