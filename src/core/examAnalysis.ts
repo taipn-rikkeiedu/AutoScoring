@@ -49,6 +49,7 @@ export interface TestResult {
   link?: string;
   date?: string;
   makeup?: boolean;           // lịch "THI BỔ SUNG …"
+  upcoming?: boolean;         // lịch thi chưa tới ngày → chưa thi
 }
 
 /** Hình thức thi cuối môn: tự luận (TN + TL) hoặc project (kiến thức + sản phẩm + vấn đáp). */
@@ -169,10 +170,12 @@ export function parseClassDashboard(d: any, classLabel: string, testCols: Map<st
       const kind: TestKind = /tự luận|tu luan|essay/i.test(test.type || '') ? 'TL' : 'TN';
       const key = `${sch.id ?? phase}|${kind}`;
       if (!testCols.has(key)) testCols.set(key, { key, phase, kind, name: test.testName || sch.type, date: sch.testStart || '' });
+      // Lịch thi chưa tới ngày → chưa thi (không tính vắng)
+      const upcoming = !!sch.testStart && new Date(sch.testStart).getTime() > Date.now();
       // Không nộp bài (submittedAt rỗng) mà điểm trống / 0 → vắng bài thi này
-      const absent = 'submittedAt' in t && !t.submittedAt && !(Number(t.point) > 0);
+      const absent = !upcoming && 'submittedAt' in t && !t.submittedAt && !(Number(t.point) > 0);
       tests[key] = {
-        point: absent || t.point == null ? null : Number(t.point), absent, phase, kind,
+        point: absent || upcoming || t.point == null ? null : Number(t.point), absent, upcoming, phase, kind,
         name: test.testName || sch.type, schedType: sch.type, comment: t.comment, link: t.link, date: sch.testStart,
         makeup: /bổ sung|bo sung/i.test(sch.type || '')
       };
@@ -180,22 +183,30 @@ export function parseClassDashboard(d: any, classLabel: string, testCols: Map<st
     const testList = Object.values(tests);
 
     // Vắng thi cả đợt: đợt có lịch thi nhưng SV không làm bài nào (tính cả thi bổ sung; môn project tính cả điểm project)
-    const hasProject = examType === 'PROJECT' && fr != null && (fr.project != null || Number(fr.doProject) === 1);
+    // Đã làm project: QLĐT đánh dấu doProject hoặc có điểm project > 0 (ô project = 0 không có nghĩa là đã làm)
+    const hasProject = examType === 'PROJECT' && fr != null && (Number(fr.doProject) === 1 || Number(fr.project) > 0);
     const absentPhases = (['hk', 'ck'] as TestPhase[]).filter(ph => {
-      const own = testList.filter(t => t.phase === ph);
+      // Bỏ các lịch chưa tới ngày: đợt chưa thi thì không phải vắng
+      const own = testList.filter(t => t.phase === ph && !t.upcoming);
       if (!own.length || own.some(t => !t.absent)) return false;
       return !(ph === 'ck' && hasProject);
     });
 
-    // Điểm chính thức (ô trống = 0 như QLĐT); không có bảng điểm thì để trống
+    // Điểm chính thức (ô trống = 0 như QLĐT) — chỉ khi đợt đó SV đã thi.
+    // Chưa thi / môn không có đợt thi đó (không có bài nộp, bảng điểm trống hoặc 0) → để trống, không tính là 0 điểm.
     const n = (k: string) => (fr && fr[k] != null ? Number(fr[k]) : 0);
     const official = fr != null;
+    const frHas = (...keys: string[]) => official && keys.some(k => Number(fr[k]) > 0);
+    const tookPhase = (ph: TestPhase) => testList.some(t => t.phase === ph && !t.absent);
     const hkAbsent = absentPhases.includes('hk');
     const ckAbsent = absentPhases.includes('ck');
-    const hkTN = official && !hkAbsent ? n('hackathon_1') : null;
-    const hkTL = official && !hkAbsent ? n('hackathon_2') : null;
-    const ckTN = official && !ckAbsent ? (examType === 'PROJECT' ? n('quizzi') : n('mutiple_choice_1')) : null;
-    const ckTL = official && !ckAbsent ? (examType === 'PROJECT' ? n('project') : n('essay_1')) : null;
+    const hkTaken = official && !hkAbsent && (tookPhase('hk') || frHas('hackathon_1', 'hackathon_2'));
+    const ckTaken = official && !ckAbsent && (tookPhase('ck') || hasProject
+      || frHas(...(examType === 'PROJECT' ? ['quizzi', 'project', 'interview_point'] : ['mutiple_choice_1', 'essay_1'])));
+    const hkTN = hkTaken ? n('hackathon_1') : null;
+    const hkTL = hkTaken ? n('hackathon_2') : null;
+    const ckTN = ckTaken ? (examType === 'PROJECT' ? n('quizzi') : n('mutiple_choice_1')) : null;
+    const ckTL = ckTaken ? (examType === 'PROJECT' ? n('project') : n('essay_1')) : null;
     const hk = hkTN != null && hkTL != null ? wHk.tn * hkTN + wHk.tl * hkTL : null;
     const ck = ckTN == null || ckTL == null ? null
       : examType === 'PROJECT'

@@ -4,6 +4,14 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.21.1] - 2026-10-16
+
+### 🐛 Sửa lỗi
+- **Điểm Hackathon / cuối môn bằng 0 khi chưa thi hoặc môn không có Hackathon**: trước đây ô trống trong bảng điểm QLĐT bị tính là 0 nên cả lớp bị báo "điểm thi thấp" (vd IT206 chưa thi: 44/44 SV = 0). Nay chỉ có điểm khi sinh viên đã thi đợt đó (có bài nộp hoặc điểm > 0); chưa thi / không có đợt thi thì để trống "—", không tính điểm thấp, không tính vắng thi. Lịch thi chưa tới ngày cũng không tính là vắng.
+- **Môn thi project**: ô điểm project = 0 không còn bị hiểu là đã làm project; sinh viên không nộp bài cuối môn và chưa làm project được ghi đúng là Vắng thi cuối môn (thay vì cuối môn = 0).
+
+---
+
 ## [5.21.0] - 2026-10-16
 
 ### 🚀 Tính năng mới
