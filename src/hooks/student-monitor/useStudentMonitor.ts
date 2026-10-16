@@ -130,7 +130,10 @@ export function useStudentMonitor() {
       for (const id of selectedClassIds) {
         const label = (classes.find(c => c.value === id)?.label || id).replace(/\s*\(\d+ SV\)$/, '');
         try {
-          rows.push(...parseMonitorClass(await fetchClassDashboard(auth, id, courseId), label, cols));
+          const d = await fetchClassDashboard(auth, id, courseId);
+          // In response dashboard ra Console (DevTools của extension) để đối chiếu / lưu làm dữ liệu mẫu
+          console.log(`[GIÁM SÁT] /classes/dashboard/${id}/${courseId} — ${label}`, d);
+          rows.push(...parseMonitorClass(d, label, cols));
         } catch (e: any) {
           logger.error(LOG_MODULE, `Không tải được dữ liệu lớp ${label}.`, e.message);
         }

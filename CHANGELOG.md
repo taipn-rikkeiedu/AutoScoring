@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.9.3] - 2026-10-16
+
+### ✨ Cải thiện
+- Console chỉ in response của API dashboard điểm khi bấm "Tải dữ liệu" ở Giám sát học tập (nhãn `[GIÁM SÁT] /classes/dashboard/{lớp}/{môn} — tên lớp`), dạng object giống bản trước — chuột phải → Copy object để lưu thành file JSON. Bỏ log mọi API của bản 5.9.1–5.9.2.
+
+---
+
 ## [5.9.2] - 2026-10-16
 
 ### ✨ Cải thiện
