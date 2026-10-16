@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Button, Input, InputNumber, Tag, Typography, Alert, Tooltip, Divider, Flex, Space, Dropdown, Modal, Popconfirm, List,
-  ColorPicker, Checkbox, Collapse
+  ColorPicker, Checkbox, Collapse, Switch
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, CopyOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined, DownOutlined, CloseOutlined,
@@ -135,6 +135,7 @@ export const MonitorTemplatesPanel: React.FC<{ m: Monitor }> = ({ m }) => {
                 <Space size={6} wrap style={{ minWidth: 0 }}>
                   <Text strong>{t.name}</Text>
                   {isDefault && <Tag color="blue" style={{ margin: 0 }}>Tất cả môn</Tag>}
+                  {t.analysis.enabled === false && <Tag style={{ margin: 0 }}>Tắt nghi vấn BTVN</Tag>}
                   {courseCount > 0 && <Tag style={{ margin: 0 }}>Riêng {courseCount} môn</Tag>}
                 </Space>
                 <Space size={0} style={{ flexShrink: 0 }}>
@@ -360,7 +361,7 @@ const TemplateEditorModal: React.FC<{
   const a = draft.analysis;
   const setRule = (k: keyof AnalysisRules) => (v: number | null) => setDraft(d => ({ ...d, analysis: { ...d.analysis, [k]: v ?? 0 } }));
   const num = (value: number, onChange: (v: number | null) => void) => (
-    <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} style={{ width: 76 }} />
+    <InputNumber size="small" min={0} max={100} value={value} onChange={onChange} disabled={a.enabled === false} style={{ width: 76 }} />
   );
   const row = (label: string, input: React.ReactNode) => (
     <Flex justify="space-between" align="center" gap={8} style={{ maxWidth: 360 }}>
@@ -423,9 +424,19 @@ const TemplateEditorModal: React.FC<{
           size="small"
           items={[{
             key: 'suspect',
-            label: 'Nghi vấn BTVN ↔ điểm thi',
+            label: `Nghi vấn BTVN ↔ điểm thi${a.enabled === false ? ' — đang tắt' : ''}`,
+            extra: (
+              <span onClick={(e) => e.stopPropagation()}>
+                <Switch
+                  size="small"
+                  checked={a.enabled !== false}
+                  onChange={(on) => setDraft(d => ({ ...d, analysis: { ...d.analysis, enabled: on } }))}
+                />
+              </span>
+            ),
             children: (
-              <Flex vertical gap={8}>
+              <Flex vertical gap={8} style={{ opacity: a.enabled === false ? 0.5 : 1 }}>
+                <Text type="secondary">Tắt cho môn không thi Hackathon hoặc khi sinh viên chưa thi cuối môn — khi đó không gắn cờ nghi vấn / trùng link.</Text>
                 {row('Tỉ lệ nộp BTVN từ (%)', num(a.hwMin, setRule('hwMin')))}
                 {row('Nghi vấn cao khi thi dưới', num(a.highBelow, setRule('highBelow')))}
                 {row('Cần rà soát khi thi dưới', num(a.midBelow, setRule('midBelow')))}

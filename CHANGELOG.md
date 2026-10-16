@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.21.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Bật / tắt Nghi vấn BTVN theo mẫu giám sát**: công tắc trong mục "Nghi vấn BTVN ↔ điểm thi" của trình sửa mẫu. Môn không thi Hackathon hoặc sinh viên chưa thi cuối môn thì áp một mẫu đã tắt cho riêng môn đó (dùng chung qua Supabase) — không gắn cờ nghi vấn / trùng link, ẩn ô lọc nghi vấn, chi tiết sinh viên không hiện cảnh báo BTVN. Danh sách mẫu có nhãn "Tắt nghi vấn BTVN".
+
+---
+
 ## [5.20.4] - 2026-10-16
 
 ### ✨ Cải thiện

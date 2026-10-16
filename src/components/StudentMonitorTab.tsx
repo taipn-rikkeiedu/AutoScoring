@@ -133,7 +133,8 @@ export const StudentMonitorTab: React.FC = () => {
   const levelFilters = m.levels
     .map(l => ({ key: levelFilterKey(l.id), label: l.name, color: l.color }))
     .filter(f => m.filterCounts[f.key] || m.filters.includes(f.key));
-  const otherFilters = MONITOR_FILTERS;
+  // Mẫu tắt nghi vấn BTVN → ẩn các ô lọc nghi vấn
+  const otherFilters = m.rules.enabled === false ? MONITOR_FILTERS.filter(f => f.key !== 'suspect' && f.key !== 'dup') : MONITOR_FILTERS;
   const otherActive = otherFilters.filter(f => m.filters.includes(f.key)).length;
 
   return (

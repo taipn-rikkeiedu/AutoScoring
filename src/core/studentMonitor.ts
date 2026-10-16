@@ -212,15 +212,19 @@ export function evaluateMonitor(
     const issues = hits.filter(h => levels[h.levelIndex].violation).sort(byLevel);
     const early = hits.filter(h => !levels[h.levelIndex].violation).sort(byLevel);
     const riskLevel = index < levels.length ? levels[index] : NORMAL_LEVEL;
-    const suspect = r.level === 'high' || r.level === 'medium';
+    // Mẫu tắt nghi vấn BTVN → bỏ mọi dấu hiệu nghi vấn (kể cả trùng link)
+    const suspectOn = analysisRules.enabled !== false;
+    const level = suspectOn ? r.level : 'na';
+    const dups = suspectOn ? r.dups : [];
+    const suspect = level === 'high' || level === 'medium';
     const actions = [...new Set([
       ...issues.map(i => i.action),
       ...early.map(e => `Nhắc sớm: ${e.title.toLowerCase()} sắp chạm ngưỡng`),
-      ...(suspect || r.dups.length ? ['Vấn đáp lại 1–2 bài tập đã nộp để xác minh'] : [])
+      ...(suspect || dups.length ? ['Vấn đáp lại 1–2 bài tập đã nộp để xác minh'] : [])
     ].filter(Boolean))];
     // Vắng thi đã là chỉ số riêng → bỏ khỏi danh sách dấu hiệu nghi vấn
-    const reasons = r.reasons.filter(x => !x.startsWith('Vắng thi'));
-    return { ...r, reasons, risk: riskLevel.id, riskLevel, riskIndex: index, issues, early, suspect, actions };
+    const reasons = suspectOn ? r.reasons.filter(x => !x.startsWith('Vắng thi')) : [];
+    return { ...r, level, dups, reasons, risk: riskLevel.id, riskLevel, riskIndex: index, issues, early, suspect, actions };
   });
   rows.sort((a, b) =>
     a.riskIndex - b.riskIndex

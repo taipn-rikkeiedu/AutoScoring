@@ -4,6 +4,8 @@
  */
 
 export interface AnalysisRules {
+  /** Có xét nghi vấn BTVN ↔ điểm thi không (tắt cho môn không thi Hackathon / chưa thi cuối môn). Mặc định bật. */
+  enabled?: boolean;
   hwMin: number;      // BTVN nộp ≥ hwMin (%)
   highBelow: number;  // … và điểm thi < highBelow → nghi vấn cao
   midBelow: number;   // … hoặc điểm thi < midBelow → cần rà soát
@@ -11,7 +13,7 @@ export interface AnalysisRules {
   aiHigh: number;     // điểm AI bài tập TB ≥ aiHigh mà thi thấp → thêm cờ
 }
 
-export const DEFAULT_ANALYSIS_RULES: AnalysisRules = { hwMin: 80, highBelow: 50, midBelow: 65, gapMin: 35, aiHigh: 80 };
+export const DEFAULT_ANALYSIS_RULES: AnalysisRules = { enabled: true, hwMin: 80, highBelow: 50, midBelow: 65, gapMin: 35, aiHigh: 80 };
 
 export type AnalysisLevel = 'high' | 'medium' | 'low' | 'absent' | 'na';
 
