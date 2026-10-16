@@ -4,6 +4,17 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.22.0] - 2026-10-16
+
+### 🗑 Gỡ bỏ
+- **Bảng Supabase của chức năng đã bỏ**: nút **Khởi tạo DB** (tab Cài đặt) nay xoá vĩnh viễn bảng `exercises` (kho đề cũ) và `submissions` (kết quả chấm đồng bộ cũ), chỉ tạo / cập nhật 2 bảng còn dùng: `care_notes` (chăm sóc học viên) và `monitor_templates` (mẫu giám sát). Có hộp xác nhận ghi rõ sẽ xoá gì; nút luôn bấm được ("Khởi tạo lại") để dọn bảng cũ.
+
+### 🐛 Sửa lỗi
+- Kiểm tra "đã khởi tạo CSDL" dùng 2 bảng còn dùng (trước kiểm tra bảng `submissions` và bỏ sót lỗi thiếu bảng `monitor_templates`) → báo đúng khi thiếu bảng mẫu giám sát.
+- Nút "Tạo bảng" trong Cài đặt giám sát chỉ tạo bảng `monitor_templates`, không động tới bảng khác.
+
+---
+
 ## [5.21.2] - 2026-10-16
 
 ### 🐛 Sửa lỗi

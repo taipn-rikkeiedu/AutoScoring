@@ -22,11 +22,11 @@ Vượt trội hơn một công cụ chấm điểm thông thường, **REduX** 
 ### 2. 👥 Quản Lý Danh Sách Lớp & Bảo Mật Tuyệt Đối (Local-First Class Management)
 * **Tự động trích xuất thông tin học viên:** Đọc thông tin học viên, mã sinh viên, trạng thái nộp bài trực tiếp từ bảng quản lý lớp học của LMS.
 * **Lưu trữ cục bộ bảo mật (Local Storage):** Danh sách lớp học và học viên được chuyển sang lưu trữ cục bộ hoàn toàn tại trình duyệt của giáo viên (`chrome.storage.local`), đảm bảo an toàn bảo mật và không lưu footprint dữ liệu cá nhân học viên trên đám mây Supabase Cloud.
-* **Đồng bộ kết quả chấm lên đám mây (Supabase Sync):** Tự động đồng bộ hóa điểm số chấm bài và các ghi chú hỗ trợ học viên lên các bảng `submissions` và `care_notes` trên Supabase Cloud.
+* **Đồng bộ đám mây (Supabase):** Ghi chú chăm sóc học viên (bảng `care_notes`) và mẫu giám sát học tập dùng chung (bảng `monitor_templates`) được lưu trên Supabase Cloud.
 * **Xuất báo cáo định dạng Excel (.xlsx):** Tích hợp xuất trực tiếp bảng điểm tiếng Việt có dấu hoàn hảo, tự động định cấu hình độ rộng cột tối ưu.
 
 ### 3. ⚡ Tự động chạy DDL Migrations (One-Click Setup)
-* **Khởi tạo database tự động:** Khi cấu hình Supabase cho một dự án mới hoàn toàn trống trơn, bạn chỉ cần điền **Personal Access Token (PAT)** của Supabase và nhấn nút **"⚡ Khởi tạo cấu trúc bảng (Run Migrations)"**. Extension sẽ tự động gửi lệnh DDL để khởi tạo các bảng (`submissions`, `care_notes`, `exercises`, `monitor_templates`) cùng các chính sách bảo mật RLS và chỉ mục mà không cần bạn phải thao tác thủ công trên SQL Editor của Supabase.
+* **Khởi tạo database tự động:** Điền **Personal Access Token (PAT)** của Supabase rồi nhấn **Khởi tạo DB** ở tab Cài đặt. Extension tạo / cập nhật 2 bảng `care_notes`, `monitor_templates` cùng chính sách RLS, và **xoá vĩnh viễn** bảng `exercises`, `submissions` của các chức năng đã bỏ (có hộp xác nhận trước khi chạy).
 
 ### 4. 📞 Quản Lý Chăm Sóc Học Viên (Student Care)
 * **Tự động cào dữ liệu chăm sóc:** Đọc thông tin Mã SV, Tên học viên từ giao diện chăm sóc sinh viên của LMS (`/class/*/take-care`).
@@ -97,7 +97,7 @@ Nhấp vào biểu tượng **REduX** trên thanh công cụ trình duyệt ho�
      - Truy cập [Supabase Access Tokens](https://supabase.com/dashboard/account/tokens).
      - Bấm **Generate new token**, đặt tên và tạo token. Sao chép token này dán vào ô **Supabase Personal Access Token (PAT)** trong Extension.
   5. Nhìn xuống khu vực **Trạng thái CSDL trên Server**, bạn sẽ thấy thông báo đỏ `🔴 Chưa được khởi tạo`. 
-  6. Nhấn nút **⚡ Khởi tạo cấu trúc bảng (Run Migrations)**. Extension sẽ tự động gửi lệnh và tạo đầy đủ các bảng dữ liệu (`submissions`, `care_notes`, `exercises`, `monitor_templates`) và phân quyền RLS trên dự án Supabase của bạn. Khi biểu tượng chuyển sang màu xanh `🟢 Đã khởi tạo đầy đủ`, database của bạn đã sẵn sàng!
+  6. Nhấn nút **Khởi tạo DB** và xác nhận. Extension tạo / cập nhật 2 bảng `care_notes`, `monitor_templates` (kèm phân quyền RLS) và xoá vĩnh viễn bảng `exercises`, `submissions` không còn dùng. Khi trạng thái chuyển sang `🟢 Đã khởi tạo bảng thành công`, database đã sẵn sàng.
   7. *(Khuyên dùng bảo mật)*: Sau khi khởi tạo thành công CSDL, bạn có thể xóa chuỗi PAT khỏi ô cấu hình trong Extension để bảo mật. Extension vẫn đọc/ghi điểm bình thường bằng Anon Key.
 
 ---

@@ -2,11 +2,49 @@ import { AppConfig } from '~/src/types';
 import { logger } from '~/src/core/logger';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
+/** Bảng còn dùng: ghi chú chăm sóc học viên + mẫu giám sát học tập. */
+const REQUIRED_TABLES = ['care_notes', 'monitor_templates'] as const;
+/** Bảng của chức năng đã bỏ (kho đề, kết quả chấm đồng bộ) — xoá khi khởi tạo lại. */
+export const OBSOLETE_TABLES = ['exercises', 'submissions'] as const;
+
+const CARE_NOTES_SQL = `
+  CREATE TABLE IF NOT EXISTS care_notes (
+    class_id TEXT NOT NULL,
+    student_id TEXT NOT NULL,
+    student_name TEXT NOT NULL,
+    subject_name TEXT NOT NULL,
+    study_date TEXT NOT NULL,
+    note TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    PRIMARY KEY (class_id, student_id, subject_name, study_date)
+  );
+  ALTER TABLE care_notes ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS "Public access to care_notes" ON care_notes;
+  CREATE POLICY "Public access to care_notes" ON care_notes FOR ALL USING (true) WITH CHECK (true);
+`;
+
+const MONITOR_TEMPLATES_SQL = `
+  CREATE TABLE IF NOT EXISTS monitor_templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    monitor_rules JSONB NOT NULL,
+    analysis_rules JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+  );
+  ALTER TABLE monitor_templates ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS "Public access to monitor_templates" ON monitor_templates;
+  CREATE POLICY "Public access to monitor_templates" ON monitor_templates FOR ALL USING (true) WITH CHECK (true);
+`;
+
+/** Bảng không tồn tại: Postgres 42P01 hoặc PostgREST "Could not find the table … in the schema cache". */
+const isMissingTable = (error: any) =>
+  !!error && (error.code === '42P01' || error.code === 'PGRST205' || /could not find the table/i.test(error.message || ''));
+
 /**
  * SupabaseService (Direct Client)
  * Kết nối trực tiếp tới Supabase bằng @supabase/supabase-js (anon key),
  * không qua backend trung gian. Yêu cầu Row Level Security (RLS) đã được
- * cấu hình đúng trên các bảng care_notes/exercises/submissions/monitor_templates vì anon key
+ * cấu hình đúng trên các bảng care_notes/monitor_templates vì anon key
  * nằm công khai trong mã nguồn extension.
  */
 export class SupabaseService {
@@ -14,14 +52,14 @@ export class SupabaseService {
     return config.supabaseSyncEnabled && isSupabaseConfigured(config);
   }
 
+  /** Đã khởi tạo đủ các bảng còn dùng chưa. */
   public static async verifyDatabaseSchema(config: AppConfig): Promise<boolean> {
     const client = getSupabaseClient(config);
     if (!client) return false;
     try {
-      const { error } = await client.from("submissions").select("class_id").limit(1);
-      if (error && error.code === '42P01') {
-        // relation does not exist
-        return false;
+      for (const table of REQUIRED_TABLES) {
+        const { error } = await client.from(table).select('*').limit(1);
+        if (isMissingTable(error)) return false;
       }
       return true;
     } catch (e) {
@@ -29,78 +67,12 @@ export class SupabaseService {
     }
   }
 
-  public static async initializeDatabaseSchema(config: AppConfig, pat: string): Promise<void> {
+  /** Chạy SQL bằng Supabase Management API (cần Personal Access Token). */
+  private static async runSql(config: AppConfig, pat: string, query: string): Promise<void> {
     const match = config.supabaseUrl.trim().match(/https:\/\/([a-z0-9]+)\.supabase\.(co|net)/i);
     const ref = match ? match[1] : null;
     if (!ref) throw new Error("Không thể trích xuất Project Ref từ Supabase URL.");
     if (!pat || !pat.trim()) throw new Error("Vui lòng nhập Supabase Personal Access Token (PAT).");
-
-    const query = `
-      -- 1. Tạo bảng submissions
-      CREATE TABLE IF NOT EXISTS submissions (
-        class_id TEXT NOT NULL,
-        student_id TEXT NOT NULL,
-        student_name TEXT NOT NULL,
-        chapter TEXT NOT NULL,
-        session TEXT NOT NULL,
-        assignment_name TEXT NOT NULL,
-        github_url TEXT NOT NULL,
-        score NUMERIC,
-        report TEXT NOT NULL,
-        graded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-        PRIMARY KEY (class_id, student_id, chapter, session, assignment_name)
-      );
-
-      -- 2. Tạo bảng care_notes
-      CREATE TABLE IF NOT EXISTS care_notes (
-        class_id TEXT NOT NULL,
-        student_id TEXT NOT NULL,
-        student_name TEXT NOT NULL,
-        subject_name TEXT NOT NULL,
-        study_date TEXT NOT NULL,
-        note TEXT NOT NULL,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-        PRIMARY KEY (class_id, student_id, subject_name, study_date)
-      );
-
-      -- 3. Tạo bảng exercises
-      CREATE TABLE IF NOT EXISTS exercises (
-        chapter TEXT NOT NULL,
-        session TEXT NOT NULL,
-        assignment_name TEXT NOT NULL,
-        assignment_text TEXT NOT NULL,
-        criteria TEXT NOT NULL,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-        PRIMARY KEY (chapter, session, assignment_name)
-      );
-
-      -- 4. Tạo bảng monitor_templates (mẫu giám sát học tập dùng chung)
-      CREATE TABLE IF NOT EXISTS monitor_templates (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        monitor_rules JSONB NOT NULL,
-        analysis_rules JSONB NOT NULL,
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-      );
-
-      -- Bật Row Level Security (RLS)
-      ALTER TABLE monitor_templates ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE care_notes ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
-
-      -- Xóa policies cũ nếu đã tồn tại
-      DROP POLICY IF EXISTS "Public access to submissions" ON submissions;
-      DROP POLICY IF EXISTS "Public access to care_notes" ON care_notes;
-      DROP POLICY IF EXISTS "Public access to exercises" ON exercises;
-      DROP POLICY IF EXISTS "Public access to monitor_templates" ON monitor_templates;
-
-      -- Cấu hình quyền đọc/ghi công khai (Zero Setup) cho các bảng
-      CREATE POLICY "Public access to submissions" ON submissions FOR ALL USING (true) WITH CHECK (true);
-      CREATE POLICY "Public access to care_notes" ON care_notes FOR ALL USING (true) WITH CHECK (true);
-      CREATE POLICY "Public access to exercises" ON exercises FOR ALL USING (true) WITH CHECK (true);
-      CREATE POLICY "Public access to monitor_templates" ON monitor_templates FOR ALL USING (true) WITH CHECK (true);
-    `;
 
     const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/db/query`, {
       method: 'POST',
@@ -115,6 +87,24 @@ export class SupabaseService {
       const errText = await res.text();
       throw new Error(`Lỗi ${res.status}: ${errText}`);
     }
+  }
+
+  /**
+   * Khởi tạo CSDL: tạo / cập nhật care_notes + monitor_templates và XOÁ VĨNH VIỄN các bảng của chức năng đã bỏ
+   * (exercises, submissions). Giao diện phải hỏi xác nhận trước khi gọi.
+   */
+  public static async initializeDatabaseSchema(config: AppConfig, pat: string): Promise<void> {
+    await SupabaseService.runSql(config, pat, `
+      -- Xoá bảng của chức năng đã bỏ (kho đề, kết quả chấm đồng bộ)
+      ${OBSOLETE_TABLES.map(t => `DROP TABLE IF EXISTS ${t};`).join('\n      ')}
+      ${CARE_NOTES_SQL}
+      ${MONITOR_TEMPLATES_SQL}
+    `);
+  }
+
+  /** Chỉ tạo bảng mẫu giám sát (không đụng tới bảng khác) — dùng cho nút "Tạo bảng" ở Giám sát học tập. */
+  public static async createMonitorTemplatesTable(config: AppConfig, pat: string): Promise<void> {
+    await SupabaseService.runSql(config, pat, MONITOR_TEMPLATES_SQL);
   }
 
   /* -------------------------------------------------------------

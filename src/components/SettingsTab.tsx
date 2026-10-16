@@ -213,9 +213,26 @@ export const SettingsTab: React.FC = () => {
                     {dbInitialized === null ? '⏳ Đang kiểm tra...' : dbInitialized ? '🟢 Đã khởi tạo bảng thành công' : '🟡 Chưa tạo bảng (hoặc lỗi kết nối)'}
                   </Text>
                 </div>
-                <Button size="small" onClick={handleMigrateDatabase} loading={isMigrating} disabled={isMigrating || dbInitialized === true}>
-                  {isMigrating ? "Đang tạo DB..." : dbInitialized ? "Đã Setup" : "Khởi tạo DB"}
-                </Button>
+                {/* Khởi tạo / khởi tạo lại: xoá vĩnh viễn bảng của chức năng đã bỏ → luôn hỏi xác nhận */}
+                <Popconfirm
+                  title="Khởi tạo cơ sở dữ liệu Supabase?"
+                  description={
+                    <div style={{ maxWidth: 320 }}>
+                      Tạo / cập nhật bảng <b>care_notes</b> (chăm sóc học viên) và <b>monitor_templates</b> (mẫu giám sát).
+                      <br />
+                      <Text type="danger">Xoá vĩnh viễn bảng exercises và submissions</Text> (kho đề, kết quả chấm cũ — không còn dùng), kèm toàn bộ dữ liệu trong đó. Không hoàn tác được.
+                    </div>
+                  }
+                  okText="Khởi tạo & xoá bảng cũ"
+                  okButtonProps={{ danger: true }}
+                  cancelText="Huỷ"
+                  onConfirm={handleMigrateDatabase}
+                  disabled={isMigrating}
+                >
+                  <Button size="small" loading={isMigrating} disabled={isMigrating}>
+                    {isMigrating ? "Đang khởi tạo..." : dbInitialized ? "Khởi tạo lại" : "Khởi tạo DB"}
+                  </Button>
+                </Popconfirm>
               </div>
             </div>
           </div>

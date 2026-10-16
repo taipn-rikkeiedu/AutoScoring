@@ -157,7 +157,7 @@ export function useStudentMonitor() {
 
   /** Tạo bảng trên Supabase bằng PAT đã lưu ở Cài đặt. */
   const createTemplatesTable = async () => {
-    await SupabaseService.initializeDatabaseSchema(config, config.supabasePat);
+    await SupabaseService.createMonitorTemplatesTable(config, config.supabasePat);
     await reloadTemplates();
   };
 
