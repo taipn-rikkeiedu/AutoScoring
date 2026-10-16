@@ -416,7 +416,7 @@ const describeStudent = (r: MonitorRow) => [
 export function buildClassOverviewPrompt(rows: MonitorRow[], courseName: string, levels: MonitorLevel[]): string {
   const o = summarizeClass(rows, levels);
   const flagged = rows.filter(r => r.riskLevel.violation || r.suspect).slice(0, 40);
-  return `Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về lớp học môn "${courseName}" dựa trên số liệu dưới đây, gồm: tình hình chung, 2–3 vấn đề nổi bật nhất, và 3 việc giảng viên nên làm tuần này (gạch đầu dòng). Không bịa số liệu, chỉ dùng số liệu được cung cấp. Không dùng markdown tiêu đề.
+  return `Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về lớp học môn "${courseName}" dựa trên số liệu dưới đây, gồm: tình hình chung và 2–3 vấn đề nổi bật nhất. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. Không bịa số liệu, chỉ dùng số liệu được cung cấp. Không dùng markdown tiêu đề.
 
 SỐ LIỆU LỚP
 - Sĩ số: ${o.total}; ${describeByRisk(o, levels)}; nghi vấn BTVN ${o.suspect}
@@ -432,7 +432,7 @@ export function buildStudentPrompt(r: MonitorRow, courseName: string): string {
     .filter(t => t.comment)
     .map(t => `- ${t.name}: ${String(t.comment).replace(/\s+/g, ' ').slice(0, 300)}`)
     .join('\n');
-  return `Bạn là giảng viên chủ nhiệm. Viết nhận xét ngắn (3–4 câu, tiếng Việt, giọng khách quan) về tình hình học tập của sinh viên ở môn "${courseName}", sau đó đưa 2–3 gợi ý hành động cụ thể cho giảng viên (gạch đầu dòng). Chỉ dùng thông tin dưới đây, không bịa thêm. Không kết luận gian lận; dấu hiệu nghi vấn chỉ là gợi ý cần xác minh.
+  return `Bạn là giảng viên chủ nhiệm. Viết nhận xét ngắn (3–4 câu, tiếng Việt, giọng khách quan) về tình hình học tập của sinh viên ở môn "${courseName}". Chỉ nhận xét, KHÔNG đưa gợi ý hành động hay danh sách việc cần làm. Chỉ dùng thông tin dưới đây, không bịa thêm. Không kết luận gian lận; dấu hiệu nghi vấn chỉ là gợi ý cần xác minh.
 
 ${describeStudent(r)}
 ${comments ? `Nhận xét của giảng viên chấm thi:\n${comments}` : ''}`;
@@ -442,11 +442,11 @@ ${comments ? `Nhận xét của giảng viên chấm thi:\n${comments}` : ''}`;
 export type ClassAiKind = 'overall' | 'homework' | 'absent' | 'rpoints' | 'elearning' | 'exam';
 
 export const CLASS_AI_KINDS: { key: ClassAiKind; label: string; hint: string }[] = [
-  { key: 'overall', label: 'Toàn lớp', hint: 'Tình hình chung, số sinh viên theo mức, vấn đề nổi bật và việc cần làm tuần này.' },
-  { key: 'homework', label: 'Bài tập', hint: 'Tỉ lệ thiếu bài tập, sinh viên vượt ngưỡng theo mức, nghi vấn BTVN và cách xử lý.' },
-  { key: 'absent', label: 'Vắng nghỉ', hint: 'Tỉ lệ nghỉ học, sinh viên vượt ngưỡng theo mức, liên hệ với các chỉ số khác và cách xử lý.' },
-  { key: 'rpoints', label: 'R-Point', hint: 'Phân bố R-Point, sinh viên dưới ngưỡng theo mức và cách xử lý.' },
-  { key: 'elearning', label: 'E-learning', hint: 'Số bài E-learning chậm, sinh viên vượt ngưỡng theo mức và cách nhắc nhở.' },
+  { key: 'overall', label: 'Toàn lớp', hint: 'Tình hình chung, số sinh viên theo mức và vấn đề nổi bật.' },
+  { key: 'homework', label: 'Bài tập', hint: 'Tỉ lệ thiếu bài tập, sinh viên vượt ngưỡng theo mức, nghi vấn BTVN.' },
+  { key: 'absent', label: 'Vắng nghỉ', hint: 'Tỉ lệ nghỉ học, sinh viên vượt ngưỡng theo mức, liên hệ với các chỉ số khác.' },
+  { key: 'rpoints', label: 'R-Point', hint: 'Phân bố R-Point, sinh viên dưới ngưỡng theo mức.' },
+  { key: 'elearning', label: 'E-learning', hint: 'Số bài E-learning chậm, sinh viên vượt ngưỡng theo mức.' },
   { key: 'exam', label: 'Điểm thi', hint: 'Điểm Hackathon / cuối môn, sinh viên vắng thi, điểm thấp, đối chiếu với BTVN.' }
 ];
 
@@ -485,7 +485,7 @@ const stats = (vals: (number | null)[]) => {
 };
 
 function metricPrompt(courseName: string, focus: string, data: string): string {
-  return `Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về ${focus} của lớp môn "${courseName}", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), mối liên hệ với chỉ số khác nếu thấy rõ, và 3 việc giảng viên nên làm (gạch đầu dòng). ${PROMPT_RULES}
+  return `Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về ${focus} của lớp môn "${courseName}", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), và mối liên hệ với chỉ số khác nếu thấy rõ. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. ${PROMPT_RULES}
 
 ${data}`;
 }

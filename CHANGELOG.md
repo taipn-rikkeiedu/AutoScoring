@@ -4,6 +4,13 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.20.4] - 2026-10-16
+
+### ✨ Cải thiện
+- **AI chỉ nhận xét, không đưa danh sách việc cần làm**: nhận xét sinh viên và các AI tổng quan lớp (toàn lớp, bài tập, vắng nghỉ, R-Point, E-learning, điểm thi) bỏ phần gợi ý hành động / "việc giảng viên nên làm".
+
+---
+
 ## [5.20.3] - 2026-10-16
 
 ### ✨ Cải thiện
