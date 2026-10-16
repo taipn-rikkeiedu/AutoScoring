@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from 'react';
 import { useAppInitializer } from './hooks/useAppInitializer';
 import { AppConfig, Student, CareStudent, Submission } from '~/src/types';
+import { ExerciseBank } from './exerciseBank';
 
 interface AppContextType {
   config: AppConfig;
@@ -11,7 +12,8 @@ interface AppContextType {
   setSupabaseStatus: React.Dispatch<React.SetStateAction<string>>;
   aiStatus: "success" | "error" | "testing";
   setAiStatus: React.Dispatch<React.SetStateAction<"success" | "error" | "testing">>;
-  reloadExercises: () => Promise<void>;
+  exerciseBank: ExerciseBank;
+  saveExerciseBank: (bank: ExerciseBank) => Promise<void>;
   submissions: Submission[];
   setSubmissions: React.Dispatch<React.SetStateAction<Submission[]>>;
   classStudents: Student[];

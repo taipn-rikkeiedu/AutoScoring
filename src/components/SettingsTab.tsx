@@ -53,12 +53,6 @@ export const SettingsTab: React.FC = () => {
     setSupabaseUrl,
     supabaseAnonKey,
     setSupabaseAnonKey,
-    exerciseSource,
-    setExerciseSource,
-    exerciseApiUrl,
-    setExerciseApiUrl,
-    exerciseApiToken,
-    setExerciseApiToken,
     gradingScale,
     setGradingScale,
     strictnessLevel,
@@ -244,31 +238,6 @@ export const SettingsTab: React.FC = () => {
 
   const rulesTabContent = (
     <Space direction="vertical" size="middle" style={{ width: '100%', maxWidth: 700, margin: '0 auto', display: 'flex' }}>
-      <Card size="small" style={{ borderRadius: 8 }}>
-        <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>NGUỒN NGÂN HÀNG BÀI TẬP</Text>
-        <Select
-          value={exerciseSource}
-          onChange={(val) => setExerciseSource(val)}
-          style={{ width: '100%', marginBottom: 12 }}
-          options={[
-            { value: 'local', label: '📁 Local (Mặc định - exercises.json)' },
-            { value: 'api', label: '🌐 API Server (Tải từ máy chủ từ xa)' }
-          ]}
-        />
-        {exerciseSource === 'api' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>EXERCISE API URL</Text>
-              <Input value={exerciseApiUrl} onChange={(e) => setExerciseApiUrl(e.target.value)} placeholder="https://api.example.com/exercises" />
-            </div>
-            <div>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 4 }}>API TOKEN (TÙY CHỌN)</Text>
-              <Input value={exerciseApiToken} onChange={(e) => setExerciseApiToken(e.target.value)} placeholder="Bearer token..." />
-            </div>
-          </div>
-        )}
-      </Card>
-
       <Card size="small" style={{ borderRadius: 8 }}>
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>

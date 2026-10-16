@@ -48,7 +48,7 @@ interface ParsedExerciseLabel {
   exerciseNo: number | null;
 }
 
-/** Bỏ các tiền tố dạng "[Bài tập thực hành 2]", "[Session 05 - ...]" giống cách lmsScraper lưu tên đề. */
+/** Bỏ các tiền tố dạng "[Bài tập thực hành 2]", "[Session 05 - ...]" trong tên bài trên trang chấm. */
 function stripLabelPrefixes(raw: string): string {
   let text = raw.split('\n')[0].trim();
   for (let i = 0; i < 3 && /^\s*[\[(（]/.test(text); i++) {
@@ -203,40 +203,6 @@ export function extractCriteriaFromAssignment(assignmentText: string | null): { 
     assignment: assignmentText,
     criteria: null
   };
-}
-
-export function mergeScrapedFrameResults(results: any[] | null): any {
-  let bestRes: any = null;
-  if (!results || results.length === 0) return null;
-  for (const frameResult of results) {
-    const res = frameResult.result;
-    if (res && res.success) {
-      if (!bestRes) {
-        bestRes = res;
-      } else {
-        const currentLen = (bestRes.assignment || "").trim().length;
-        const newLen = (res.assignment || "").trim().length;
-        const isDefaultMsg = (text: string) => !text || text.includes("Không tìm thấy nội dung đề bài tự động");
-        
-        if (isDefaultMsg(bestRes.assignment) && !isDefaultMsg(res.assignment)) {
-          bestRes = res;
-        } else if (!isDefaultMsg(res.assignment) && newLen > currentLen) {
-          bestRes = res;
-        }
-        
-        if (!bestRes.chapter || bestRes.chapter === "Khóa học mặc định") {
-          if (res.chapter && res.chapter !== "Khóa học mặc định") bestRes.chapter = res.chapter;
-        }
-        if (!bestRes.session || bestRes.session === "Session 01: Nhập môn") {
-          if (res.session && res.session !== "Session 01: Nhập môn") bestRes.session = res.session;
-        }
-        if (!bestRes.assignmentName || bestRes.assignmentName === "Bài tập mới") {
-          if (res.assignmentName && res.assignmentName !== "Bài tập mới") bestRes.assignmentName = res.assignmentName;
-        }
-      }
-    }
-  }
-  return bestRes;
 }
 
 export function matchStudent(

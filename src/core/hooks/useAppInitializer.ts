@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AppConfig, Student, CareStudent, Submission } from '~/src/types';
-import { loadExercises } from '../exerciseLoader';
+import { ExerciseBank, bankToTemplates } from '../exerciseBank';
+import { SupabaseService } from '~/src/services/supabaseService';
 import { testConnection } from '~/src/services/connectionTester';
 import { getClassStudents } from '../classStudentStorage';
 import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS, STORAGE_KEYS, UI_MESSAGES } from '../constants';
@@ -18,10 +19,6 @@ export const defaultConfig: AppConfig = {
   githubToken: "",
   systemPrompt: "",
   graderIgnoreItems: defaultIgnoreItems,
-  exerciseSource: "local",
-  exerciseApiUrl: "",
-  exerciseApiToken: "",
-  uploadedExercises: null,
   supabaseSyncEnabled: false,
   supabaseUrl: "",
   supabaseAnonKey: "",
@@ -34,6 +31,7 @@ export const defaultConfig: AppConfig = {
 export function useAppInitializer() {
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
   const [exerciseTemplates, setExerciseTemplates] = useState<any>({});
+  const [exerciseBank, setExerciseBank] = useState<ExerciseBank>({});
   const [supabaseStatus, setSupabaseStatus] = useState<string>(UI_MESSAGES.statuses.supabaseInactive);
   const [aiStatus, setAiStatus] = useState<"success" | "error" | "testing">("testing");
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -66,9 +64,9 @@ export function useAppInitializer() {
 
     chrome.storage.local.get([
       STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiKeys, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.githubToken, STORAGE_KEYS.systemPrompt,
-      STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseSource, STORAGE_KEYS.exerciseApiUrl, STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.uploadedExercises,
+      STORAGE_KEYS.graderIgnoreItems, STORAGE_KEYS.exerciseBank,
       STORAGE_KEYS.supabaseSyncEnabled, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabasePat, STORAGE_KEYS.googleApiKey, STORAGE_KEYS.gradingScale, STORAGE_KEYS.strictnessLevel,
-      STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedTemplates, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
+      STORAGE_KEYS.activeStudentTransition, STORAGE_KEYS.careStudents, STORAGE_KEYS.cachedAiStatus, STORAGE_KEYS.cachedSupabaseStatus
     ], async (stored: any) => {
       let systemPrompt = stored[STORAGE_KEYS.systemPrompt] || defaultConfig.systemPrompt;
       if (systemPrompt && (systemPrompt.includes("Sai ở đâu & Dòng nào") || systemPrompt.includes("- [Tên file: Dòng X]:") || systemPrompt.includes("## ĐÁNH GIÁ & NHẬN XÉT CHI TIẾT") || systemPrompt.includes("Mẫu 1: \"Sinh viên đã sửa thành công") || systemPrompt.includes("Tổng điểm: **") || systemPrompt.includes("get_current_user") || systemPrompt.includes("<score>") || !systemPrompt.includes("KHÔNG đưa các thông số kỹ thuật khô khan") || !systemPrompt.includes("CHỈ RA LỖI + GỢI Ý SỬA NGẮN NHẤT"))) {
@@ -91,10 +89,6 @@ export function useAppInitializer() {
         githubToken: stored[STORAGE_KEYS.githubToken] || defaultConfig.githubToken,
         systemPrompt: systemPrompt,
         graderIgnoreItems: Array.isArray(stored[STORAGE_KEYS.graderIgnoreItems]) ? stored[STORAGE_KEYS.graderIgnoreItems] : defaultConfig.graderIgnoreItems,
-        exerciseSource: stored[STORAGE_KEYS.exerciseSource] || defaultConfig.exerciseSource,
-        exerciseApiUrl: stored[STORAGE_KEYS.exerciseApiUrl] || defaultConfig.exerciseApiUrl,
-        exerciseApiToken: stored[STORAGE_KEYS.exerciseApiToken] || defaultConfig.exerciseApiToken,
-        uploadedExercises: stored[STORAGE_KEYS.uploadedExercises] || null,
         supabaseSyncEnabled: stored[STORAGE_KEYS.supabaseSyncEnabled] ?? defaultConfig.supabaseSyncEnabled,
         supabaseUrl: stored[STORAGE_KEYS.supabaseUrl] || defaultConfig.supabaseUrl,
         supabaseAnonKey: stored[STORAGE_KEYS.supabaseAnonKey] || defaultConfig.supabaseAnonKey,
@@ -106,9 +100,10 @@ export function useAppInitializer() {
 
       setConfig(mergedConfig);
       
-      if (stored[STORAGE_KEYS.cachedTemplates]) {
-        setExerciseTemplates(stored[STORAGE_KEYS.cachedTemplates]);
-      }
+      // Kho đề: các môn đã tải từ QLĐT
+      const bank: ExerciseBank = stored[STORAGE_KEYS.exerciseBank] || {};
+      setExerciseBank(bank);
+      setExerciseTemplates(bankToTemplates(bank));
       if (stored[STORAGE_KEYS.cachedAiStatus]) {
         setAiStatus(stored[STORAGE_KEYS.cachedAiStatus]);
       }
@@ -178,42 +173,28 @@ export function useAppInitializer() {
     }
   };
 
-  const loadTemplates = async (cfg: AppConfig) => {
-    logger.info("EXERCISE_LOADER", "Bắt đầu tải danh sách đề bài mẫu.");
-    try {
-      const { templates, statusText, syncError } = await loadExercises(cfg);
-      setExerciseTemplates(templates);
-      setSupabaseStatus(statusText);
-      chrome.storage.local.set({
-        [STORAGE_KEYS.cachedTemplates]: templates,
-        [STORAGE_KEYS.cachedSupabaseStatus]: statusText
-      });
-      if (!syncError) {
-        logger.success("EXERCISE_LOADER", `Tải danh sách đề bài thành công: ${statusText}`);
-      }
-    } catch (err: any) {
-      setSupabaseStatus(UI_MESSAGES.statuses.exerciseLoadError);
-      chrome.storage.local.set({ [STORAGE_KEYS.cachedSupabaseStatus]: UI_MESSAGES.statuses.exerciseLoadError });
-      logger.error("EXERCISE_LOADER", "Không thể tải danh sách đề bài.", err.message);
+  /** Kiểm tra kết nối Supabase (dùng cho điểm đã chấm, chăm sóc học viên). */
+  const checkSupabase = async (cfg: AppConfig) => {
+    let status: string = UI_MESSAGES.statuses.supabaseInactive;
+    if (SupabaseService.isEnabled(cfg)) {
+      status = (await SupabaseService.verifyDatabaseSchema(cfg)) ? UI_MESSAGES.statuses.supabaseReady : UI_MESSAGES.statuses.supabaseDbError;
     }
+    setSupabaseStatus(status);
+    chrome.storage.local.set({ [STORAGE_KEYS.cachedSupabaseStatus]: status });
   };
 
-  const reloadExercises = async () => {
-    if (!config) return;
-    await Promise.all([testAiConnection(config), loadTemplates(config)]);
+  /** Lưu kho đề (các môn đã tải từ QLĐT) và cập nhật đề cho các phần chấm điểm. */
+  const saveExerciseBank = async (bank: ExerciseBank) => {
+    setExerciseBank(bank);
+    setExerciseTemplates(bankToTemplates(bank));
+    await chrome.storage.local.set({ [STORAGE_KEYS.exerciseBank]: bank });
   };
 
   useEffect(() => {
     if (!isLoading) {
-      chrome.storage.local.get([STORAGE_KEYS.cachedTemplates], (stored) => {
-        if (!stored[STORAGE_KEYS.cachedTemplates]) {
-          reloadExercises();
-        } else {
-          // Perform silent background sync without blocking UI
-          testAiConnection(config, true);
-          loadTemplates(config);
-        }
-      });
+      // Kiểm tra ngầm, không chặn giao diện
+      testAiConnection(config, true);
+      checkSupabase(config);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
@@ -228,14 +209,11 @@ export function useAppInitializer() {
     const aiKeys = [STORAGE_KEYS.aiProvider, STORAGE_KEYS.aiApiKey, STORAGE_KEYS.aiApiKeys, STORAGE_KEYS.aiApiUrl, STORAGE_KEYS.aiModelName, STORAGE_KEYS.systemPrompt];
     const hasAiChanges = aiKeys.some(key => key in newConfig);
 
-    const exKeys = [
-      STORAGE_KEYS.exerciseSource, STORAGE_KEYS.uploadedExercises, STORAGE_KEYS.exerciseApiUrl,
-      STORAGE_KEYS.exerciseApiToken, STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabaseSyncEnabled
-    ];
-    const hasExChanges = exKeys.some(key => key in newConfig);
+    const supabaseKeys = [STORAGE_KEYS.supabaseUrl, STORAGE_KEYS.supabaseAnonKey, STORAGE_KEYS.supabaseSyncEnabled];
+    const hasSupabaseChanges = supabaseKeys.some(key => key in newConfig);
 
     if (hasAiChanges) await testAiConnection(updated);
-    if (hasExChanges) await loadTemplates(updated);
+    if (hasSupabaseChanges) await checkSupabase(updated);
   };
 
   return {
@@ -247,7 +225,8 @@ export function useAppInitializer() {
     setSupabaseStatus,
     aiStatus,
     setAiStatus,
-    reloadExercises,
+    exerciseBank,
+    saveExerciseBank,
     submissions,
     setSubmissions,
     classStudents,

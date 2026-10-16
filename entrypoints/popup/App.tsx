@@ -117,7 +117,7 @@ const AppContent: React.FC = () => {
         <Header activeTab={activeTab} />
         
         <Content style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {!isLmsPage && ["tab-auto", "tab-miniproject", "tab-care", "tab-exercises"].includes(activeTab) ? (
+          {!isLmsPage && ["tab-auto", "tab-miniproject", "tab-care"].includes(activeTab) ? (
             <UnsupportedPageWarning />
           ) : (
             <>

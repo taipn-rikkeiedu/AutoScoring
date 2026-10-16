@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "5.7.0",
+  version: "5.8.0",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -30,10 +30,7 @@ export const STORAGE_KEYS = {
   githubToken: "githubToken",
   systemPrompt: "systemPrompt",
   graderIgnoreItems: "graderIgnoreItems",
-  exerciseSource: "exerciseSource",
-  exerciseApiUrl: "exerciseApiUrl",
-  exerciseApiToken: "exerciseApiToken",
-  uploadedExercises: "uploadedExercises",
+  exerciseBank: "qldtExerciseBank",
   supabaseSyncEnabled: "supabaseSyncEnabled",
   supabaseUrl: "supabaseUrl",
   supabaseAnonKey: "supabaseAnonKey",
@@ -52,7 +49,6 @@ export const STORAGE_KEYS = {
   qldtAuthToken: "qldtAuthToken",
   studentMonitorPrefs: "studentMonitorPrefs",
   legacyExamAnalysisPrefs: "examAnalysisPrefs",
-  cachedTemplates: "cachedTemplates",
   cachedAiStatus: "cachedAiStatus",
   cachedSupabaseStatus: "cachedSupabaseStatus"
 } as const;
@@ -110,8 +106,7 @@ export const UI_MESSAGES = {
   statuses: {
     supabaseInactive: "Chưa kích hoạt",
     supabaseReady: "🟢 Sẵn sàng",
-    supabaseDbError: "🔴 Lỗi kết nối CSDL",
-    exerciseLoadError: "🔴 Lỗi tải ngân hàng"
+    supabaseDbError: "🔴 Lỗi kết nối CSDL"
   },
   common: {
     noActiveTab: "Không tìm thấy tab trình duyệt đang hoạt động.",

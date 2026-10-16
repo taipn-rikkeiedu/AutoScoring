@@ -150,48 +150,6 @@ export class SupabaseService {
   }
 
   /* -------------------------------------------------------------
-   * Exercises Bank Operations
-   * ------------------------------------------------------------- */
-  public static async upsertExercise(
-    config: AppConfig,
-    chapter: string,
-    session: string,
-    assignmentName: string,
-    assignmentText: string,
-    criteria: string
-  ): Promise<void> {
-    const client = getSupabaseClient(config);
-    if (!client) throw new Error("Supabase chưa được cấu hình.");
-    try {
-      const { error } = await client.from("exercises").upsert({
-        chapter,
-        session,
-        assignment_name: assignmentName,
-        assignment_text: assignmentText || "",
-        criteria: criteria || "",
-        updated_at: new Date().toISOString()
-      }, { onConflict: "chapter,session,assignment_name" });
-      if (error) throw new Error(error.message);
-    } catch (e: any) {
-      logger.error("SUPABASE", "Lỗi đồng bộ đề bài mẫu lên Supabase.", e.message || e);
-      throw e;
-    }
-  }
-
-  public static async pullExercises(config: AppConfig): Promise<any[]> {
-    const client = getSupabaseClient(config);
-    if (!client) return [];
-    try {
-      const { data, error } = await client.from("exercises").select("*");
-      if (error) throw new Error(error.message);
-      return data || [];
-    } catch (e: any) {
-      logger.error("SUPABASE", "Lỗi tải danh sách đề bài từ Supabase.", e.message || e);
-      throw e;
-    }
-  }
-
-  /* -------------------------------------------------------------
    * Submissions Operations
    * ------------------------------------------------------------- */
   public static async upsertSubmission(

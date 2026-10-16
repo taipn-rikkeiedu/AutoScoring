@@ -4,6 +4,19 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.8.0] - 2026-10-16
+
+### 🚀 Tính năng mới
+- **Kho đề bài lấy trực tiếp từ QLĐT**: chọn lớp → môn → "Tải đề từ QLĐT", extension tải toàn bộ buổi học và đề bài của môn kèm **tiêu chí chấm đúng như trên hệ thống**. Tên đề trùng khớp với trang chấm nên Chấm hàng loạt / Mini Project / Chấm đơn nhận đúng đề.
+  - Xem đề và tiêu chí chấm (chỉ đọc), tìm đề theo tên, cập nhật lại (↻) hoặc xoá từng môn; đề chưa có tiêu chí trên QLĐT được đánh dấu và khi chấm dùng tiêu chí mặc định.
+  - Vẫn giữ **Xuất Markdown**. Dùng được ở mọi trang, không cần mở trang LMS.
+
+### 🗑 Gỡ bỏ
+- Bỏ kho đề cũ: file `exercises.json`, nguồn "API Server" trong Cài đặt, thêm / sửa / xoá đề thủ công, "Lấy đề từ LMS" (quét trang) và đồng bộ đề qua Supabase. Đề đã lưu theo cách cũ không còn được dùng — hãy tải lại đề từ QLĐT.
+- Trạng thái kết nối Supabase (Cloud) giờ kiểm tra trực tiếp CSDL thay vì qua việc tải đề.
+
+---
+
 ## [5.7.0] - 2026-10-15
 
 ### 🚀 Tính năng mới

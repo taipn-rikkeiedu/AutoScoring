@@ -7,10 +7,6 @@ export interface AppConfig {
   githubToken: string;
   systemPrompt: string;
   graderIgnoreItems: string[];
-  exerciseSource: string;
-  exerciseApiUrl: string;
-  exerciseApiToken: string;
-  uploadedExercises: any;
   supabaseSyncEnabled: boolean;
   supabaseUrl: string;
   supabaseAnonKey: string;

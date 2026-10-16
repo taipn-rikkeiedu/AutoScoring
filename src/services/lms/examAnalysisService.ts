@@ -53,3 +53,16 @@ export async function fetchStudentExercises(auth: string, studentId: string | nu
   )) || [];
   return list.filter(e => !e.course || String(e.course.id) === String(courseId));
 }
+
+/** Danh sách buổi của môn (theo thứ tự buổi học). */
+export async function fetchCourseSessions(auth: string, courseId: string): Promise<{ id: string; name: string; position: number }[]> {
+  const list = (await qldtGet<any[]>(`/sessions/course/${courseId}`, auth)) || [];
+  return list
+    .map(s => ({ id: String(s.id), name: String(s.name || `Buổi ${s.position ?? ''}`).trim(), position: Number(s.position) || 0 }))
+    .sort((a, b) => a.position - b.position);
+}
+
+/** Các đề bài tập của 1 buổi (mô tả, tiêu chí chấm, hướng dẫn). */
+export async function fetchSessionHomework(auth: string, sessionId: string): Promise<any[]> {
+  return (await qldtGet<any[]>(`/homework/session/${sessionId}`, auth)) || [];
+}

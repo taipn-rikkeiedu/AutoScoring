@@ -51,9 +51,6 @@ export function useSettings() {
     setStrictnessLevelState(value);
     updateConfig({ strictnessLevel: value });
   };
-  const [exerciseSource, setExerciseSource] = useState(config.exerciseSource || "local");
-  const [exerciseApiUrl, setExerciseApiUrl] = useState(config.exerciseApiUrl || "");
-  const [exerciseApiToken, setExerciseApiToken] = useState(config.exerciseApiToken || "");
 
   const [dbInitialized, setDbInitialized] = useState<boolean | null>(null);
   const [isMigrating, setIsMigrating] = useState(false);
@@ -111,9 +108,6 @@ export function useSettings() {
     setGoogleApiKey(config.googleApiKey || "");
     setGradingScaleState(config.gradingScale || "10");
     setStrictnessLevelState(config.strictnessLevel || "Bình thường");
-    setExerciseSource(config.exerciseSource || "local");
-    setExerciseApiUrl(config.exerciseApiUrl || "");
-    setExerciseApiToken(config.exerciseApiToken || "");
   }, [config]);
 
   useEffect(() => {
@@ -136,10 +130,7 @@ export function useSettings() {
       supabaseUrl !== config.supabaseUrl ||
       supabaseAnonKey !== config.supabaseAnonKey ||
       supabasePat !== config.supabasePat ||
-      googleApiKey !== config.googleApiKey ||
-      exerciseSource !== config.exerciseSource ||
-      exerciseApiUrl !== config.exerciseApiUrl ||
-      exerciseApiToken !== config.exerciseApiToken;
+      googleApiKey !== config.googleApiKey;
 
     if (!hasChanges) return;
 
@@ -156,10 +147,7 @@ export function useSettings() {
           supabaseUrl: supabaseUrl.trim(),
           supabaseAnonKey: supabaseAnonKey.trim(),
           supabasePat: supabasePat.trim(),
-          googleApiKey: googleApiKey.trim(),
-          exerciseSource: exerciseSource,
-          exerciseApiUrl: exerciseApiUrl.trim(),
-          exerciseApiToken: exerciseApiToken.trim()
+          googleApiKey: googleApiKey.trim()
         });
         showToast("Cấu hình đã được tự động lưu!", "success");
       } catch (err: any) {
@@ -170,7 +158,7 @@ export function useSettings() {
     }, 1200); // 1.2 seconds debounce
 
     return () => clearTimeout(timer);
-  }, [aiProvider, aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat, googleApiKey, exerciseSource, exerciseApiUrl, exerciseApiToken]);
+  }, [aiProvider, aiApiKey, aiApiUrl, aiModelName, githubToken, systemPrompt, supabaseUrl, supabaseAnonKey, supabasePat, googleApiKey]);
 
   const loadSystemLogs = async () => {
     const logs = await logger.getLogs();
@@ -459,12 +447,6 @@ export function useSettings() {
     setGradingScale,
     strictnessLevel,
     setStrictnessLevel,
-    exerciseSource,
-    setExerciseSource,
-    exerciseApiUrl,
-    setExerciseApiUrl,
-    exerciseApiToken,
-    setExerciseApiToken,
     providerModels,
     isLoadingModels,
     refreshModels: () => fetchProviderModels(),
