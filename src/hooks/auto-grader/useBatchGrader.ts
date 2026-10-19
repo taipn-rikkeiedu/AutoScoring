@@ -11,11 +11,8 @@ import {
 } from '~/src/core/batchGrading';
 import { gradeSubmission } from '~/src/services/graderService';
 import { callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
-import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
-import {
-  QldtOption, listQldtClasses, listQldtCourses, fetchCourseSessions, fetchSessionHomework,
-  fetchSessionStudents, fetchSessionExercises
-} from '~/src/services/lms/examAnalysisService';
+import type { QldtOption } from '~/src/services/qldt/types';
+import { useServices } from '~/src/services/ServicesContext';
 import { localStore } from '~/src/infra/storage';
 import { useClipboard } from '~/src/hooks/common/useClipboard';
 
@@ -42,6 +39,7 @@ const readSaved = async (): Promise<SavedSessions> => (await localStore.get<Save
 export function useBatchGrader() {
   const { config, aiStatus } = useApp();
   const { showToast } = useToast();
+  const { catalog, homework: homeworkService } = useServices().qldt;
   const [classes, setClasses] = useState<QldtOption[]>([]);
   const [classesTried, setClassesTried] = useState(false);
   const [classId, setClassId] = useState('');
@@ -63,12 +61,12 @@ export function useBatchGrader() {
   const prefsLoaded = useRef(false);
 
   /* ---------- Lớp / môn / buổi (nhớ lựa chọn lần trước) ---------- */
-  const loadSessions = async (cid: string, want = '', auth?: string, force = false) => {
+  const loadSessions = async (cid: string, want = '', force = false) => {
     setSessions([]);
     setSessionId('');
     if (!cid) return;
     try {
-      const list = await fetchCourseSessions(auth || await getQldtAuth(), cid, force);
+      const list = await catalog.listSessions(cid, force);
       setSessions(list.map(s => ({ value: s.id, label: s.name })));
       if (list.some(s => s.id === want)) setSessionId(want);
     } catch (e: any) {
@@ -76,19 +74,18 @@ export function useBatchGrader() {
     }
   };
 
-  const loadCourses = async (id: string, want: Prefs = {}, auth?: string, force = false) => {
+  const loadCourses = async (id: string, want: Prefs = {}, force = false) => {
     setCourses([]);
     setCourseId('');
     setSessions([]);
     setSessionId('');
     if (!id) return;
     try {
-      const a = auth || await getQldtAuth();
-      const list = await listQldtCourses(a, id, force);
+      const list = await catalog.listCourses(id, force);
       setCourses(list);
       if (want.courseId && list.some(c => c.value === want.courseId)) {
         setCourseId(want.courseId);
-        await loadSessions(want.courseId, want.sessionId, a, force);
+        await loadSessions(want.courseId, want.sessionId, force);
       }
     } catch (e: any) {
       setStatusText('Không tải được môn học: ' + e.message);
@@ -98,13 +95,12 @@ export function useBatchGrader() {
   /** force: bỏ qua cache danh mục (nút Thử lại). */
   const loadClasses = async (want: Prefs = {}, force = false) => {
     try {
-      const auth = await getQldtAuth();
-      const list = await listQldtClasses(auth, force);
+      const list = await catalog.listClasses(force);
       setClasses(list);
       if (!list.length) setStatusText('Tài khoản QLĐT đang đăng nhập không có lớp nào (đã tìm theo từng hệ đào tạo).');
       if (want.classId && list.some(c => c.value === want.classId)) {
         setClassId(want.classId);
-        await loadCourses(want.classId, want, auth, force);
+        await loadCourses(want.classId, want, force);
       }
     } catch (e: any) {
       setStatusText('Không tải được danh sách lớp: ' + e.message);
@@ -162,10 +158,9 @@ export function useBatchGrader() {
     if (!classId || !sessionId) { setStatusText('Hãy chọn lớp, môn và buổi học.'); return; }
     setLoading(true);
     try {
-      const auth = await getQldtAuth();
       const [rawStudents, rawHomework, saved] = await Promise.all([
-        fetchSessionStudents(auth, classId, sessionId),
-        fetchSessionHomework(auth, sessionId),
+        homeworkService.sessionStudents(classId, sessionId),
+        homeworkService.sessionHomework(sessionId),
         readSaved()
       ]);
       const key = `${classId}:${sessionId}`;
@@ -178,7 +173,7 @@ export function useBatchGrader() {
       await mapLimit(base, STUDENT_FETCH_CONCURRENCY, async (stu) => {
         let exercises: any[] = [];
         try {
-          exercises = await fetchSessionExercises(auth, sessionId, stu.studentId);
+          exercises = await homeworkService.sessionExercises(sessionId, stu.studentId);
         } catch (e: any) {
           logger.error(LOG_MODULE, `Không đọc được bài nộp của ${stu.name}.`, e.message);
         }

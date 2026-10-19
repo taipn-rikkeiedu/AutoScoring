@@ -1,4 +1,4 @@
-import { describeApiUrl, parseBody, saveApiRecords, saveApiWrite } from '~/src/services/qldtApiStore';
+import { describeApiUrl, parseBody, saveApiRecords, saveApiWrite } from '~/src/services/qldt/apiStore';
 
 export const QLDT_API_RECORD_MESSAGE = 'QLDT_API_RECORD';
 

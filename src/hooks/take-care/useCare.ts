@@ -5,9 +5,8 @@ import { logger } from '~/src/core/logger';
 import { exportToExcel } from '~/src/core/excelExporter';
 import { plainText } from '~/src/core/examAnalysis';
 import { CareCase, CareHistory, CareMeta, CarePatch, PENDING_STATUS } from '~/src/core/care';
-import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
-import { QldtOption, listQldtClasses } from '~/src/services/lms/examAnalysisService';
-import { fetchCareCases, fetchCareHistory, updateCareCase } from '~/src/services/lms/careService';
+import type { QldtOption } from '~/src/services/qldt/types';
+import { useServices } from '~/src/services/ServicesContext';
 import { localStore } from '~/src/infra/storage';
 
 const LOG_MODULE = 'CARE';
@@ -18,6 +17,7 @@ interface Prefs { classId?: string }
 
 export function useCare() {
   const { activeClassId } = useApp();
+  const { catalog, care } = useServices().qldt;
   const [classes, setClasses] = useState<QldtOption[]>([]);
   const [classId, setClassId] = useState('');
   const [range, setRange] = useState<[Dayjs, Dayjs]>([dayjs().subtract(6, 'day'), dayjs()]);
@@ -33,7 +33,7 @@ export function useCare() {
   /* ---------- Lớp (nhớ lần trước; đang mở trang chăm sóc của 1 lớp thì chọn sẵn lớp đó) ---------- */
   const loadClasses = async (want?: string, force = false) => {
     try {
-      const list = await listQldtClasses(await getQldtAuth(), force);
+      const list = await catalog.listClasses(force);
       setClasses(list);
       if (!list.length) setStatusText('Tài khoản QLĐT đang đăng nhập không có lớp nào (đã tìm theo từng hệ đào tạo).');
       if (want && list.some(c => c.value === want)) setClassId(want);
@@ -59,8 +59,7 @@ export function useCare() {
     if (loading) return;
     setLoading(true);
     try {
-      const auth = await getQldtAuth();
-      const { items, meta: m } = await fetchCareCases(auth, {
+      const { items, meta: m } = await care.fetchCases({
         classId: classId || undefined, startDate: range[0].format(DATE_FMT), endDate: range[1].format(DATE_FMT)
       });
       items.sort((a, b) => b.date.localeCompare(a.date) || a.studentName.localeCompare(b.studentName, 'vi'));
@@ -100,7 +99,7 @@ export function useCare() {
     if (!studentId || (!force && history[studentId] && history[studentId] !== 'loading')) return;
     setHistory(prev => ({ ...prev, [studentId]: 'loading' }));
     try {
-      const h = await fetchCareHistory(await getQldtAuth(), studentId);
+      const h = await care.history(studentId);
       setHistory(prev => ({ ...prev, [studentId]: h }));
     } catch (e: any) {
       setHistory(prev => ({ ...prev, [studentId]: { error: e.message } }));
@@ -109,7 +108,7 @@ export function useCare() {
 
   /* ---------- Lưu 1 ca lên QLĐT ---------- */
   const saveCase = async (c: CareCase, patch: CarePatch) => {
-    const saved = await updateCareCase(await getQldtAuth(), c.id, patch);
+    const saved = await care.update(c.id, patch);
     setCases(prev => prev.map(x => (x.id === c.id ? { ...x, ...patch, ...saved } : x)));
     logger.success(LOG_MODULE, `Đã cập nhật ca chăm sóc ${c.studentName} (${c.date}).`);
     loadHistory(c.studentId, true);

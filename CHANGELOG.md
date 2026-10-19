@@ -4,6 +4,19 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.26.3] - 2026-10-19
+
+### 🧹 Refactor giai đoạn 2 — tầng QLĐT (không đổi hành vi)
+- Gom mọi thứ về QLĐT vào `src/services/qldt/` (thay `services/lms/*`, `qldtApiCrawler`, `qldtApiStore`):
+  - `QldtAuthProvider` + nguồn token theo interface `TokenSource` (`TabTokenSource` đọc tab QLĐT, `StoredTokenSource` token đã lưu).
+  - `QldtClient` / `QldtHttpClient`: client tự gắn token — nơi gọi không còn phải truyền `auth` qua từng hàm; 401 tự bỏ token.
+  - `CachedQldtClient`: decorator thêm cache cho client (thay hàm `cachedQldtGet`); service nào được cấp client có cache thì được cache.
+  - Tách "túi" hàm `examAnalysisService` theo nghiệp vụ: `CatalogService` (hệ, lớp, môn, buổi), `HomeworkService`, `MonitorService`, `CareService`; bộ quét API (`QldtApiCrawler`) và chẩn đoán (`QldtDiagnostics`) nhận phụ thuộc qua constructor.
+- `src/services/container.ts`: composition root ghép các lớp; hook lấy service qua `useServices()` (`ServicesContext`) — test tạo bộ service riêng bằng `createServices()`.
+- Tổng 52 test.
+
+---
+
 ## [5.26.2] - 2026-10-19
 
 ### 🧹 Refactor giai đoạn 1 — tầng hạ tầng trình duyệt (không đổi hành vi)

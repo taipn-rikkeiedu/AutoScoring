@@ -1,5 +1,5 @@
 import type { ImageAttachment } from '~/src/services/api/aiClient';
-import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
+import { services } from '~/src/services/container';
 
 /**
  * Tải ảnh trong đề bài (ảnh giao diện mẫu, sơ đồ…) để gửi kèm cho AI khi chấm.
@@ -50,7 +50,7 @@ async function fetchImage(src: string): Promise<Blob> {
   let res = await fetch(src);
   // Ảnh lưu trên máy chủ QLĐT có thể cần đăng nhập
   if ((res.status === 401 || res.status === 403) && /(^|\.)rikkei\.edu\.vn$/i.test(new URL(src).hostname)) {
-    res = await fetch(src, { headers: { Authorization: await getQldtAuth() } });
+    res = await fetch(src, { headers: { Authorization: await services.qldt.auth.getAuth() } });
   }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.blob();

@@ -2,19 +2,20 @@ import React, { useState } from 'react';
 import { Button, Modal } from 'antd';
 import { BugOutlined, CopyOutlined } from '@ant-design/icons';
 import { logger } from '~/src/core/logger';
-import { diagnoseQldt } from '~/src/services/lms/qldtDiagnostics';
+import { useServices } from '~/src/services/ServicesContext';
 import { useClipboard } from '~/src/hooks/common/useClipboard';
 
 /** Chạy chẩn đoán kết nối QLĐT, hiện kết quả để sao chép gửi hỗ trợ. */
 export const QldtDiagnoseButton: React.FC<{ size?: 'small' | 'middle' }> = ({ size = 'small' }) => {
   const copy = useClipboard();
+  const { diagnostics } = useServices().qldt;
   const [running, setRunning] = useState(false);
   const [report, setReport] = useState<string | null>(null);
 
   const run = async () => {
     setRunning(true);
     try {
-      const text = await diagnoseQldt();
+      const text = await diagnostics.run();
       setReport(text);
       logger.info('QLDT', 'Chẩn đoán kết nối QLĐT', text);
     } catch (e: any) {

@@ -1,5 +1,7 @@
-import { getQldtAuth, qldtGetRaw, QldtAuthError } from '~/src/services/lms/qldtApiClient';
-import { ApiRecord, saveApiRecords, describeApiUrl, parseBody } from '~/src/services/qldtApiStore';
+import { ApiRecord, saveApiRecords, describeApiUrl, parseBody } from './apiStore';
+import type { QldtAuthProvider } from './auth';
+import type { QldtClient } from './client';
+import { QldtAuthError } from './errors';
 
 /**
  * Quét chủ động mọi API GET đã biết của QLĐT cho tất cả lớp / môn tài khoản xem được:
@@ -34,12 +36,23 @@ const dataOf = (json: any) => (json && typeof json === 'object' && 'data' in jso
 const isError = (status: number, json: any) => status >= 400 || (json && typeof json.statusCode === 'number' && json.statusCode >= 400);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-export async function crawlQldt(opts: {
+export interface CrawlOptions {
   includeSubmissions: boolean;
   signal: AbortSignal;
   onProgress: (p: CrawlProgress) => void;
-}): Promise<CrawlResult> {
-  const auth = await getQldtAuth();
+}
+
+export class QldtApiCrawler {
+  /** `client` không cache: cần response mới nhất của mọi API. */
+  constructor(private readonly client: QldtClient, private readonly auth: QldtAuthProvider) {}
+
+  crawl(opts: CrawlOptions): Promise<CrawlResult> {
+    return crawlWith(this.client, this.auth, opts);
+  }
+}
+
+async function crawlWith(client: QldtClient, authProvider: QldtAuthProvider, opts: CrawlOptions): Promise<CrawlResult> {
+  await authProvider.getAuth(); // chưa đăng nhập → báo ngay, không xếp hàng request
   const seen = new Set<string>();
   const queue: Task[] = [];
   const buffer: Omit<ApiRecord, 'hits'>[] = [];
@@ -117,7 +130,7 @@ export async function crawlQldt(opts: {
       active++;
       opts.onProgress({ done, total: seen.size, errors, current: task.label });
       try {
-        const res = await qldtGetRaw(task.path, auth);
+        const res = await client.getRaw(task.path);
         const json = parseBody(res.text);
         buffer.push({ url: res.url, ...describeApiUrl(res.url), status: res.status, source: 'crawled', at: new Date().toISOString(), response: json });
         if (isError(res.status, json)) errors++;

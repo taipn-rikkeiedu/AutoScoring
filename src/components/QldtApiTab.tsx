@@ -11,8 +11,9 @@ import { useToast } from '~/src/core/ToastContext';
 import { logger } from '~/src/core/logger';
 import {
   ApiSummary, buildExport, clearApiRecords, getAllApiRecords, getAllApiWrites, summarizeRecords
-} from '~/src/services/qldtApiStore';
-import { CrawlProgress, crawlQldt } from '~/src/services/qldtApiCrawler';
+} from '~/src/services/qldt/apiStore';
+import type { CrawlProgress } from '~/src/services/qldt/apiCrawler';
+import { useServices } from '~/src/services/ServicesContext';
 import { localStore } from '~/src/infra/storage';
 
 const { Text } = Typography;
@@ -26,6 +27,7 @@ const fmtTime = (iso: string) => (iso ? new Date(iso).toLocaleString('vi-VN') : 
  */
 export const QldtApiTab: React.FC = () => {
   const { showToast } = useToast();
+  const { crawler } = useServices().qldt;
   const [recording, setRecording] = useState(false);
   const [summary, setSummary] = useState<ApiSummary[]>([]);
   const [sizeMb, setSizeMb] = useState(0);
@@ -72,7 +74,7 @@ export const QldtApiTab: React.FC = () => {
     setCrawl({ done: 0, total: 0, errors: 0, current: 'Đang bắt đầu…' });
     let lastRefresh = 0;
     try {
-      const result = await crawlQldt({
+      const result = await crawler.crawl({
         includeSubmissions,
         signal: controller.signal,
         onProgress: (p) => {

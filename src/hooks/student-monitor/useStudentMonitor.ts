@@ -20,10 +20,8 @@ import {
 } from '~/src/services/monitorTemplateStore';
 import { SupabaseService } from '~/src/services/supabase/supabaseService';
 import { callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
-import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
-import {
-  QldtOption, listQldtClasses, listQldtCourses, fetchClassDashboard, fetchStudentExercises, fetchClassAttendance, fetchClassLeaves
-} from '~/src/services/lms/examAnalysisService';
+import type { QldtOption } from '~/src/services/qldt/types';
+import { useServices } from '~/src/services/ServicesContext';
 import { ClassAttendance, StudentAttendance, parseClassAttendance } from '~/src/core/attendance';
 import { localStore } from '~/src/infra/storage';
 
@@ -47,6 +45,7 @@ let templateErrorLogged = false;
 
 export function useStudentMonitor() {
   const { config } = useApp();
+  const { auth: qldtAuth, catalog, monitor, homework } = useServices().qldt;
   const [classes, setClasses] = useState<QldtOption[]>([]);
   const [classError, setClassError] = useState('');
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
@@ -167,13 +166,12 @@ export function useStudentMonitor() {
   /** force: bỏ qua cache danh mục (nút Thử lại). */
   const loadClasses = async (want: Pick<MonitorPrefs, 'classIds' | 'courseId'> = {}, force = false) => {
     try {
-      const auth = await getQldtAuth();
-      const list = await listQldtClasses(auth, force);
+      const list = await catalog.listClasses(force);
       setClasses(list);
       setClassError(list.length ? '' : 'Tài khoản QLĐT đang đăng nhập không có lớp nào.');
       const keep = (want.classIds || []).filter(id => list.some(c => c.value === id));
       setSelectedClassIds(keep);
-      if (keep.length) await loadCourses(keep, want.courseId || '', auth, force);
+      if (keep.length) await loadCourses(keep, want.courseId || '', force);
       setStatusText(`Đã tải ${list.length} lớp. Chọn lớp và môn học rồi bấm "Tải dữ liệu".`);
     } catch (e: any) {
       setStatusText('Không tải được danh sách lớp: ' + e.message);
@@ -182,10 +180,10 @@ export function useStudentMonitor() {
     }
   };
 
-  const loadCourses = async (classIds: string[], wantCourseId: string, auth?: string, force = false) => {
+  const loadCourses = async (classIds: string[], wantCourseId: string, force = false) => {
     if (!classIds.length) { setCourses([]); setCourseId(''); return; }
     try {
-      const list = await listQldtCourses(auth || await getQldtAuth(), classIds[0], force);
+      const list = await catalog.listCourses(classIds[0], force);
       setCourses(list);
       setCourseId(list.some(c => c.value === wantCourseId) ? wantCourseId : '');
     } catch (e: any) {
@@ -209,7 +207,7 @@ export function useStudentMonitor() {
     setStudentAi({});
     setChartFilter(null);
     try {
-      const auth = await getQldtAuth();
+      await qldtAuth.getAuth(); // chưa đăng nhập → báo ngay thay vì lỗi ở từng lớp
       const cols = new Map<string, TestColumn>();
       const rows: MonitorBase[] = [];
       const attendance: ClassAttendance[] = [];
@@ -220,8 +218,8 @@ export function useStudentMonitor() {
         try {
           // Điểm danh + đơn xin nghỉ: lỗi thì vẫn dùng được phần còn lại
           const [d, att] = await Promise.all([
-            fetchClassDashboard(auth, id, courseId),
-            Promise.all([fetchClassAttendance(auth, id, courseId), fetchClassLeaves(auth, id)])
+            monitor.classDashboard(id, courseId),
+            Promise.all([monitor.classAttendance(id, courseId), monitor.classLeaves(id)])
               .then(([a, l]) => parseClassAttendance(a, l, label))
               .catch((e: any) => { logger.error(LOG_MODULE, `Không tải được điểm danh lớp ${label}.`, e.message); return null; })
           ]);
@@ -330,7 +328,7 @@ export function useStudentMonitor() {
     if (r.exercises || exerciseLoading.has(r.key) || !courseId) return;
     setExerciseLoading(prev => new Set(prev).add(r.key));
     try {
-      const exercises = toStudentExercises(await fetchStudentExercises(await getQldtAuth(), r.studentId, courseId));
+      const exercises = toStudentExercises(await homework.studentExercises(r.studentId, courseId));
       const update = { exercises, aiAvg: avg(exercises.map(e => e.ai)), aiCount: exercises.filter(e => e.ai != null).length };
       setBaseRows(prev => prev.map(x => (x.key === r.key ? { ...x, ...update } : x)));
     } catch (e: any) {

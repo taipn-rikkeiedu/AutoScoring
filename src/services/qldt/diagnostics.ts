@@ -1,7 +1,7 @@
-import { STORAGE_KEYS } from '~/src/core/constants';
-import { getQldtAuth, jwtExp, qldtGetRaw } from './qldtApiClient';
 import { withTimeout } from '~/src/core/async';
-import { localStore } from '~/src/infra/storage';
+import { jwtExp } from '~/src/core/jwt';
+import type { QldtAuthProvider, StoredTokenSource } from './auth';
+import type { QldtClient } from './client';
 
 /**
  * Chẩn đoán kết nối QLĐT từng bước (tab → token → API) để tìm chỗ hỏng.
@@ -26,7 +26,20 @@ function describe(status: number, text: string): string {
   return `HTTP ${status}${json.statusCode != null ? ` (statusCode ${json.statusCode})` : ''}, data: ${size}${json.message ? `, message: ${JSON.stringify(json.message).slice(0, 120)}` : ''}`;
 }
 
-export async function diagnoseQldt(): Promise<string> {
+export class QldtDiagnostics {
+  /** `client` không cache: cần kết quả gọi API thật. */
+  constructor(
+    private readonly auth: QldtAuthProvider,
+    private readonly stored: StoredTokenSource,
+    private readonly client: QldtClient
+  ) {}
+
+  run(): Promise<string> {
+    return diagnose(this.auth, this.stored, this.client);
+  }
+}
+
+async function diagnose(authProvider: QldtAuthProvider, stored: StoredTokenSource, client: QldtClient): Promise<string> {
   const lines: string[] = [`Chẩn đoán QLĐT — ${new Date().toLocaleString('vi-VN')} — REduX ${chrome.runtime.getManifest().version}`];
 
   // 1. Tab
@@ -60,21 +73,21 @@ export async function diagnoseQldt(): Promise<string> {
   }
 
   // 2. Token
-  const cached = await localStore.get<string>(STORAGE_KEYS.qldtAuthToken);
+  const cached = await stored.current();
   lines.push(`\n2. Token đã lưu trong extension: ${cached ? `${mask(cached)}, ${fmtExp(cached)}` : 'KHÔNG CÓ'}`);
   let auth = '';
   try {
-    auth = await getQldtAuth();
+    auth = await authProvider.getAuth();
     lines.push(`   Token được chọn: ${mask(auth)}, ${fmtExp(auth)}`);
   } catch (e: any) {
-    lines.push(`   getQldtAuth LỖI: ${e.message}`);
+    lines.push(`   Lấy token LỖI: ${e.message}`);
   }
 
   // 3. API
   lines.push('\n3. Gọi API');
   const call = async (path: string) => {
     try {
-      const r = await qldtGetRaw(path, auth || 'Bearer none');
+      const r = await client.getRaw(path);
       lines.push(`   GET ${path} → ${describe(r.status, r.text)}`);
       try { return JSON.parse(r.text)?.data; } catch { return null; }
     } catch (e: any) {
