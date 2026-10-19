@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '~/src/core/constants';
-import { toAuthHeader } from '~/src/services/lms/qldtApiClient';
+import { toAuthHeader } from '~/src/core/jwt';
+import { localStore } from '~/src/infra/storage';
 
 /**
  * Cầu nối (ISOLATED world) trên trang QLĐT: nhận response từ qldt-api-hook và gửi về background để lưu,
@@ -11,7 +12,7 @@ export default defineContentScript({
   runAt: 'document_start',
   main() {
     let enabled = false;
-    chrome.storage.local.get(STORAGE_KEYS.qldtApiRecording, (res) => { enabled = !!res[STORAGE_KEYS.qldtApiRecording]; });
+    localStore.get(STORAGE_KEYS.qldtApiRecording).then((v) => { enabled = !!v; });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes[STORAGE_KEYS.qldtApiRecording]) enabled = !!changes[STORAGE_KEYS.qldtApiRecording].newValue;
     });
@@ -22,7 +23,7 @@ export default defineContentScript({
       const auth = toAuthHeader(e.data.auth);
       if (auth === savedAuth || auth.length > 8000) return;
       savedAuth = auth;
-      chrome.storage.local.set({ [STORAGE_KEYS.qldtAuthToken]: auth }).catch(() => { /* extension đang tải lại */ });
+      localStore.set({ [STORAGE_KEYS.qldtAuthToken]: auth }).catch(() => { /* extension đang tải lại */ });
     });
 
     window.addEventListener('message', (e) => {

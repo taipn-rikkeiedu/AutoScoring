@@ -1,4 +1,6 @@
 import { qldtGet } from './qldtApiClient';
+import { sessionStore } from '~/src/infra/storage';
+import { accountOf } from '~/src/core/jwt';
 
 /**
  * Cache cho dữ liệu danh mục ít đổi của QLĐT (hệ đào tạo, danh sách lớp, môn của lớp, buổi của môn) — tránh gọi lại
@@ -15,25 +17,11 @@ interface Entry { at: number; data: unknown }
 const memory = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
 
-/** Định danh tài khoản từ JWT (id / sub / email); token không phải JWT → vài ký tự cuối. */
-function accountOf(auth: string): string {
-  const part = auth.replace(/^Bearer\s+/i, '').split('.')[1];
-  try {
-    const b64 = (part || '').replace(/-/g, '+').replace(/_/g, '/');
-    const p = JSON.parse(atob(b64.padEnd(Math.ceil(b64.length / 4) * 4, '=')));
-    const id = p.id ?? p.sub ?? p.userId ?? p.email;
-    if (id != null) return String(id);
-  } catch { /* không phải JWT */ }
-  return auth.slice(-16);
-}
-
-const session = (): chrome.storage.StorageArea | undefined => (chrome.storage as any).session;
-
 async function readEntry(key: string): Promise<Entry | undefined> {
   const m = memory.get(key);
   if (m) return m;
   try {
-    const e = (await session()?.get(key))?.[key] as Entry | undefined;
+    const e = await sessionStore.get<Entry>(key);
     if (e) memory.set(key, e);
     return e;
   } catch {
@@ -54,7 +42,7 @@ export async function cachedQldtGet<T = any>(path: string, auth: string, opts: {
   const p = qldtGet<T>(path, auth).then(async (data) => {
     const entry = { at: Date.now(), data };
     memory.set(key, entry);
-    try { await session()?.set({ [key]: entry }); } catch { /* quá dung lượng → chỉ giữ trong bộ nhớ */ }
+    try { await sessionStore.set({ [key]: entry }); } catch { /* quá dung lượng → chỉ giữ trong bộ nhớ */ }
     return data;
   }).finally(() => inflight.delete(key));
   inflight.set(key, p);
@@ -65,8 +53,7 @@ export async function cachedQldtGet<T = any>(path: string, auth: string, opts: {
 export async function clearQldtCache(): Promise<void> {
   memory.clear();
   try {
-    const all = (await session()?.get(null)) || {};
-    const keys = Object.keys(all).filter(k => k.startsWith(PREFIX));
-    if (keys.length) await session()?.remove(keys);
+    const keys = await sessionStore.keysWithPrefix(PREFIX);
+    if (keys.length) await sessionStore.remove(keys);
   } catch { /* bỏ qua */ }
 }

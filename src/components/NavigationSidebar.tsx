@@ -15,6 +15,7 @@ import {
   ChevronDownIcon,
   ArchiveBoxIcon,
 } from '~/src/components/Icons';
+import { localStore } from '~/src/infra/storage';
 
 const { Sider } = Layout;
 
@@ -36,7 +37,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   useEffect(() => {
-    chrome.storage.local.get([STORAGE_KEYS.uiWindowMode, STORAGE_KEYS.uiSidebarCollapsed], (result) => {
+    localStore.getMany([STORAGE_KEYS.uiWindowMode, STORAGE_KEYS.uiSidebarCollapsed]).then((result) => {
       setIsWindowMode(result[STORAGE_KEYS.uiWindowMode] === "window");
       setIsCollapsed(result[STORAGE_KEYS.uiSidebarCollapsed] !== false);
     });
@@ -44,7 +45,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
 
   const handleToggleWindowMode = () => {
     const nextMode = isWindowMode ? "popup" : "window";
-    chrome.storage.local.set({ [STORAGE_KEYS.uiWindowMode]: nextMode }, () => {
+    localStore.set({ [STORAGE_KEYS.uiWindowMode]: nextMode }).then(() => {
       if (nextMode === "window") {
         chrome.runtime.sendMessage({ type: "OPEN_FLOATING_WINDOW" }, () => window.close());
       } else {
@@ -56,7 +57,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({ activeTab,
   const handleToggleCollapsed = () => {
     const next = !isCollapsed;
     setIsCollapsed(next);
-    chrome.storage.local.set({ [STORAGE_KEYS.uiSidebarCollapsed]: next });
+    localStore.set({ [STORAGE_KEYS.uiSidebarCollapsed]: next });
   };
 
   const items: MenuProps['items'] = [

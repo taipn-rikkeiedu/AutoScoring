@@ -1,5 +1,6 @@
 import { AppConfig } from '~/src/types';
 import { STORAGE_KEYS } from '~/src/core/constants';
+import { localStore } from '~/src/infra/storage';
 import { MonitorTemplate, STARTER_TEMPLATES, normalizeTemplate } from '~/src/core/monitorTemplates';
 import { SupabaseService } from '~/src/services/supabase/supabaseService';
 
@@ -17,15 +18,13 @@ export interface TemplateLoadResult {
   tableMissing?: boolean;
 }
 
-export const readLocalTemplates = (): Promise<MonitorTemplate[]> => new Promise(resolve => {
-  chrome.storage.local.get([STORAGE_KEYS.monitorTemplates], res => {
-    const list = res[STORAGE_KEYS.monitorTemplates];
-    resolve(Array.isArray(list) ? list.map(normalizeTemplate) : []);
-  });
-});
+export async function readLocalTemplates(): Promise<MonitorTemplate[]> {
+  const list = await localStore.get(STORAGE_KEYS.monitorTemplates);
+  return Array.isArray(list) ? list.map(normalizeTemplate) : [];
+}
 
 export const writeLocalTemplates = (templates: MonitorTemplate[]) =>
-  chrome.storage.local.set({ [STORAGE_KEYS.monitorTemplates]: templates });
+  localStore.set({ [STORAGE_KEYS.monitorTemplates]: templates });
 
 const fromRow = (row: any): MonitorTemplate => normalizeTemplate({
   id: row.id, name: row.name, monitor: row.monitor_rules, analysis: row.analysis_rules, updatedAt: row.updated_at

@@ -16,6 +16,8 @@ import {
   QldtOption, listQldtClasses, listQldtCourses, fetchCourseSessions, fetchSessionHomework,
   fetchSessionStudents, fetchSessionExercises
 } from '~/src/services/lms/examAnalysisService';
+import { localStore } from '~/src/infra/storage';
+import { useClipboard } from '~/src/hooks/common/useClipboard';
 
 const LOG_MODULE = 'BATCH_GRADER';
 const PREFS_KEY = 'batchGraderPrefs';
@@ -35,8 +37,7 @@ async function mapLimit<T>(items: T[], limit: number, worker: (item: T) => Promi
   }));
 }
 
-const readSaved = (): Promise<SavedSessions> => new Promise(resolve =>
-  chrome.storage.local.get([RESULTS_KEY], res => resolve((res[RESULTS_KEY] as SavedSessions) || {})));
+const readSaved = async (): Promise<SavedSessions> => (await localStore.get<SavedSessions>(RESULTS_KEY)) || {};
 
 export function useBatchGrader() {
   const { config, aiStatus } = useApp();
@@ -114,8 +115,8 @@ export function useBatchGrader() {
   };
 
   useEffect(() => {
-    chrome.storage.local.get([PREFS_KEY], (res) => {
-      const prefs: Prefs = res[PREFS_KEY] || {};
+    localStore.get<Prefs>(PREFS_KEY).then((saved) => {
+      const prefs: Prefs = saved || {};
       const start = (want: Prefs) => { prefsLoaded.current = true; loadClasses(want); };
       // Đang mở trang kiểm tra bài tập của 1 lớp trên QLĐT → chọn sẵn lớp đó
       try {
@@ -131,7 +132,7 @@ export function useBatchGrader() {
 
   useEffect(() => {
     if (!prefsLoaded.current || !classes.length) return;
-    chrome.storage.local.set({ [PREFS_KEY]: { classId, courseId, sessionId } });
+    localStore.set({ [PREFS_KEY]: { classId, courseId, sessionId } });
   }, [classId, courseId, sessionId, classes]);
 
   const handleClassChange = (id: string) => { setClassId(id); loadCourses(id); };
@@ -151,7 +152,7 @@ export function useBatchGrader() {
       if (Object.keys(items).length) all[loadedKey] = { savedAt: new Date().toISOString(), items };
       else delete all[loadedKey];
       const keep = Object.entries(all).sort((a, b) => b[1].savedAt.localeCompare(a[1].savedAt)).slice(0, MAX_SAVED_SESSIONS);
-      chrome.storage.local.set({ [RESULTS_KEY]: Object.fromEntries(keep) });
+      localStore.set({ [RESULTS_KEY]: Object.fromEntries(keep) });
     }, 500);
   }, [students, loadedKey]);
 
@@ -309,9 +310,7 @@ export function useBatchGrader() {
 
   /* ---------- Sao chép ---------- */
   const scale = config.gradingScale || '10';
-  const copy = (text: string, msg: string) =>
-    navigator.clipboard.writeText(text).then(() => showToast(msg, 'success'))
-      .catch(() => showToast('Không sao chép được — kiểm tra quyền Clipboard.', 'error'));
+  const copy = useClipboard();
 
   /** Nhận xét + điểm của 1 bài, dán thẳng vào ô nhận xét trên QLĐT. */
   const commentText = (item: BatchItem) => {

@@ -4,7 +4,6 @@ import {
   LeftOutlined, RightOutlined, RobotOutlined, StarFilled, StarOutlined, CheckCircleFilled, CopyOutlined, ReloadOutlined
 } from '@ant-design/icons';
 import type { AiResult } from '~/src/hooks/student-monitor/useStudentMonitor';
-import { useToast } from '~/src/core/ToastContext';
 import { StudentAttendancePanel } from '~/src/components/StudentAttendancePanel';
 import type { useStudentMonitor } from '~/src/hooks/student-monitor/useStudentMonitor';
 import {
@@ -12,6 +11,7 @@ import {
 } from '~/src/core/studentMonitor';
 import { MonitorLevel, textOn, readableColor } from '~/src/core/monitorLevels';
 import { TestColumn, ANALYSIS_LEVELS, fmtScore } from '~/src/core/examAnalysis';
+import { useClipboard } from '~/src/hooks/common/useClipboard';
 
 const { Text, Paragraph } = Typography;
 
@@ -148,7 +148,7 @@ const ExamTable: React.FC<{ row: MonitorRow; levels: MonitorLevel[] }> = ({ row:
  * nội dung nhận xét mở trong khung nổi thay vì chiếm chỗ trong trang. Tạo xong lần đầu thì tự mở.
  */
 const AiCommentButton: React.FC<{ ai?: AiResult; onRun: () => void }> = ({ ai, onRun }) => {
-  const { showToast } = useToast();
+  const copyText = useClipboard();
   const [open, setOpen] = useState(false);
   useEffect(() => { if (ai?.text && !ai.loading) setOpen(true); }, [ai?.text, ai?.loading]);
 
@@ -162,9 +162,7 @@ const AiCommentButton: React.FC<{ ai?: AiResult; onRun: () => void }> = ({ ai, o
   }
   if (!ai?.text) return <Button size="small" icon={<RobotOutlined />} onClick={onRun}>AI nhận xét</Button>;
 
-  const copy = () => navigator.clipboard.writeText(ai.text!)
-    .then(() => showToast('Đã sao chép nhận xét AI.', 'success'))
-    .catch(() => showToast('Không sao chép được — kiểm tra quyền Clipboard.', 'error'));
+  const copy = () => copyText(ai.text!, 'Đã sao chép nhận xét AI.');
   return (
     <Popover
       open={open}

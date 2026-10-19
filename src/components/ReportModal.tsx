@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
-import { useToast } from '~/src/core/ToastContext';
 import { AstMetricsPanel } from '~/src/components/AstMetricsPanel';
 import { useSettings } from '~/src/hooks/settings/useSettings';
 import { ASTMetrics } from '~/src/services/codeAnalysis';
 import { Modal, Button, Tag, Space, Alert } from 'antd';
 import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { useClipboard } from '~/src/hooks/common/useClipboard';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ interface ReportModalProps {
 
 export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title, score, report, language, astMetrics, imagesAttached, imagesSkipped }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const { showToast } = useToast();
+  const copy = useClipboard();
   const { gradingScale } = useSettings();
 
   const parsedMarkdown = report ? DOMPurify.sanitize(marked.parse(report) as string) : '';
@@ -41,13 +41,10 @@ export const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, title
     if (score && !textToCopy.toLowerCase().includes('tổng điểm')) {
       textToCopy = `${textToCopy}\n\nTổng điểm: ${score}/${gradingScale}`;
     }
-    navigator.clipboard.writeText(textToCopy).then(() => {
+    copy(textToCopy, "Đã sao chép báo cáo vào bộ nhớ tạm!").then((ok) => {
+      if (!ok) return;
       setIsCopied(true);
-      showToast("Đã sao chép báo cáo vào bộ nhớ tạm!", "success");
       setTimeout(() => setIsCopied(false), 1500);
-    }).catch(err => {
-      console.error(err);
-      showToast("Lỗi sao chép báo cáo.", "error");
     });
   };
 

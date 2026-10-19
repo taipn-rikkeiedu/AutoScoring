@@ -13,6 +13,7 @@ import {
   ApiSummary, buildExport, clearApiRecords, getAllApiRecords, getAllApiWrites, summarizeRecords
 } from '~/src/services/qldtApiStore';
 import { CrawlProgress, crawlQldt } from '~/src/services/qldtApiCrawler';
+import { localStore } from '~/src/infra/storage';
 
 const { Text } = Typography;
 const LOG_MODULE = 'QLDT_API';
@@ -48,7 +49,7 @@ export const QldtApiTab: React.FC = () => {
   };
 
   useEffect(() => {
-    chrome.storage.local.get(STORAGE_KEYS.qldtApiRecording, (res) => setRecording(!!res[STORAGE_KEYS.qldtApiRecording]));
+    localStore.get(STORAGE_KEYS.qldtApiRecording).then(v => setRecording(!!v));
     refresh();
   }, []);
 
@@ -61,7 +62,7 @@ export const QldtApiTab: React.FC = () => {
 
   const toggleRecording = (on: boolean) => {
     setRecording(on);
-    chrome.storage.local.set({ [STORAGE_KEYS.qldtApiRecording]: on });
+    localStore.set({ [STORAGE_KEYS.qldtApiRecording]: on });
     showToast(on ? 'Đã bật ghi API — mở / tải lại trang QLĐT để bắt đầu ghi.' : 'Đã tắt ghi API.', 'info');
   };
 

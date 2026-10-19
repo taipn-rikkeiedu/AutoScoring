@@ -14,6 +14,7 @@ import {
   StarOutlined,
   GithubOutlined
 } from '@ant-design/icons';
+import { useClipboard } from '~/src/hooks/common/useClipboard';
 
 const { Text, Paragraph } = Typography;
 
@@ -39,6 +40,7 @@ export const MiniProjectTab: React.FC = () => {
     handleCopySingleSubmission,
     handleCopyReport
   } = useMiniProjectGrader();
+  const copy = useClipboard();
 
   const [globalTemplateVal, setGlobalTemplateVal] = useState<string>('');
   const [copiedScoreIndex, setCopiedScoreIndex] = useState<number | null>(null);
@@ -103,12 +105,10 @@ export const MiniProjectTab: React.FC = () => {
       (window as any).showToast?.("Không có nội dung nhận xét để sao chép.", "warning");
       return;
     }
-    navigator.clipboard.writeText(textToCopy).then(() => {
+    copy(textToCopy, `Đã sao chép nhận xét & điểm (${sub.score || '--'}/${gradingScale})!`).then((ok) => {
+      if (!ok) return;
       setCopiedScoreIndex(index);
       setTimeout(() => setCopiedScoreIndex(null), 1500);
-      (window as any).showToast?.(`Đã sao chép nhận xét & điểm (${sub.score || '--'}/${gradingScale})!`, "success");
-    }).catch(err => {
-      (window as any).showToast?.("Không thể sao chép.", "error");
     });
   };
 

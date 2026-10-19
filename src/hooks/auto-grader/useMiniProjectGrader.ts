@@ -8,6 +8,8 @@ import { gradeSubmission } from '~/src/services/graderService';
 import { GitHubService } from '~/src/services/github/githubClient';
 import { AIService, compressCode } from '~/src/services/ai/aiService';
 import { analyzeCode } from '~/src/services/codeAnalysis';
+import { localStore } from '~/src/infra/storage';
+import { useClipboard } from '~/src/hooks/common/useClipboard';
 
 const BULK_GRADING_CONCURRENCY = 1;
 
@@ -38,6 +40,7 @@ async function runWithConcurrencyLimit<T, R>(
 export function useMiniProjectGrader() {
   const { config, exerciseTemplates, aiStatus } = useApp();
   const { showToast } = useToast();
+  const copy = useClipboard();
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -57,7 +60,7 @@ export function useMiniProjectGrader() {
   };
 
   const syncDetectedSubmissions = (subs: Submission[]) => {
-    chrome.storage.local.set({ ["miniProjectSubmissionsCache"]: subs });
+    localStore.set({ miniProjectSubmissionsCache: subs });
   };
 
   const updateContentScriptCache = (updatedList: Submission[]) => {
@@ -401,11 +404,7 @@ export function useMiniProjectGrader() {
     const scorePart = sub.score !== null && sub.score !== undefined ? ` (Điểm: ${sub.score}/${config.gradingScale})` : '';
     const text = `${studentPart}${sub.exerciseName}: ${sub.githubUrl}${scorePart}`;
     
-    navigator.clipboard.writeText(text).then(() => {
-      showToast(`Đã sao chép link & đề: ${sub.studentName || sub.exerciseName}`, "success");
-    }).catch(err => {
-      showToast("Không thể sao chép. Vui lòng kiểm tra quyền truy cập Clipboard của tiện ích.", "error");
-    });
+    copy(text, `Đã sao chép link & đề: ${sub.studentName || sub.exerciseName}`);
   };
 
   const handleCopyReport = (format: 'detailed' | 'simple' | 'tsv' | 'markdown' = 'detailed') => {
@@ -461,17 +460,13 @@ export function useMiniProjectGrader() {
       text = [header, ...rows].join('\n');
     }
 
-    navigator.clipboard.writeText(text).then(() => {
-      const formatNames: Record<string, string> = {
-        detailed: 'Báo cáo chi tiết',
-        simple: 'Link & Tên đề ngắn gọn',
-        tsv: 'Bảng tính Excel/Sheets (TSV)',
-        markdown: 'Bảng Markdown'
-      };
-      showToast(`Đã sao chép ${targetSubs.length} bài (${formatNames[format]}) vào Clipboard!`, "success");
-    }).catch(err => {
-      showToast("Không thể sao chép. Vui lòng kiểm tra quyền truy cập Clipboard của tiện ích.", "error");
-    });
+    const formatNames: Record<string, string> = {
+      detailed: 'Báo cáo chi tiết',
+      simple: 'Link & Tên đề ngắn gọn',
+      tsv: 'Bảng tính Excel/Sheets (TSV)',
+      markdown: 'Bảng Markdown'
+    };
+    copy(text, `Đã sao chép ${targetSubs.length} bài (${formatNames[format]}) vào Clipboard!`);
   };
 
   return {

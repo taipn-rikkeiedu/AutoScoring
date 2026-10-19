@@ -4,6 +4,17 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.26.2] - 2026-10-19
+
+### 🧹 Refactor giai đoạn 1 — tầng hạ tầng trình duyệt (không đổi hành vi)
+- **Proxy gọi API**: một client duy nhất `BackgroundProxy` (`src/infra/backgroundProxy.ts`) thay 4 bản gửi `FETCH` viết lặp; kiểu request / response dùng chung giữa trang extension và background (`src/infra/proxyProtocol.ts`). Client QLĐT gộp 3 đoạn xử lý response gần giống nhau làm một.
+- **Background**: `MessageRouter` định tuyến message theo loại; tách proxy fetch (kèm kiểm tra allowlist), lưu API QLĐT, cửa sổ nổi thành từng module trong `src/background/`.
+- **Lưu trữ**: interface `KeyValueStore` + `ChromeStore` (`src/infra/storage.ts`) thay gọi `chrome.storage` trực tiếp trong service, hook và component (trừ phần khởi tạo / cài đặt / nhật ký — làm ở giai đoạn sau).
+- **Dùng chung**: `useClipboard` (sao chép + thông báo) thay 6 chỗ lặp; `src/core/jwt.ts` gom giải mã token (trước lặp ở client QLĐT và cache); `withTimeout` chuyển về `src/core/async.ts`.
+- Thêm 15 test (tổng 50): allowlist proxy, router, proxy (quá hạn, lỗi), lưu trữ, token.
+
+---
+
 ## [5.26.1] - 2026-10-19
 
 ### 🧹 Dọn dẹp mã nguồn (refactor giai đoạn 0)

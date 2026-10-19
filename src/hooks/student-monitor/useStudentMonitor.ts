@@ -25,6 +25,7 @@ import {
   QldtOption, listQldtClasses, listQldtCourses, fetchClassDashboard, fetchStudentExercises, fetchClassAttendance, fetchClassLeaves
 } from '~/src/services/lms/examAnalysisService';
 import { ClassAttendance, StudentAttendance, parseClassAttendance } from '~/src/core/attendance';
+import { localStore } from '~/src/infra/storage';
 
 interface MonitorPrefs {
   templateAssignment?: TemplateAssignment;
@@ -80,8 +81,8 @@ export function useStudentMonitor() {
   /* ---------- Cài đặt (lưu lâu dài; lần đầu lấy lại cài đặt của tab Phân tích cũ) ---------- */
   useEffect(() => {
     const keys = [STORAGE_KEYS.studentMonitorPrefs, STORAGE_KEYS.legacyExamAnalysisPrefs];
-    chrome.storage.local.get(keys, (res) => {
-      const prefs: MonitorPrefs = res[STORAGE_KEYS.studentMonitorPrefs] || res[STORAGE_KEYS.legacyExamAnalysisPrefs] || {};
+    localStore.getMany(keys).then((res) => {
+      const prefs = (res[STORAGE_KEYS.studentMonitorPrefs] || res[STORAGE_KEYS.legacyExamAnalysisPrefs] || {}) as MonitorPrefs;
       setAssignment(prefs.templateAssignment
         || { ...DEFAULT_ASSIGNMENT, defaultId: prefs.monitorRules?.absentWarn === 5 ? 'strict' : DEFAULT_ASSIGNMENT.defaultId });
       setWatchText(prefs.watchText || '');
@@ -95,7 +96,7 @@ export function useStudentMonitor() {
     if (!prefsLoaded.current) return;
     const selection = classes.length ? { classIds: selectedClassIds, courseId } : savedSelection.current;
     const prefs: MonitorPrefs = { templateAssignment: assignment, watchText, ...selection };
-    chrome.storage.local.set({ [STORAGE_KEYS.studentMonitorPrefs]: prefs });
+    localStore.set({ [STORAGE_KEYS.studentMonitorPrefs]: prefs });
   }, [assignment, watchText, selectedClassIds, courseId, classes]);
 
   /* ---------- Mẫu giám sát: Supabase dùng chung, bản sao trên máy ---------- */

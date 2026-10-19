@@ -1,5 +1,7 @@
 import { STORAGE_KEYS } from '~/src/core/constants';
-import { getQldtAuth, jwtExp, qldtGetRaw, withTimeout } from './qldtApiClient';
+import { getQldtAuth, jwtExp, qldtGetRaw } from './qldtApiClient';
+import { withTimeout } from '~/src/core/async';
+import { localStore } from '~/src/infra/storage';
 
 /**
  * Chẩn đoán kết nối QLĐT từng bước (tab → token → API) để tìm chỗ hỏng.
@@ -58,7 +60,7 @@ export async function diagnoseQldt(): Promise<string> {
   }
 
   // 2. Token
-  const cached = (await chrome.storage.local.get(STORAGE_KEYS.qldtAuthToken))[STORAGE_KEYS.qldtAuthToken] as string | undefined;
+  const cached = await localStore.get<string>(STORAGE_KEYS.qldtAuthToken);
   lines.push(`\n2. Token đã lưu trong extension: ${cached ? `${mask(cached)}, ${fmtExp(cached)}` : 'KHÔNG CÓ'}`);
   let auth = '';
   try {

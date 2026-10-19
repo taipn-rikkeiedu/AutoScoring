@@ -8,6 +8,7 @@ import { CareCase, CareHistory, CareMeta, CarePatch, PENDING_STATUS } from '~/sr
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
 import { QldtOption, listQldtClasses } from '~/src/services/lms/examAnalysisService';
 import { fetchCareCases, fetchCareHistory, updateCareCase } from '~/src/services/lms/careService';
+import { localStore } from '~/src/infra/storage';
 
 const LOG_MODULE = 'CARE';
 const PREFS_KEY = 'careTabPrefs';
@@ -42,15 +43,15 @@ export function useCare() {
   };
 
   useEffect(() => {
-    chrome.storage.local.get([PREFS_KEY], (res) => {
-      const prefs: Prefs = (res[PREFS_KEY] as Prefs) || {};
+    localStore.get<Prefs>(PREFS_KEY).then((saved) => {
+      const prefs: Prefs = saved || {};
       prefsLoaded.current = true;
       loadClasses(activeClassId || prefs.classId);
     });
   }, []);
 
   useEffect(() => {
-    if (prefsLoaded.current && classId) chrome.storage.local.set({ [PREFS_KEY]: { classId } });
+    if (prefsLoaded.current && classId) localStore.set({ [PREFS_KEY]: { classId } });
   }, [classId]);
 
   /* ---------- Tải ca chăm sóc ---------- */
