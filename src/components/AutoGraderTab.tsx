@@ -6,14 +6,14 @@ import {
 import type { TableColumnsType, MenuProps } from 'antd';
 import {
   CloudDownloadOutlined, CopyOutlined, FileTextOutlined, TableOutlined, SyncOutlined, GithubOutlined, SearchOutlined,
-  ThunderboltOutlined, SettingOutlined, LeftOutlined, RightOutlined, DownOutlined, StopOutlined, ReloadOutlined, RobotOutlined
+  ThunderboltOutlined, SettingOutlined, LeftOutlined, RightOutlined, DownOutlined, StopOutlined, ReloadOutlined, RobotOutlined, BarChartOutlined
 } from '@ant-design/icons';
 import { useBatchGrader } from '~/src/hooks/auto-grader/useBatchGrader';
 import { useSettings } from '~/src/hooks/settings/useSettings';
 import { QldtDiagnoseButton } from './QldtDiagnoseButton';
 import { extractComment } from '~/src/core/utils';
 import {
-  BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, SESSION_AI_KINDS, SessionAiKind, criteriaOf, itemFeedback, scoreSourceCounts, studentAverage
+  BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, criteriaOf, formatSessionStats, studentAverage
 } from '~/src/core/batchGrading';
 
 const { Text, Paragraph } = Typography;
@@ -84,7 +84,7 @@ export const AutoGraderTab: React.FC = () => {
   const g = useBatchGrader();
   const { gradingScale, setGradingScale, strictnessLevel, setStrictnessLevel } = useSettings();
   const [openId, setOpenId] = useState<string | null>(null);
-  const [aiOpen, setAiOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
   const busy = g.loading || !!g.grading;
 
   useEffect(() => {
@@ -287,8 +287,8 @@ export const AutoGraderTab: React.FC = () => {
               />
             </Flex>
             <Space size={8}>
-              <Tooltip title="AI viết nhận xét tổng quan bài tập của cả lớp trong buổi này">
-                <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)} disabled={g.loading}>Nhận xét buổi</Button>
+              <Tooltip title="Số liệu bài tập của cả lớp trong buổi (nộp bài, điểm từng bài, sinh viên cần chú ý) + AI liệt kê lỗi phổ biến">
+                <Button icon={<BarChartOutlined />} onClick={() => setStatsOpen(true)} disabled={g.loading}>Số liệu buổi</Button>
               </Tooltip>
               <Popover content={gradingSettings} title="Cách chấm" trigger="click" placement="bottomRight">
                 <Button icon={<SettingOutlined />} disabled={!!g.grading}>{strictLabel} · {gradingScale}</Button>
@@ -374,7 +374,7 @@ export const AutoGraderTab: React.FC = () => {
         </ConfigProvider>
       </div>
 
-      <SessionAiModal open={aiOpen} onClose={() => setAiOpen(false)} g={g} submitted={stats.submitted} />
+      <SessionStatsModal open={statsOpen} onClose={() => setStatsOpen(false)} g={g} />
 
       <StudentGradeDrawer
         student={openStudent}
@@ -390,74 +390,54 @@ export const AutoGraderTab: React.FC = () => {
   );
 };
 
-/* ---------- AI nhận xét tổng quan buổi: gửi lớp / báo cáo ---------- */
-const SessionAiModal: React.FC<{ open: boolean; onClose: () => void; g: Grader; submitted: number }> = ({
-  open, onClose, g, submitted
-}) => {
-  const [kind, setKind] = useState<SessionAiKind>('class');
-  const current = g.sessionAi[kind];
-  const meta = SESSION_AI_KINDS.find(k => k.key === kind)!;
-  // Điểm dùng để nhận xét: điểm extension chấm, chưa chấm thì điểm AI QLĐT
-  const basis = useMemo(() => {
-    if (!open) return { scored: 0, ai: 0, qldt: 0, withFeedback: 0 };
-    const items = g.students.flatMap(s => s.items);
-    return { ...scoreSourceCounts(items, parseFloat(g.scale) || 10), withFeedback: items.filter(i => i.link && itemFeedback(i)).length };
-  }, [open, g.students, g.scale]);
-  const sourceText = basis.qldt ? ` (${basis.ai} AI chấm, ${basis.qldt} AI QLĐT)` : '';
-  const session = g.sessions.find(x => x.value === g.sessionId)?.label || '';
+/* ---------- Số liệu bài tập của buổi (tính sẵn) + AI liệt kê lỗi phổ biến ---------- */
+const SessionStatsModal: React.FC<{ open: boolean; onClose: () => void; g: Grader }> = ({ open, onClose, g }) => {
+  const st = g.sessionStats;
+  const text = useMemo(() => (open && st ? formatSessionStats(st) : ''), [open, st]);
+  const errors = g.commonErrors;
+  const canAskAi = g.aiStatus === 'success' && !!st?.withFeedback;
 
   return (
     <Modal
       open={open}
       onCancel={onClose}
-      title={<Flex vertical><span>Nhận xét buổi</span><Text type="secondary" style={{ fontWeight: 'normal', fontSize: 13 }}>{session}</Text></Flex>}
-      width={560}
-      footer={(
-        <Flex justify="space-between" align="center">
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            Dựa trên {basis.scored}/{submitted} bài có điểm{sourceText} · {basis.withFeedback} bài có nhận xét
-          </Text>
-          <Space>
-            <Button icon={<CopyOutlined />} disabled={!current?.text || current.loading} onClick={() => g.copySessionAi(kind)}>Sao chép</Button>
-            <Tooltip title={g.aiStatus !== 'success' ? 'Chưa kết nối được AI — kiểm tra tab Cài đặt' : undefined}>
-              <Button
-                type="primary"
-                icon={current?.text ? <ReloadOutlined /> : <RobotOutlined />}
-                loading={current?.loading}
-                disabled={g.aiStatus !== 'success' || !g.students.length}
-                onClick={() => g.handleSessionAi(kind)}
-              >
-                {current?.text ? 'Viết lại' : 'AI viết nhận xét'}
-              </Button>
-            </Tooltip>
-          </Space>
-        </Flex>
-      )}
+      title={<Flex vertical><span>Số liệu buổi</span><Text type="secondary" style={{ fontWeight: 'normal', fontSize: 13 }}>{st?.ctx.sessionName}</Text></Flex>}
+      width={620}
+      footer={<Button type="primary" icon={<CopyOutlined />} disabled={!st} onClick={g.copySessionStats}>Sao chép số liệu</Button>}
     >
       <Flex vertical gap={12}>
-        <Segmented
-          block
-          value={kind}
-          onChange={(v) => setKind(v as SessionAiKind)}
-          options={SESSION_AI_KINDS.map(k => ({ value: k.key, label: k.label }))}
-        />
-        <Text type="secondary">{meta.hint}</Text>
-        {!basis.withFeedback && (
-          <Alert
-            type="info"
-            showIcon
-            title={basis.scored
-              ? 'Chưa có nhận xét chi tiết — AI nhận xét theo tình hình nộp bài và điểm (gồm điểm AI QLĐT). Chấm bài để có thêm lỗi phổ biến.'
-              : 'Chưa có điểm hay nhận xét — AI chỉ nhận xét theo tình hình nộp bài. Chấm bài trước để có lỗi phổ biến.'}
-          />
+        {st ? (
+          <pre style={{ maxHeight: 340, overflowY: 'auto', background: '#fafafa', borderRadius: 6, padding: '10px 12px', margin: 0, fontSize: 12.5, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+            {text}
+          </pre>
+        ) : (
+          <Text type="secondary">Tải bài nộp của buổi trước.</Text>
         )}
-        {current?.error && <Alert type="error" showIcon title={current.error} />}
-        {current?.loading && <Text type="secondary">Đang viết nhận xét…</Text>}
-        {current?.text && !current.loading && (
-          <div style={{ maxHeight: 380, overflowY: 'auto', background: '#fafafa', borderRadius: 6, padding: '10px 12px' }}>
-            <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{current.text}</Paragraph>
-          </div>
-        )}
+
+        {/* Lỗi phổ biến: AI rút từ nhận xét từng bài, chỉ liệt kê */}
+        <Card
+          size="small"
+          title={<span>Lỗi phổ biến <Text type="secondary" style={{ fontWeight: 'normal', fontSize: 12 }}>· AI rút từ {st?.withFeedback || 0} nhận xét</Text></span>}
+          extra={(
+            <Space size={4}>
+              {errors?.text && !errors.loading && <Button size="small" icon={<CopyOutlined />} onClick={g.copyCommonErrors}>Sao chép</Button>}
+              <Tooltip title={g.aiStatus !== 'success' ? 'Chưa kết nối được AI — kiểm tra tab Cài đặt' : !st?.withFeedback ? 'Chưa có bài nào có nhận xét — chấm bài trước' : undefined}>
+                <Button size="small" icon={errors?.text ? <ReloadOutlined /> : <RobotOutlined />} loading={errors?.loading} disabled={!canAskAi} onClick={g.handleCommonErrors}>
+                  {errors?.text ? 'Liệt kê lại' : 'AI liệt kê lỗi'}
+                </Button>
+              </Tooltip>
+            </Space>
+          )}
+        >
+          {errors?.error && <Alert type="error" showIcon title={errors.error} />}
+          {errors?.loading && <Text type="secondary">Đang liệt kê lỗi…</Text>}
+          {errors?.text && !errors.loading && <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{errors.text}</Paragraph>}
+          {!errors && (
+            <Text type="secondary">
+              {st?.withFeedback ? 'Bấm "AI liệt kê lỗi" để gom lỗi lặp lại theo từng bài.' : 'Chưa có bài nào có nhận xét (AI chấm của extension hoặc nhận xét trên QLĐT).'}
+            </Text>
+          )}
+        </Card>
       </Flex>
     </Modal>
   );

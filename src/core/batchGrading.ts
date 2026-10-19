@@ -139,17 +139,10 @@ export function pickResult(item: BatchItem): BatchResult {
   return out;
 }
 
-/* ---------- AI nhận xét tổng quan bài tập của cả lớp trong 1 buổi ---------- */
-export type SessionAiKind = 'class' | 'report';
-
-export const SESSION_AI_KINDS: { key: SessionAiKind; label: string; hint: string }[] = [
-  { key: 'class', label: 'Gửi lớp', hint: 'Lời nhắn đăng nhóm lớp: điểm làm tốt, lỗi phổ biến và cách sửa, nhắc nộp bài — không nêu tên hay điểm từng người.' },
-  { key: 'report', label: 'Báo cáo', hint: 'Cho giảng viên / giáo vụ: tỉ lệ nộp, điểm theo từng bài, lỗi phổ biến, sinh viên cần chú ý (có nêu tên).' }
-];
+/* ---------- Số liệu bài tập của cả lớp trong 1 buổi (tính sẵn) + AI liệt kê lỗi phổ biến ---------- */
 
 const MAX_FEEDBACK_CHARS = 350;
 const MAX_FEEDBACK_TOTAL = 12000;
-const MAX_LISTED_STUDENTS = 30;
 
 /** Nhận xét của 1 bài: kết quả AI chấm của extension, không có thì lấy nhận xét đang có trên QLĐT. */
 export function itemFeedback(i: BatchItem): string {
@@ -161,11 +154,12 @@ export function itemFeedback(i: BatchItem): string {
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+const cleanTitle = (t: string) => t.replace(/^\s*\[[^\]]*\]\s*/, '') || t;
 
 export type ScoreSource = 'ai' | 'qldt';
 
 /**
- * Điểm dùng để nhận xét 1 bài (theo thang `scale`): ưu tiên điểm giảng viên chấm bằng AI của extension;
+ * Điểm của 1 bài theo thang `scale`: ưu tiên điểm giảng viên chấm bằng AI của extension;
  * chưa chấm thì dùng điểm AI tự chấm của QLĐT (quy đổi về thang). Chưa nộp / chưa có điểm → null.
  */
 export function effectiveScore(i: BatchItem, scale: number): { value: number; source: ScoreSource } | null {
@@ -182,99 +176,161 @@ function effectiveAverage(s: BatchStudent, scale: number): number | null {
   return v.length ? round1(v.reduce((a, b) => a + b, 0) / v.length) : null;
 }
 
-/** Số bài có điểm theo nguồn (hiển thị "dựa trên …"). */
+/** Số bài có điểm theo nguồn. */
 export function scoreSourceCounts(items: BatchItem[], scale: number): { scored: number; ai: number; qldt: number } {
   const sources = items.map(i => effectiveScore(i, scale)?.source).filter(Boolean);
   return { scored: sources.length, ai: sources.filter(x => x === 'ai').length, qldt: sources.filter(x => x === 'qldt').length };
 }
 
-export interface SessionAiContext { className: string; courseName: string; sessionName: string; scale: string }
+export interface SessionContext { className: string; courseName: string; sessionName: string; scale: string }
 
-/** Prompt AI tổng quan buổi: số liệu nộp / điểm theo từng bài + trích nhận xét từng bài để AI rút ra lỗi phổ biến. */
-export function buildSessionAiPrompt(kind: SessionAiKind, students: BatchStudent[], ctx: SessionAiContext): string {
+export interface HomeworkStats {
+  title: string;
+  submitted: number;
+  total: number;
+  scored: number;
+  fromAi: number;
+  fromQldt: number;
+  avg: number | null;
+  min: number | null;
+  max: number | null;
+  belowHalf: number;
+}
+
+export interface StudentScore { name: string; code: string; submitted: number; total: number; avg: number | null }
+
+export interface SessionStats {
+  ctx: SessionContext;
+  scale: number;
+  /** Ngưỡng "điểm thấp" = nửa thang. */
+  low: number;
+  total: number;
+  full: number;
+  partial: number;
+  none: number;
+  /** Trạng thái buổi trên QLĐT → số SV. */
+  statuses: { label: string; count: number }[];
+  homework: HomeworkStats[];
+  /** TB các SV có điểm (mỗi SV = TB các bài của SV đó). */
+  classAvg: number | null;
+  scoredStudents: number;
+  notSubmitted: StudentScore[];
+  missing: StudentScore[];
+  lowScores: StudentScore[];
+  top: StudentScore[];
+  /** Số bài có nhận xét (đầu vào cho AI liệt kê lỗi). */
+  withFeedback: number;
+}
+
+const TOP_COUNT = 5;
+
+/** Số liệu bài tập của buổi — tính sẵn, không dùng AI. */
+export function buildSessionStats(students: BatchStudent[], ctx: SessionContext): SessionStats {
   const scale = parseFloat(ctx.scale) || 10;
   const low = scale / 2;
-  const total = students.length;
   const hwIds = [...new Set(students.flatMap(s => s.items.map(i => i.homeworkId)))];
-  const titles = new Map(students.flatMap(s => s.items.map(i => [i.homeworkId, i.title.replace(/^\s*\[[^\]]*\]\s*/, '') || i.title] as const)));
+  const titleOf = new Map(students.flatMap(s => s.items.map(i => [i.homeworkId, cleanTitle(i.title)] as const)));
   const itemsOf = (hid: string) => students.flatMap(s => s.items.filter(i => i.homeworkId === hid));
 
-  const full = students.filter(s => s.items.length && submittedCount(s) === s.items.length).length;
-  const none = students.filter(s => !submittedCount(s)).length;
-  const statusCounts = new Map<string, number>();
-  students.forEach(s => statusCounts.set(s.status || 'chưa có', (statusCounts.get(s.status || 'chưa có') || 0) + 1));
-
-  const hwLines = hwIds.map((hid, n) => {
+  const homework: HomeworkStats[] = hwIds.map(hid => {
     const items = itemsOf(hid);
-    const sub = items.filter(i => i.link);
-    const eff = sub.map(i => effectiveScore(i, scale)).filter((x): x is { value: number; source: ScoreSource } => x != null);
-    const scores = eff.map(x => x.value);
-    const fromQldt = eff.filter(x => x.source === 'qldt').length;
-    const origin = fromQldt ? ` (${scores.length - fromQldt} giảng viên chấm AI, ${fromQldt} AI QLĐT)` : '';
-    const scoreText = scores.length
-      ? `có điểm ${scores.length} bài${origin}, điểm TB ${round1(scores.reduce((a, b) => a + b, 0) / scores.length)}, thấp nhất ${Math.min(...scores)}, cao nhất ${Math.max(...scores)}, dưới ${low}: ${scores.filter(x => x < low).length} bài`
-      : 'chưa có điểm bài nào';
-    return `- Bài ${n + 1} "${titles.get(hid)}": nộp ${sub.length}/${items.length}; ${scoreText}`;
+    const eff = items.map(i => effectiveScore(i, scale)).filter((x): x is { value: number; source: ScoreSource } => x != null);
+    const v = eff.map(x => x.value);
+    return {
+      title: titleOf.get(hid) || hid,
+      submitted: items.filter(i => i.link).length,
+      total: items.length,
+      scored: v.length,
+      fromAi: eff.filter(x => x.source === 'ai').length,
+      fromQldt: eff.filter(x => x.source === 'qldt').length,
+      avg: v.length ? round1(v.reduce((a, b) => a + b, 0) / v.length) : null,
+      min: v.length ? Math.min(...v) : null,
+      max: v.length ? Math.max(...v) : null,
+      belowHalf: v.filter(x => x < low).length
+    };
   });
 
-  // Trích nhận xét theo từng bài (giới hạn độ dài tổng để vừa ngữ cảnh AI)
+  const rows: StudentScore[] = students.map(s => ({
+    name: s.name, code: s.code, submitted: submittedCount(s), total: s.items.length, avg: effectiveAverage(s, scale)
+  }));
+  const byName = (a: StudentScore, b: StudentScore) => a.name.localeCompare(b.name, 'vi');
+  const scored = rows.filter(r => r.avg != null);
+  const statuses = new Map<string, number>();
+  students.forEach(s => statuses.set(s.status || 'Chưa có', (statuses.get(s.status || 'Chưa có') || 0) + 1));
+
+  return {
+    ctx, scale, low,
+    total: rows.length,
+    full: rows.filter(r => r.total && r.submitted === r.total).length,
+    partial: rows.filter(r => r.submitted > 0 && r.submitted < r.total).length,
+    none: rows.filter(r => r.submitted === 0).length,
+    statuses: [...statuses].map(([label, count]) => ({ label, count })),
+    homework,
+    classAvg: scored.length ? round1(scored.reduce((a, r) => a + (r.avg as number), 0) / scored.length) : null,
+    scoredStudents: scored.length,
+    notSubmitted: rows.filter(r => r.submitted === 0).sort(byName),
+    missing: rows.filter(r => r.submitted > 0 && r.submitted < r.total).sort(byName),
+    lowScores: scored.filter(r => (r.avg as number) < low).sort((a, b) => (a.avg as number) - (b.avg as number)),
+    top: scored.filter(r => r.submitted === r.total).sort((a, b) => (b.avg as number) - (a.avg as number)).slice(0, TOP_COUNT),
+    withFeedback: students.flatMap(s => s.items).filter(i => i.link && itemFeedback(i)).length
+  };
+}
+
+/** Văn bản số liệu để xem / sao chép. */
+export function formatSessionStats(st: SessionStats): string {
+  const { ctx } = st;
+  const hw = st.homework.map((h, n) => {
+    const origin = h.fromQldt ? ` (${h.fromAi} AI chấm, ${h.fromQldt} AI QLĐT)` : '';
+    const scores = h.scored
+      ? ` · có điểm ${h.scored}${origin} · TB ${h.avg} · thấp ${h.min} · cao ${h.max} · dưới ${st.low}: ${h.belowHalf} bài`
+      : ' · chưa có điểm';
+    return `- Bài ${n + 1} ${h.title}: nộp ${h.submitted}/${h.total}${scores}`;
+  });
+  const list = (rows: StudentScore[], fmt: (r: StudentScore) => string) => (rows.length ? rows.map(fmt).join(', ') : 'không có');
+  const anyQldt = st.homework.some(h => h.fromQldt);
+
+  return [
+    `SỐ LIỆU BÀI TẬP — ${ctx.sessionName} · ${ctx.className} · ${ctx.courseName} · thang ${ctx.scale}`,
+    '',
+    'NỘP BÀI',
+    `- Sĩ số ${st.total}: nộp đủ ${st.full} · nộp thiếu ${st.partial} · chưa nộp ${st.none}`,
+    `- Trạng thái buổi trên QLĐT: ${st.statuses.map(s => `${s.label} ${s.count}`).join(' · ')}`,
+    '',
+    'ĐIỂM TỪNG BÀI',
+    ...hw,
+    `- Điểm TB cả buổi: ${st.classAvg ?? '—'} (${st.scoredStudents} SV có điểm)`,
+    ...(anyQldt ? [`- Nguồn điểm: bài đã chấm bằng AI của extension dùng điểm đó; bài chưa chấm dùng điểm AI QLĐT (quy về thang ${ctx.scale})`] : []),
+    '',
+    `CHƯA NỘP (${st.notSubmitted.length}): ${list(st.notSubmitted, r => r.name)}`,
+    `NỘP THIẾU (${st.missing.length}): ${list(st.missing, r => `${r.name} (${r.submitted}/${r.total})`)}`,
+    `ĐIỂM TB DƯỚI ${st.low} (${st.lowScores.length}): ${list(st.lowScores, r => `${r.name} ${r.avg}`)}`,
+    `ĐIỂM TB CAO NHẤT (nộp đủ): ${list(st.top, r => `${r.name} ${r.avg}`)}`
+  ].join('\n');
+}
+
+/** Prompt AI chỉ liệt kê lỗi phổ biến, rút từ nhận xét từng bài (không nêu tên sinh viên). */
+export function buildCommonErrorsPrompt(students: BatchStudent[], ctx: SessionContext): string {
+  const hwIds = [...new Set(students.flatMap(s => s.items.map(i => i.homeworkId)))];
+  const titleOf = new Map(students.flatMap(s => s.items.map(i => [i.homeworkId, cleanTitle(i.title)] as const)));
   let budget = MAX_FEEDBACK_TOTAL;
-  let feedbackCount = 0;
-  const feedbackBlocks = hwIds.map((hid, n) => {
+  const blocks = hwIds.map((hid, n) => {
     const lines: string[] = [];
-    for (const i of itemsOf(hid)) {
+    for (const i of students.flatMap(s => s.items.filter(x => x.homeworkId === hid))) {
       const fb = i.link ? itemFeedback(i) : '';
       if (!fb || budget <= 0) continue;
-      const score = effectiveScore(i, scale);
-      const who = kind === 'report' ? `${i.studentName}, ` : '';
-      const scoreLabel = score ? `${score.value}/${ctx.scale}${score.source === 'qldt' ? ' · AI QLĐT' : ''}` : 'chưa có điểm';
-      const line = `* (${who}${scoreLabel}) ${fb}`;
+      const line = `* ${fb}`;
       budget -= line.length;
-      feedbackCount++;
       lines.push(line);
     }
-    return lines.length ? `Bài ${n + 1}:\n${lines.join('\n')}` : '';
+    return lines.length ? `Bài ${n + 1} — ${titleOf.get(hid)} (${lines.length} nhận xét):\n${lines.join('\n')}` : '';
   }).filter(Boolean);
 
-  const anyQldt = students.some(s => s.items.some(i => effectiveScore(i, scale)?.source === 'qldt'));
-  const sourceNote = anyQldt
-    ? `\n- Nguồn điểm: bài giảng viên đã chấm bằng AI dùng điểm đó; bài chưa chấm dùng điểm AI tự chấm của QLĐT (quy về thang ${ctx.scale})`
-    : '';
-  const data = `BUỔI: ${ctx.sessionName} — môn "${ctx.courseName}" — lớp ${ctx.className}; thang điểm ${ctx.scale}
+  return `Dưới đây là nhận xét chấm bài tập về nhà của từng sinh viên, buổi "${ctx.sessionName}", môn "${ctx.courseName}".
+Hãy LIỆT KÊ các lỗi phổ biến theo từng bài, đúng định dạng:
+Bài <số> — <tên bài>:
+• <lỗi, ngắn gọn> — khoảng <số> bài
+Sắp lỗi gặp nhiều trước, tối đa 6 lỗi mỗi bài; bài không có lỗi lặp lại thì ghi "• Không có lỗi lặp lại đáng kể".
+Chỉ liệt kê, không viết đoạn văn hay lời khuyên; không nêu tên sinh viên; chỉ dùng lỗi có trong nhận xét, không bịa. Văn bản thuần, không markdown tiêu đề, không in đậm.
 
-SỐ LIỆU
-- Sĩ số ${total}; nộp đủ ${full} SV; nộp thiếu ${total - full - none} SV; chưa nộp bài nào ${none} SV
-- Trạng thái buổi trên QLĐT: ${[...statusCounts].map(([k, v]) => `${k} ${v}`).join('; ')}${sourceNote}
-${hwLines.join('\n')}
-
-NHẬN XÉT TỪNG BÀI (${feedbackCount} bài có nhận xét)
-${feedbackBlocks.join('\n\n') || 'Chưa có nhận xét nào — chỉ nhận xét theo tình hình nộp bài và điểm.'}`;
-
-  const rules = 'Chỉ dùng dữ liệu dưới đây, không bịa thêm lỗi hay số liệu. Văn bản thuần: không dùng tiêu đề markdown, không in đậm; được dùng gạch đầu dòng "•".';
-
-  if (kind === 'class') {
-    return `Bạn là giảng viên. Viết lời nhắn gửi cả lớp về bài tập về nhà của buổi này (tiếng Việt, tối đa 200 từ, thân thiện, gọi sinh viên là "các bạn", không tự xưng thầy / cô), để đăng nhóm lớp. Gồm: tình hình nộp bài chung; điểm cả lớp làm tốt; 3–5 lỗi phổ biến nhất rút ra từ nhận xét, mỗi lỗi kèm cách sửa ngắn gọn; nhắc các bạn chưa nộp / nộp thiếu hoàn thành bài. TUYỆT ĐỐI không nêu tên hay điểm của từng sinh viên. ${rules}
-
-${data}`;
-  }
-
-  const behind = students.filter(s => submittedCount(s) < s.items.length || ((effectiveAverage(s, scale) ?? scale) < low));
-  const behindLines = behind.slice(0, MAX_LISTED_STUDENTS).map(s => {
-    const avg = effectiveAverage(s, scale);
-    return `* ${s.name}: nộp ${submittedCount(s)}/${s.items.length}${avg != null ? `, điểm TB ${avg}` : ''}`;
-  });
-  const top = students.map(s => ({ s, avg: effectiveAverage(s, scale) }))
-    .filter((x): x is { s: BatchStudent; avg: number } => x.avg != null && submittedCount(x.s) === x.s.items.length)
-    .sort((a, b) => b.avg - a.avg).slice(0, 5)
-    .map(x => `* ${x.s.name}: điểm TB ${x.avg}`);
-
-  return `Bạn là giảng viên báo cáo tình hình bài tập về nhà của buổi này cho giáo vụ (tiếng Việt, tối đa 200 từ). Gồm: tỉ lệ nộp bài; điểm từng bài (bài nào khó / dễ); lỗi phổ biến rút ra từ nhận xét (nêu rõ bài); sinh viên cần chú ý — chưa nộp, nộp thiếu, điểm thấp (nêu tên tối đa 8); sinh viên làm tốt nổi bật (tối đa 3). Chỉ nhận xét, KHÔNG đưa danh sách việc cần làm. ${rules}
-
-${data}
-
-SINH VIÊN NỘP THIẾU HOẶC ĐIỂM TB DƯỚI ${low} (${behind.length})
-${behindLines.join('\n') || 'Không có.'}${behind.length > MAX_LISTED_STUDENTS ? `\n(và ${behind.length - MAX_LISTED_STUDENTS} SV khác)` : ''}
-
-SINH VIÊN ĐIỂM TB CAO NHẤT (nộp đủ)
-${top.join('\n') || 'Chưa có.'}`;
+${blocks.join('\n\n')}`;
 }

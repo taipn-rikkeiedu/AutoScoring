@@ -7,7 +7,7 @@ import { plainText } from '~/src/core/examAnalysis';
 import {
   BatchItem, BatchResult, BatchStudent, NOT_SUBMITTED_FILTER,
   parseSessionStudents, parseSessionHomework, buildStudentItems, submittedCount, pickResult, criteriaOf,
-  SessionAiKind, buildSessionAiPrompt
+  SessionContext, buildSessionStats, formatSessionStats, buildCommonErrorsPrompt
 } from '~/src/core/batchGrading';
 import { gradeSubmission } from '~/src/services/graderService';
 import { credentialsFrom } from '~/src/services/ai/aiService';
@@ -56,7 +56,7 @@ export function useBatchGrader() {
   const [loadProgress, setLoadProgress] = useState<{ done: number; total: number } | null>(null);
   const [grading, setGrading] = useState<{ done: number; total: number; text: string } | null>(null);
   const [statusText, setStatusText] = useState('Chọn lớp → môn → buổi rồi bấm "Tải bài nộp". Cần đăng nhập QLĐT ít nhất một lần.');
-  const [sessionAi, setSessionAi] = useState<Partial<Record<SessionAiKind, AiResult>>>({});
+  const [commonErrors, setCommonErrors] = useState<AiResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const prefsLoaded = useRef(false);
 
@@ -189,7 +189,7 @@ export function useBatchGrader() {
       setStudents(result);
       setLoadedKey(key);
       setStatusFilters([]);
-      setSessionAi({});
+      setCommonErrors(null);
       // Mặc định chọn sẵn mọi bài có link (chưa chấm)
       setChecked(new Set(result.flatMap(s => s.items.filter(i => i.link && i.status !== 'success').map(i => i.key))));
       const total = result.reduce((n, s) => n + submittedCount(s), 0);
@@ -283,22 +283,28 @@ export function useBatchGrader() {
     setGrading(g => (g ? { ...g, text: 'Đang dừng sau bài hiện tại…' } : g));
   };
 
-  /* ---------- AI nhận xét tổng quan cả lớp trong buổi (chỉ chạy khi bấm) ---------- */
-  const handleSessionAi = async (kind: SessionAiKind) => {
-    if (!students.length || sessionAi[kind]?.loading) return;
-    setSessionAi(prev => ({ ...prev, [kind]: { loading: true } }));
+  /* ---------- Số liệu buổi (tính sẵn) + AI liệt kê lỗi phổ biến (chỉ chạy khi bấm) ---------- */
+  const sessionCtx: SessionContext = useMemo(() => ({
+    className: classes.find(c => c.value === classId)?.label || '',
+    courseName: courses.find(c => c.value === courseId)?.label || '',
+    sessionName: sessions.find(x => x.value === sessionId)?.label || '',
+    scale: config.gradingScale || '10'
+  }), [classes, classId, courses, courseId, sessions, sessionId, config.gradingScale]);
+
+  const sessionStats = useMemo(
+    () => (students.length ? buildSessionStats(students, sessionCtx) : null),
+    [students, sessionCtx]
+  );
+
+  const handleCommonErrors = async () => {
+    if (!sessionStats?.withFeedback || commonErrors?.loading) return;
+    setCommonErrors({ loading: true });
     try {
-      const prompt = buildSessionAiPrompt(kind, students, {
-        className: classes.find(c => c.value === classId)?.label || '',
-        courseName: courses.find(c => c.value === courseId)?.label || '',
-        sessionName: sessions.find(x => x.value === sessionId)?.label || '',
-        scale: config.gradingScale || '10'
-      });
-      const text = await ai.generate(prompt, credentialsFrom(config));
-      setSessionAi(prev => ({ ...prev, [kind]: { loading: false, text: text.trim() } }));
+      const text = await ai.generate(buildCommonErrorsPrompt(students, sessionCtx), credentialsFrom(config));
+      setCommonErrors({ loading: false, text: text.trim() });
     } catch (e: any) {
-      setSessionAi(prev => ({ ...prev, [kind]: { loading: false, error: e.message } }));
-      logger.error(LOG_MODULE, 'AI không viết được nhận xét buổi.', e.message);
+      setCommonErrors({ loading: false, error: e.message });
+      logger.error(LOG_MODULE, 'AI không liệt kê được lỗi phổ biến.', e.message);
     }
   };
 
@@ -342,7 +348,8 @@ export function useBatchGrader() {
     loading, loadProgress, grading, statusText, aiStatus, scale,
     handleLoad, handleGradeOne, handleGradeChecked, handleCancel,
     copyItemComment, handleCopyReport,
-    sessionAi, handleSessionAi,
-    copySessionAi: (kind: SessionAiKind) => { const t = sessionAi[kind]?.text; if (t) copy(t, 'Đã sao chép nhận xét buổi.'); }
+    sessionStats, commonErrors, handleCommonErrors,
+    copySessionStats: () => { if (sessionStats) copy(formatSessionStats(sessionStats), 'Đã sao chép số liệu buổi.'); },
+    copyCommonErrors: () => { if (commonErrors?.text) copy(commonErrors.text, 'Đã sao chép danh sách lỗi phổ biến.'); }
   };
 }

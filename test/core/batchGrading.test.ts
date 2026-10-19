@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import {
-  BatchStudent, buildSessionAiPrompt, buildStudentItems, effectiveScore, itemFeedback, parseSessionHomework, parseSessionStudents,
+  BatchStudent, buildCommonErrorsPrompt, buildSessionStats, buildStudentItems, effectiveScore, formatSessionStats, itemFeedback,
+  parseSessionHomework, parseSessionStudents,
   scoreSourceCounts,
   pickResult, studentAverage, submittedCount
 } from '~/src/core/batchGrading';
@@ -57,7 +58,7 @@ describe('buildStudentItems', () => {
   });
 });
 
-describe('buildSessionAiPrompt', () => {
+describe('số liệu buổi', () => {
   /** Mỗi dòng: [link, điểm extension chấm, nhận xét AI, điểm AI QLĐT (tỉ lệ 0–1)?]. */
   const mk = (name: string, rows: [string, string | null, string, number?][]): BatchStudent => ({
     studentId: name, name, code: 'SV', status: rows.every(r => r[0]) ? 'HOÀN THÀNH' : 'CHƯA HOÀN THÀNH', completed: null,
@@ -75,27 +76,41 @@ describe('buildSessionAiPrompt', () => {
   ];
   const ctx = { className: 'Lớp A', courseName: 'Lập trình C', sessionName: 'Session 05', scale: '10' };
 
-  it('gửi lớp: không lộ tên sinh viên', () => {
-    const p = buildSessionAiPrompt('class', students, ctx);
-    expect(p).not.toContain('Nguyễn An');
-    expect(p).toMatchSnapshot();
+  it('buildSessionStats: nộp bài, điểm từng bài, nhóm sinh viên', () => {
+    const st = buildSessionStats(students, ctx);
+    expect([st.total, st.full, st.partial, st.none]).toEqual([3, 1, 1, 1]);
+    expect(st.statuses).toEqual([{ label: 'HOÀN THÀNH', count: 1 }, { label: 'CHƯA HOÀN THÀNH', count: 2 }]);
+    expect(st.homework).toEqual([
+      { title: 'Đề 1', submitted: 2, total: 3, scored: 2, fromAi: 2, fromQldt: 0, avg: 6.5, min: 4, max: 9, belowHalf: 1 },
+      { title: 'Đề 2', submitted: 1, total: 3, scored: 1, fromAi: 1, fromQldt: 0, avg: 7, min: 7, max: 7, belowHalf: 0 }
+    ]);
+    expect([st.classAvg, st.scoredStudents, st.withFeedback]).toEqual([6, 2, 3]);
+    expect(st.notSubmitted.map(r => r.name)).toEqual(['Lê Chi']);
+    expect(st.missing.map(r => `${r.name} ${r.submitted}/${r.total}`)).toEqual(['Trần Bình 1/2']);
+    expect(st.lowScores.map(r => `${r.name} ${r.avg}`)).toEqual(['Trần Bình 4']);
+    expect(st.top.map(r => `${r.name} ${r.avg}`)).toEqual(['Nguyễn An 8']);
+    expect(formatSessionStats(st)).toMatchSnapshot();
   });
-  it('báo cáo: có tên, nhóm cần chú ý, nhóm làm tốt', () => {
-    expect(buildSessionAiPrompt('report', students, ctx)).toMatchSnapshot();
-  });
+
   it('chưa chấm bằng extension → dùng điểm AI QLĐT (quy về thang), ghi rõ nguồn', () => {
-    const qldtOnly = [
+    const qldt = [
       mk('Phạm Dũng', [['g/5', null, '', 0.85], ['g/6', null, '', 0.4]]),
-      mk('Võ Em', [['g/7', '9', 'Tốt.', 0.5], ['', null, '']]) // đã chấm bằng extension → ưu tiên điểm đó (9), không dùng 5
+      mk('Võ Em', [['g/7', '9', 'Tốt.', 0.5], ['', null, '']]) // đã chấm bằng extension → dùng 9, không dùng 5
     ];
-    const p = buildSessionAiPrompt('report', qldtOnly, ctx);
-    expect(p).toContain('có điểm 2 bài (1 giảng viên chấm AI, 1 AI QLĐT), điểm TB 8.8');
-    expect(p).toContain('có điểm 1 bài (0 giảng viên chấm AI, 1 AI QLĐT), điểm TB 4');
-    expect(p).toContain('Nguồn điểm: bài giảng viên đã chấm bằng AI dùng điểm đó; bài chưa chấm dùng điểm AI tự chấm của QLĐT');
-    expect(p).toContain('* Võ Em: nộp 1/2, điểm TB 9');   // nộp thiếu → cần chú ý
-    expect(p).toContain('* Phạm Dũng: điểm TB 6.3');       // nộp đủ, TB (8.5 + 4) / 2 → nhóm điểm cao
-    expect(p).not.toContain('chưa có điểm bài nào');
-    expect(scoreSourceCounts(qldtOnly.flatMap(s => s.items), 10)).toEqual({ scored: 3, ai: 1, qldt: 2 });
+    const st = buildSessionStats(qldt, ctx);
+    expect(st.homework.map(h => [h.scored, h.fromAi, h.fromQldt, h.avg, h.min, h.max])).toEqual([[2, 1, 1, 8.8, 8.5, 9], [1, 0, 1, 4, 4, 4]]);
+    expect(st.top.map(r => `${r.name} ${r.avg}`)).toEqual(['Phạm Dũng 6.3']); // (8.5 + 4) / 2
+    expect(st.missing.map(r => r.name)).toEqual(['Võ Em']);
+    expect(scoreSourceCounts(qldt.flatMap(s => s.items), 10)).toEqual({ scored: 3, ai: 1, qldt: 2 });
+    const text = formatSessionStats(st);
+    expect(text).toContain('có điểm 2 (1 AI chấm, 1 AI QLĐT) · TB 8.8');
+    expect(text).toContain('Nguồn điểm: bài đã chấm bằng AI của extension dùng điểm đó; bài chưa chấm dùng điểm AI QLĐT');
+  });
+
+  it('buildCommonErrorsPrompt: chỉ liệt kê lỗi, không lộ tên sinh viên', () => {
+    const p = buildCommonErrorsPrompt(students, ctx);
+    expect(p).not.toMatch(/Nguyễn An|Trần Bình|Lê Chi/);
+    expect(p).toContain('Bài 1 — Đề 1 (2 nhận xét)');
     expect(p).toMatchSnapshot();
   });
 

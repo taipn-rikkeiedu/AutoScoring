@@ -4,6 +4,18 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.27.0] - 2026-10-19
+
+### 🔄 Thay đổi
+- **"Nhận xét buổi" → "Số liệu buổi"** (tab Chấm hàng loạt): bỏ 2 kiểu AI viết văn "Gửi lớp" / "Báo cáo"; nay extension **tự tính số liệu** (tức thì, không tốn lượt AI, không sai số) để bạn tự viết báo cáo:
+  - Nộp bài: sĩ số, nộp đủ / nộp thiếu / chưa nộp, trạng thái buổi trên QLĐT.
+  - Điểm từng bài: số bài nộp, số bài có điểm (AI chấm / AI QLĐT), điểm TB, thấp nhất, cao nhất, số bài dưới nửa thang; điểm TB cả buổi.
+  - Danh sách sinh viên: chưa nộp, nộp thiếu (x/y), điểm TB dưới nửa thang, điểm TB cao nhất (nộp đủ).
+  - Nút **Sao chép số liệu**.
+- **Lỗi phổ biến (AI)**: nút riêng để AI liệt kê lỗi lặp lại theo từng bài (kèm khoảng số bài mắc), rút từ nhận xét chấm bài — chỉ liệt kê, không viết văn, không nêu tên sinh viên; có nút Sao chép.
+
+---
+
 ## [5.26.5] - 2026-10-19
 
 ### 🐛 Sửa lỗi
