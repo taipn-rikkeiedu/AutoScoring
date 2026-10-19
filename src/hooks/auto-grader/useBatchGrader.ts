@@ -10,7 +10,7 @@ import {
   SessionAiKind, buildSessionAiPrompt
 } from '~/src/core/batchGrading';
 import { gradeSubmission } from '~/src/services/graderService';
-import { callAiWithRateLimitRetry } from '~/src/services/aiService';
+import { callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
 import {
   QldtOption, listQldtClasses, listQldtCourses, fetchCourseSessions, fetchSessionHomework,

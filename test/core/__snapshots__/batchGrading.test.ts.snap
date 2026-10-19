@@ -1,0 +1,68 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildSessionAiPrompt > báo cáo: có tên, nhóm cần chú ý, nhóm làm tốt 1`] = `
+"Bạn là giảng viên báo cáo tình hình bài tập về nhà của buổi này cho giáo vụ (tiếng Việt, tối đa 200 từ). Gồm: tỉ lệ nộp bài; điểm từng bài (bài nào khó / dễ); lỗi phổ biến rút ra từ nhận xét (nêu rõ bài); sinh viên cần chú ý — chưa nộp, nộp thiếu, điểm thấp (nêu tên tối đa 8); sinh viên làm tốt nổi bật (tối đa 3). Chỉ nhận xét, KHÔNG đưa danh sách việc cần làm. Chỉ dùng dữ liệu dưới đây, không bịa thêm lỗi hay số liệu. Văn bản thuần: không dùng tiêu đề markdown, không in đậm; được dùng gạch đầu dòng "•".
+
+BUỔI: Session 05 — môn "Lập trình C" — lớp Lớp A; thang điểm 10
+
+SỐ LIỆU
+- Sĩ số 3; nộp đủ 1 SV; nộp thiếu 1 SV; chưa nộp bài nào 1 SV
+- Trạng thái buổi trên QLĐT: HOÀN THÀNH 1; CHƯA HOÀN THÀNH 2
+- Bài 1 "Đề 1": nộp 2/3; đã chấm 2, điểm TB 6.5, thấp nhất 4, cao nhất 9, dưới 5: 1 bài
+- Bài 2 "Đề 2": nộp 1/3; đã chấm 1, điểm TB 7, thấp nhất 7, cao nhất 7, dưới 5: 0 bài
+
+NHẬN XÉT TỪNG BÀI (3 bài có nhận xét)
+Bài 1:
+* (Nguyễn An, 9/10) Làm tốt, thiếu validate input.
+* (Trần Bình, 4/10) Sai vòng lặp.
+
+Bài 2:
+* (Nguyễn An, 7/10) Chưa xử lý mảng rỗng.
+
+SINH VIÊN NỘP THIẾU HOẶC ĐIỂM TB DƯỚI 5 (2)
+* Trần Bình: nộp 1/2, điểm TB 4
+* Lê Chi: nộp 0/2
+
+SINH VIÊN ĐIỂM TB CAO NHẤT (nộp đủ)
+* Nguyễn An: điểm TB 8"
+`;
+
+exports[`buildSessionAiPrompt > gửi lớp: không lộ tên sinh viên 1`] = `
+"Bạn là giảng viên. Viết lời nhắn gửi cả lớp về bài tập về nhà của buổi này (tiếng Việt, tối đa 200 từ, thân thiện, gọi sinh viên là "các bạn", không tự xưng thầy / cô), để đăng nhóm lớp. Gồm: tình hình nộp bài chung; điểm cả lớp làm tốt; 3–5 lỗi phổ biến nhất rút ra từ nhận xét, mỗi lỗi kèm cách sửa ngắn gọn; nhắc các bạn chưa nộp / nộp thiếu hoàn thành bài. TUYỆT ĐỐI không nêu tên hay điểm của từng sinh viên. Chỉ dùng dữ liệu dưới đây, không bịa thêm lỗi hay số liệu. Văn bản thuần: không dùng tiêu đề markdown, không in đậm; được dùng gạch đầu dòng "•".
+
+BUỔI: Session 05 — môn "Lập trình C" — lớp Lớp A; thang điểm 10
+
+SỐ LIỆU
+- Sĩ số 3; nộp đủ 1 SV; nộp thiếu 1 SV; chưa nộp bài nào 1 SV
+- Trạng thái buổi trên QLĐT: HOÀN THÀNH 1; CHƯA HOÀN THÀNH 2
+- Bài 1 "Đề 1": nộp 2/3; đã chấm 2, điểm TB 6.5, thấp nhất 4, cao nhất 9, dưới 5: 1 bài
+- Bài 2 "Đề 2": nộp 1/3; đã chấm 1, điểm TB 7, thấp nhất 7, cao nhất 7, dưới 5: 0 bài
+
+NHẬN XÉT TỪNG BÀI (3 bài có nhận xét)
+Bài 1:
+* (9/10) Làm tốt, thiếu validate input.
+* (4/10) Sai vòng lặp.
+
+Bài 2:
+* (7/10) Chưa xử lý mảng rỗng."
+`;
+
+exports[`buildStudentItems > mỗi đề 1 dòng, lấy bản nộp mới nhất, thêm đề ngoài buổi 1`] = `
+{
+  "assignment": "Viết hàm sum
+
+## HƯỚNG DẪN
+Dùng vòng lặp",
+  "comment": "Tốt",
+  "criteria": "Đúng kết quả",
+  "homeworkId": "11",
+  "images": [],
+  "key": "1:11",
+  "link": "https://github.com/a/new",
+  "status": "pending",
+  "studentId": "1",
+  "studentName": "Sinh Viên 1",
+  "sysAi": "85/100",
+  "title": "[Bài tập] Tính tổng",
+}
+`;

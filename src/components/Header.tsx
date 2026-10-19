@@ -17,10 +17,6 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
     title: "Chấm Mini Project",
     subtitle: "Chấm điểm chung 1 đề cho toàn bộ học viên",
   },
-  "tab-drive-scanner": {
-    title: "Quét Google Drive",
-    subtitle: "Trích xuất bài nộp từ thư mục Google Drive",
-  },
   "tab-care": {
     title: "Chăm sóc học viên",
     subtitle: "Ca nghỉ không phép cần liên hệ — cập nhật thẳng lên QLĐT",
@@ -32,14 +28,6 @@ const TAB_TITLES: Record<string, { title: string; subtitle: string }> = {
   "tab-learning-stats": {
     title: "Giám sát học tập",
     subtitle: "Cảnh báo vi phạm học tập và nghi vấn BTVN theo lớp, môn",
-  },
-  "tab-shortcuts": {
-    title: "Lối tắt nhanh",
-    subtitle: "Truy cập nhanh các liên kết thường dùng",
-  },
-  "tab-lms-api": {
-    title: "LMS API Test",
-    subtitle: "Kiểm tra kết nối và dữ liệu từ API LMS",
   },
   "tab-settings": {
     title: "Cài đặt hệ thống",

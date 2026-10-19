@@ -63,6 +63,15 @@ Vượt trội hơn một công cụ chấm điểm thông thường, **REduX** 
    - Bấm nút **Load unpacked (Tải tiện ích đã giải nén)**.
    - Chọn thư mục **`.output/chrome-mv3`** trong thư mục dự án.
 
+### Kiểm thử (nhà phát triển)
+```bash
+npm test          # chạy toàn bộ test (Vitest)
+npm run compile   # kiểm tra kiểu TypeScript
+```
+- Test nằm trong `test/`: `test/core` (logic thuần), `test/services` (QLĐT: token, cache, danh mục, chăm sóc).
+- `test/fakes/chrome.ts` giả lập API `chrome` (storage, proxy FETCH, tab); `test/fixtures` là dữ liệu QLĐT mẫu **đã ẩn danh**.
+- Snapshot ghi lại hành vi hiện tại; cố ý đổi hành vi thì cập nhật bằng `npx vitest run -u` và xem lại diff snapshot.
+
 ---
 
 ## ⚙️ Hướng Dẫn Cấu Hinh Chi Tiết (Từng bước lấy Token & Key)

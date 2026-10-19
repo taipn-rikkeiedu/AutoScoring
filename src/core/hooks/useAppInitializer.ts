@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AppConfig, Submission } from '~/src/types';
 import { ExerciseBank, bankToTemplates } from '../exerciseBank';
-import { SupabaseService } from '~/src/services/supabaseService';
+import { SupabaseService } from '~/src/services/supabase/supabaseService';
 import { testConnection } from '~/src/services/connectionTester';
 import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS, STORAGE_KEYS, UI_MESSAGES } from '../constants';
 import { logger } from '../logger';

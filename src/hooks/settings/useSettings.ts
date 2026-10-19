@@ -7,7 +7,7 @@ import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS } from '~/src/core/constants';
 import { logger, LogEntry } from '~/src/core/logger';
 import JSZip from 'jszip';
 import { AiClient } from '~/src/services/api';
-import { SupabaseService } from '~/src/services/supabaseService';
+import { SupabaseService } from '~/src/services/supabase/supabaseService';
 
 const defaultGraderIgnoreOptions = [...GRADER_IGNORE_DEFAULTS];
 

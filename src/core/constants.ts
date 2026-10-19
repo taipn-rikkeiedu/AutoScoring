@@ -1,6 +1,6 @@
 export const APP_INFO = {
   name: "REduX",
-  version: "5.26.0",
+  version: "5.26.1",
   description: "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports"
 } as const;
 
@@ -46,8 +46,6 @@ export const STORAGE_KEYS = {
   googleApiKey: "googleApiKey",
   gradingScale: "gradingScale",
   strictnessLevel: "strictnessLevel",
-  detectedSubmissions: "detectedSubmissions",
-  customShortcuts: "customShortcuts",
   uiWindowMode: "uiWindowMode",
   uiSidebarCollapsed: "uiSidebarCollapsed",
   qldtAuthToken: "qldtAuthToken",
@@ -115,14 +113,9 @@ export const UI_MESSAGES = {
     supabaseDbError: "🔴 Lỗi kết nối CSDL"
   },
   common: {
-    noActiveTab: "Không tìm thấy tab trình duyệt đang hoạt động.",
-    currentTabUnavailable: "❌ Lỗi: Không thể truy cập tab hiện tại.",
     unsupportedAiProvider: "Không hỗ trợ AI Provider đã chọn.",
     missingApiKey: "Chưa cấu hình API Key",
     missingBaseUrl: "Chưa cấu hình Base URL",
-    emptyAiResponse: "Phản hồi của AI Model rỗng.",
-    invalidScoreResponse: "AI không trả về điểm số hợp lệ hoặc sai định dạng mẫu phản hồi.",
-    excelExportFailed: "Không thể xuất Excel: "
   },
   github: {
     invalidUrl: "GitHub URL không hợp lệ. Hãy điền theo mẫu: https://github.com/user/repo-name",
@@ -131,7 +124,6 @@ export const UI_MESSAGES = {
     findingDefaultBranch: "Đang dò tìm nhánh mặc định...",
     downloadingZip: "Đang tải toàn bộ mã nguồn (.ZIP)...",
     extractingZip: "Giải nén và phân tích mã nguồn...",
-    zipFallback: "Tải ZIP thất bại. Đang thử dùng Git Trees API...",
     noValidSource: "Không tìm thấy mã nguồn hợp lệ trong Repo."
   },
   background: {
@@ -139,7 +131,4 @@ export const UI_MESSAGES = {
     disallowedMethod: "Background proxy chỉ cho phép GET/HEAD.",
     invalidSender: "Nguồn message không hợp lệ."
   },
-  supabase: {
-    invalidUrl: "Supabase URL không hợp lệ."
-  }
 } as const;

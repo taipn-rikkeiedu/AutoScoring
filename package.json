@@ -2,7 +2,7 @@
   "name": "redux-autoscoring-extension",
   "description": "REduX extension for LMS scraping, GitHub submission loading, AI grading, and Excel reports",
   "private": true,
-  "version": "5.26.0",
+  "version": "5.26.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -12,7 +12,9 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.4",
@@ -21,7 +23,6 @@
     "antd": "^6.6.5",
     "dompurify": "^3.4.11",
     "emf-converter": "^3.0.1",
-    "jsdom": "^30.1.1",
     "jszip": "^3.10.1",
     "marked": "^18.0.6",
     "react": "^19.2.4",
@@ -38,9 +39,11 @@
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",
     "autoprefixer": "^10.5.2",
+    "happy-dom": "^20.0.11",
     "postcss": "^8.5.16",
     "tailwindcss": "^4.3.2",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.11",
     "wxt": "^0.20.27"
   }
 }

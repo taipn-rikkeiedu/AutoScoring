@@ -18,7 +18,7 @@ export function parseScore(reportText: string | null): string | null {
   return null;
 }
 
-export function normalizeText(str: string | null): string {
+function normalizeText(str: string | null): string {
   if (!str) return '';
   return str
     .toLowerCase()
@@ -183,27 +183,6 @@ export function extractComment(reportText: string | null): string {
 export const DEFAULT_CRITERIA = GRADING_TEXT.defaultCriteria;
 export const DEFAULT_SYSTEM_PROMPT = GRADING_TEXT.defaultSystemPrompt;
 
-export function extractCriteriaFromAssignment(assignmentText: string | null): { assignment: string; criteria: string | null } {
-  if (!assignmentText) return { assignment: '', criteria: null };
-  
-  const regex = /(?:Tiêu\s*chí\s*chấm\s*(?:bài|điểm|thi)?|Tiêu\s*chí\s*đánh\s*giá|Tiêu\s*chí\s*AI|Tieu\s*chi\s*cham\s*(?:bai|diem|thi)?|Tieu\s*chi\s*danh\s*gia|Tieu\s*chi\s*AI|Grading\s*Criteria|AI\s*Criteria|Rubric|Criteria)(?:\s*[\(（]AI[\)）])?\s*:?\s*([\s\S]+)$/i;
-  
-  const match = assignmentText.match(regex);
-  if (match) {
-    const criteriaText = match[1].trim();
-    const cleanAssignment = assignmentText.replace(regex, '').trim();
-    return {
-      assignment: cleanAssignment,
-      criteria: criteriaText
-    };
-  }
-  
-  return {
-    assignment: assignmentText,
-    criteria: null
-  };
-}
-
 /**
  * Lấy tab đang active mà người dùng thực sự làm việc (trang LMS).
  *
@@ -240,28 +219,5 @@ export function queryActiveLmsTab(callback: (tab: chrome.tabs.Tab | undefined) =
 
     const activeTab = targetWindow?.tabs?.find(t => t.active);
     callback(activeTab);
-  });
-}
-
-/**
- * Safe navigation utility to handle SPA redirects inside Chrome extension.
- * Sends a message to the background service worker to perform navigation and reload safely
- * without being interrupted if the popup closes.
- */
-export function safeNavigate(targetUrl: string): void {
-  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
-    window.location.href = targetUrl;
-    return;
-  }
-
-  chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
-    const tabId = tabs?.[0]?.id;
-    const currentUrl = tabs?.[0]?.url || '';
-    chrome.runtime.sendMessage({ 
-      type: "SAFE_NAVIGATE", 
-      targetUrl, 
-      tabId, 
-      currentUrl 
-    });
   });
 }

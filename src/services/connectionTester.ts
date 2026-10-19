@@ -1,7 +1,7 @@
 import { AppConfig } from '~/src/types';
 import { UI_MESSAGES } from '~/src/core/constants';
 import { AiClient, API_BASE_URLS } from './api';
-import { resolveOpenAiCompatibleBaseUrl } from './aiService';
+import { resolveOpenAiCompatibleBaseUrl } from './ai/aiService';
 
 export async function testConnection(config: AppConfig): Promise<boolean> {
   const provider = config.aiProvider;

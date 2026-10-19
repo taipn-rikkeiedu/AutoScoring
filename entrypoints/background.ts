@@ -170,46 +170,6 @@ export default defineBackground(() => {
       return true; // Giữ kết nối bất đồng bộ để gửi sendResponse sau
     }
 
-    if (message.type === "SAFE_NAVIGATE") {
-      const { targetUrl, tabId, currentUrl } = message;
-
-      const performNavigation = (id: number, current: string) => {
-        const isSameOrigin = (url1: string, url2: string): boolean => {
-          try {
-            const u1 = new URL(url1);
-            const u2 = new URL(url2);
-            return u1.origin === u2.origin;
-          } catch {
-            return url1.includes('rikkei.edu.vn') && url2.includes('rikkei.edu.vn');
-          }
-        };
-
-        if (current === targetUrl) {
-          chrome.tabs.reload(id);
-        } else if (isSameOrigin(current, targetUrl)) {
-          chrome.tabs.update(id, { url: targetUrl }, () => {
-            chrome.tabs.reload(id);
-          });
-        } else {
-          chrome.tabs.update(id, { url: targetUrl });
-        }
-      };
-
-      if (tabId) {
-        performNavigation(tabId, currentUrl || '');
-      } else {
-        chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
-          if (tabs && tabs[0] && tabs[0].id) {
-            performNavigation(tabs[0].id, tabs[0].url || '');
-          } else {
-            chrome.tabs.create({ url: targetUrl });
-          }
-        });
-      }
-      sendResponse({ success: true });
-      return false;
-    }
-
     // Response API QLĐT do trang web gọi (bật "Ghi API" trong extension) → lưu vào kho API
     if (message.type === "QLDT_API_RECORD") {
       const { url, status, body, requestBody } = message;

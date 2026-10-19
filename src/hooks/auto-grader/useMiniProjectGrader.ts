@@ -5,8 +5,8 @@ import { findMatchingTemplate, parseScore, queryActiveLmsTab } from '~/src/core/
 import { STORAGE_KEYS } from '~/src/core/constants';
 import { Submission } from '~/src/types';
 import { gradeSubmission } from '~/src/services/graderService';
-import { GitHubService } from '~/src/services/githubService';
-import { AIService, compressCode } from '~/src/services/aiService';
+import { GitHubService } from '~/src/services/github/githubClient';
+import { AIService, compressCode } from '~/src/services/ai/aiService';
 import { analyzeCode } from '~/src/services/codeAnalysis';
 
 const BULK_GRADING_CONCURRENCY = 1;

@@ -164,7 +164,7 @@ export function buildSessionAiPrompt(kind: SessionAiKind, students: BatchStudent
   const low = scale / 2;
   const total = students.length;
   const hwIds = [...new Set(students.flatMap(s => s.items.map(i => i.homeworkId)))];
-  const titles = new Map(students.flatMap(s => s.items.map(i => [i.homeworkId, i.title.replace(/^s*[[^]]*]s*/, '') || i.title] as const)));
+  const titles = new Map(students.flatMap(s => s.items.map(i => [i.homeworkId, i.title.replace(/^\s*\[[^\]]*\]\s*/, '') || i.title] as const)));
   const itemsOf = (hid: string) => students.flatMap(s => s.items.filter(i => i.homeworkId === hid));
 
   const full = students.filter(s => s.items.length && submittedCount(s) === s.items.length).length;

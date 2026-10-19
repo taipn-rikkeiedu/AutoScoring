@@ -1,0 +1,26 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`care > parseCareCase làm phẳng ca chăm sóc 1`] = `
+{
+  "careMethod": "",
+  "category": "",
+  "classId": "141",
+  "className": "Lớp A",
+  "courseName": "Môn B",
+  "createdAt": "2026-10-16T06:17:07.949Z",
+  "date": "2026-10-16",
+  "email": "user1@example.com",
+  "id": 39918,
+  "imageUrl": "",
+  "period": 4,
+  "phone": "0900000000",
+  "reason": "",
+  "result": "",
+  "status": "Đang xử lý",
+  "statusChangedAt": "",
+  "studentCode": "SV0001",
+  "studentId": "1590",
+  "studentName": "Sinh Viên 1",
+  "updatedAt": "2026-10-16T06:17:07.949Z",
+}
+`;

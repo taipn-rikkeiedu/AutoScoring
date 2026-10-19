@@ -19,7 +19,7 @@ import {
   TemplateSource, loadMonitorTemplates, saveMonitorTemplate, removeMonitorTemplate, writeLocalTemplates
 } from '~/src/services/monitorTemplateStore';
 import { SupabaseService } from '~/src/services/supabase/supabaseService';
-import { callAiWithRateLimitRetry } from '~/src/services/aiService';
+import { callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
 import { getQldtAuth } from '~/src/services/lms/qldtApiClient';
 import {
   QldtOption, listQldtClasses, listQldtCourses, fetchClassDashboard, fetchStudentExercises, fetchClassAttendance, fetchClassLeaves

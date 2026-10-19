@@ -50,14 +50,6 @@ export const OLLAMA_ENDPOINTS = {
 };
 
 /**
- * LMS Portal API Routes
- */
-export const LMS_ENDPOINTS = {
-  submissions: (sessionId: string) =>
-    `${API_BASE_URLS.lmsPortal}/api/v1/sessions/${sessionId}/submissions`
-};
-
-/**
  * GitHub API Routes
  */
 export const GITHUB_ENDPOINTS = {

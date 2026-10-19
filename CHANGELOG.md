@@ -4,6 +4,17 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.26.1] - 2026-10-19
+
+### 🧹 Dọn dẹp mã nguồn (refactor giai đoạn 0)
+- **Thêm kiểm thử tự động (Vitest)**: 35 test cho logic chấm hàng loạt, nhận xét buổi, chăm sóc học viên, giám sát học tập, điểm thi, điểm danh, lấy token / cache / danh mục lớp QLĐT. Dữ liệu mẫu trích từ QLĐT đã ẩn danh hoàn toàn. Chạy `npm test`.
+- Gỡ ~1.400 dòng mã không còn dùng: các component / hook của tính năng đã bỏ (lối tắt nhanh, kiểm thử LMS API cũ, hộp xác nhận, ô chọn tìm kiếm), client LMS cũ kèm circuit breaker / rate limiter, các file chỉ re-export, xử lý điều hướng `SAFE_NAVIGATE` không còn nơi gọi, hằng số và thông báo mồ côi, `App.css` thừa, thư viện `jsdom` không dùng.
+
+### 🐛 Sửa lỗi
+- Nhận xét buổi (Chấm hàng loạt): tên đề gửi cho AI nay bỏ đúng tiền tố lặp "[Bài tập]" (biểu thức lọc bị sai từ bản 5.25.0, phát hiện nhờ test).
+
+---
+
 ## [5.26.0] - 2026-10-16
 
 ### ⚡ Hiệu năng

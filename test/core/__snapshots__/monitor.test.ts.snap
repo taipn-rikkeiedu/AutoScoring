@@ -1,0 +1,1945 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`attendance > parseClassAttendance nối điểm danh với đơn nghỉ 1`] = `
+{
+  "classLabel": "Lớp A",
+  "dates": [
+    "2026-10-01",
+    "2026-10-02",
+    "2026-10-05",
+    "2026-10-06",
+    "2026-10-07",
+    "2026-10-08",
+  ],
+  "students": {
+    "628": {
+      "absentDays": 1,
+      "code": "SV0005",
+      "days": {
+        "2026-10-01": {
+          "absent": true,
+          "date": "2026-10-01",
+          "excused": true,
+          "marks": [
+            {
+              "kind": "excused",
+              "leave": {
+                "image": "",
+                "note": "Ghi chú mẫu",
+                "rejectReason": "",
+                "status": "Phê duyệt",
+              },
+              "note": "Ghi chú mẫu",
+              "period": 1,
+            },
+          ],
+        },
+        "2026-10-02": {
+          "absent": false,
+          "date": "2026-10-02",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-05": {
+          "absent": false,
+          "date": "2026-10-05",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-06": {
+          "absent": false,
+          "date": "2026-10-06",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-07": {
+          "absent": false,
+          "date": "2026-10-07",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-08": {
+          "absent": false,
+          "date": "2026-10-08",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+          ],
+        },
+      },
+      "excusedDays": 1,
+      "maxStreak": 1,
+      "name": "Sinh Viên 5",
+      "streaks": [],
+      "studentId": "628",
+      "unexcusedDays": 0,
+    },
+    "631": {
+      "absentDays": 0,
+      "code": "SV0004",
+      "days": {
+        "2026-10-01": {
+          "absent": false,
+          "date": "2026-10-01",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+          ],
+        },
+        "2026-10-02": {
+          "absent": false,
+          "date": "2026-10-02",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-05": {
+          "absent": false,
+          "date": "2026-10-05",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-06": {
+          "absent": false,
+          "date": "2026-10-06",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-07": {
+          "absent": false,
+          "date": "2026-10-07",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-08": {
+          "absent": false,
+          "date": "2026-10-08",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+          ],
+        },
+      },
+      "excusedDays": 0,
+      "maxStreak": 0,
+      "name": "Sinh Viên 4",
+      "streaks": [],
+      "studentId": "631",
+      "unexcusedDays": 0,
+    },
+    "637": {
+      "absentDays": 0,
+      "code": "SV0003",
+      "days": {
+        "2026-10-01": {
+          "absent": false,
+          "date": "2026-10-01",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+          ],
+        },
+        "2026-10-02": {
+          "absent": false,
+          "date": "2026-10-02",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-05": {
+          "absent": false,
+          "date": "2026-10-05",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-06": {
+          "absent": false,
+          "date": "2026-10-06",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-07": {
+          "absent": false,
+          "date": "2026-10-07",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-08": {
+          "absent": false,
+          "date": "2026-10-08",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+          ],
+        },
+      },
+      "excusedDays": 0,
+      "maxStreak": 0,
+      "name": "Sinh Viên 3",
+      "streaks": [],
+      "studentId": "637",
+      "unexcusedDays": 0,
+    },
+    "682": {
+      "absentDays": 0,
+      "code": "SV0001",
+      "days": {
+        "2026-10-01": {
+          "absent": false,
+          "date": "2026-10-01",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+          ],
+        },
+        "2026-10-02": {
+          "absent": false,
+          "date": "2026-10-02",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-05": {
+          "absent": false,
+          "date": "2026-10-05",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-06": {
+          "absent": false,
+          "date": "2026-10-06",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-07": {
+          "absent": false,
+          "date": "2026-10-07",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 2,
+            },
+          ],
+        },
+        "2026-10-08": {
+          "absent": false,
+          "date": "2026-10-08",
+          "excused": false,
+          "marks": [
+            {
+              "kind": "present",
+              "leave": null,
+              "note": "",
+              "period": 1,
+            },
+          ],
+        },
+      },
+      "excusedDays": 0,
+      "maxStreak": 0,
+      "name": "Sinh Viên 1",
+      "streaks": [],
+      "studentId": "682",
+      "unexcusedDays": 0,
+    },
+  },
+}
+`;
+
+exports[`examAnalysis > parseClassDashboard + flagRows > cột thi 1`] = `
+[
+  {
+    "date": "2026-10-09T00:00:00.000Z",
+    "key": "1427|TN",
+    "kind": "TN",
+    "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+    "phase": "hk",
+  },
+  {
+    "date": "2026-10-09T00:30:00.000Z",
+    "key": "1428|TL",
+    "kind": "TL",
+    "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+    "phase": "hk",
+  },
+]
+`;
+
+exports[`examAnalysis > parseClassDashboard + flagRows > đánh dấu 1`] = `
+{
+  "rows": [
+    {
+      "absentPhases": [],
+      "absentRate": 0,
+      "aiAvg": null,
+      "aiCount": 0,
+      "ck": null,
+      "ckTL": null,
+      "ckTN": null,
+      "classLabel": "Lớp A",
+      "code": "SV0001",
+      "dups": [],
+      "essay": 76,
+      "essayPhase": "hk",
+      "exam": 79.6,
+      "examType": "ESSAY",
+      "exercises": null,
+      "gap": 20.400000000000006,
+      "hk": 79.6,
+      "hkTL": 76,
+      "hkTN": 88,
+      "hw": 100,
+      "key": "63:682",
+      "level": "low",
+      "makeupNotes": [],
+      "makeupPending": [],
+      "name": "Sinh Viên 1",
+      "reasons": [],
+      "status": "ĐANG HỌC",
+      "studentId": 682,
+      "tests": {
+        "1427|TN": {
+          "absent": false,
+          "comment": null,
+          "date": "2026-10-09T00:00:00.000Z",
+          "kind": "TN",
+          "link": null,
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 88,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+        "1428|TL": {
+          "absent": false,
+          "comment": "• [-2đ] [P1.1] Nhận xét mẫu số 1",
+          "date": "2026-10-09T00:30:00.000Z",
+          "kind": "TL",
+          "link": "https://github.com/sv1/bai-tap",
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 76,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+      },
+      "watch": true,
+    },
+    {
+      "absentPhases": [],
+      "absentRate": 3.571428571428571,
+      "aiAvg": null,
+      "aiCount": 0,
+      "ck": null,
+      "ckTL": null,
+      "ckTN": null,
+      "classLabel": "Lớp A",
+      "code": "SV0003",
+      "dups": [],
+      "essay": 82,
+      "essayPhase": "hk",
+      "exam": 87.4,
+      "examType": "ESSAY",
+      "exercises": null,
+      "gap": 12.599999999999994,
+      "hk": 87.4,
+      "hkTL": 82,
+      "hkTN": 100,
+      "hw": 100,
+      "key": "63:637",
+      "level": "low",
+      "makeupNotes": [],
+      "makeupPending": [],
+      "name": "Sinh Viên 3",
+      "reasons": [],
+      "status": "ĐANG HỌC",
+      "studentId": 637,
+      "tests": {
+        "1427|TN": {
+          "absent": false,
+          "comment": null,
+          "date": "2026-10-09T00:00:00.000Z",
+          "kind": "TN",
+          "link": null,
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 100,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+        "1428|TL": {
+          "absent": false,
+          "comment": "• [-2đ] [P2.1] Nhận xét mẫu số 2",
+          "date": "2026-10-09T00:30:00.000Z",
+          "kind": "TL",
+          "link": "https://github.com/sv2/bai-tap",
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 82,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+      },
+      "watch": false,
+    },
+    {
+      "absentPhases": [],
+      "absentRate": 0,
+      "aiAvg": null,
+      "aiCount": 0,
+      "ck": null,
+      "ckTL": null,
+      "ckTN": null,
+      "classLabel": "Lớp A",
+      "code": "SV0004",
+      "dups": [],
+      "essay": 64,
+      "essayPhase": "hk",
+      "exam": 72.1,
+      "examType": "ESSAY",
+      "exercises": null,
+      "gap": 27.900000000000006,
+      "hk": 72.1,
+      "hkTL": 64,
+      "hkTN": 91,
+      "hw": 100,
+      "key": "63:631",
+      "level": "medium",
+      "makeupNotes": [],
+      "makeupPending": [],
+      "name": "Sinh Viên 4",
+      "reasons": [
+        "Nộp 100% BTVN, điểm tự luận Hackathon 64 dưới 65",
+      ],
+      "status": "ĐANG HỌC",
+      "studentId": 631,
+      "tests": {
+        "1427|TN": {
+          "absent": false,
+          "comment": null,
+          "date": "2026-10-09T00:00:00.000Z",
+          "kind": "TN",
+          "link": null,
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 91,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+        "1428|TL": {
+          "absent": false,
+          "comment": "• [-2đ] [P3.1] Nhận xét mẫu số 3",
+          "date": "2026-10-09T00:30:00.000Z",
+          "kind": "TL",
+          "link": "https://github.com/sv3/bai-tap",
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 64,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+      },
+      "watch": false,
+    },
+    {
+      "absentPhases": [],
+      "absentRate": 7.142857142857142,
+      "aiAvg": null,
+      "aiCount": 0,
+      "ck": null,
+      "ckTL": null,
+      "ckTN": null,
+      "classLabel": "Lớp A",
+      "code": "SV0005",
+      "dups": [],
+      "essay": 55,
+      "essayPhase": "hk",
+      "exam": 60.099999999999994,
+      "examType": "ESSAY",
+      "exercises": null,
+      "gap": 39.900000000000006,
+      "hk": 60.099999999999994,
+      "hkTL": 55,
+      "hkTN": 72,
+      "hw": 100,
+      "key": "63:628",
+      "level": "medium",
+      "makeupNotes": [],
+      "makeupPending": [],
+      "name": "Sinh Viên 5",
+      "reasons": [
+        "Nộp 100% BTVN, điểm tự luận Hackathon 55 dưới 65",
+      ],
+      "status": "ĐANG HỌC",
+      "studentId": 628,
+      "tests": {
+        "1427|TN": {
+          "absent": false,
+          "comment": null,
+          "date": "2026-10-09T00:00:00.000Z",
+          "kind": "TN",
+          "link": null,
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 72,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+        "1428|TL": {
+          "absent": false,
+          "comment": "• [-2đ] [P4.1] Nhận xét mẫu số 4",
+          "date": "2026-10-09T00:30:00.000Z",
+          "kind": "TL",
+          "link": "https://github.com/sv4/bai-tap",
+          "makeup": false,
+          "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+          "phase": "hk",
+          "point": 55,
+          "schedType": "THI HACKATHON",
+          "upcoming": false,
+        },
+      },
+      "watch": false,
+    },
+  ],
+  "watchMissing": [
+    "Không Có Tên",
+  ],
+}
+`;
+
+exports[`examAnalysis > tiện ích chuỗi 1`] = `"dang van an"`;
+
+exports[`examAnalysis > tiện ích chuỗi 2`] = `
+[
+  "Nguyễn A",
+  "Trần B",
+  "Lê C",
+]
+`;
+
+exports[`examAnalysis > tiện ích chuỗi 3`] = `
+[
+  "gh:user/repo",
+  "gh:user/repo",
+  null,
+]
+`;
+
+exports[`studentMonitor > evaluateMonitor — mẫu khắt khe > phân bố 1`] = `
+[
+  {
+    "bins": [
+      {
+        "color": "#bfbfbf",
+        "count": 2,
+        "keys": [
+          "63:631",
+          "63:682",
+        ],
+        "label": "0%",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 0,
+        "keys": [],
+        "label": "<3%",
+      },
+      {
+        "color": "#fadb14",
+        "count": 1,
+        "keys": [
+          "63:637",
+        ],
+        "label": "3–5%",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 1,
+        "keys": [
+          "63:628",
+        ],
+        "label": "5–12%",
+      },
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "12–20%",
+      },
+      {
+        "color": "#5c0011",
+        "count": 0,
+        "keys": [],
+        "label": "≥20%",
+      },
+    ],
+    "key": "absent",
+    "subtitle": "TB 2.68%",
+    "title": "Nghỉ học",
+  },
+  {
+    "bins": [
+      {
+        "color": "#bfbfbf",
+        "count": 4,
+        "keys": [
+          "63:628",
+          "63:637",
+          "63:631",
+          "63:682",
+        ],
+        "label": "0%",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 0,
+        "keys": [],
+        "label": "<3%",
+      },
+      {
+        "color": "#fadb14",
+        "count": 0,
+        "keys": [],
+        "label": "3–5%",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 0,
+        "keys": [],
+        "label": "5–12%",
+      },
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "12–20%",
+      },
+      {
+        "color": "#5c0011",
+        "count": 0,
+        "keys": [],
+        "label": "≥20%",
+      },
+    ],
+    "key": "homework",
+    "subtitle": "TB 0.00%",
+    "title": "Thiếu bài tập",
+  },
+  {
+    "bins": [
+      {
+        "color": "#bfbfbf",
+        "count": 4,
+        "keys": [
+          "63:628",
+          "63:637",
+          "63:631",
+          "63:682",
+        ],
+        "label": "Đúng hạn",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 0,
+        "keys": [],
+        "label": "1 bài",
+      },
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "2 bài",
+      },
+      {
+        "color": "#5c0011",
+        "count": 0,
+        "keys": [],
+        "label": "≥3 bài",
+      },
+    ],
+    "key": "elearning",
+    "subtitle": "0 SV chậm",
+    "title": "Chậm E-learning",
+  },
+  {
+    "bins": [
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "Vắng",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 0,
+        "keys": [],
+        "label": "<50",
+      },
+      {
+        "color": "#fadb14",
+        "count": 0,
+        "keys": [],
+        "label": "50–60",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 3,
+        "keys": [
+          "63:628",
+          "63:631",
+          "63:682",
+        ],
+        "label": "60–80",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 1,
+        "keys": [
+          "63:637",
+        ],
+        "label": "≥80",
+      },
+    ],
+    "key": "hk",
+    "subtitle": "TB 74.8",
+    "title": "Điểm Hackathon",
+  },
+]
+`;
+
+exports[`studentMonitor > evaluateMonitor — mẫu khắt khe > rows 1`] = `
+[
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 7.142857142857142,
+    "actions": [
+      "Nhắc nhở chuyên cần, hỏi lý do nghỉ",
+      "Nhắc sớm: điểm bài thi sắp chạm ngưỡng",
+      "Vấn đáp lại 1–2 bài tập đã nộp để xác minh",
+    ],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0005",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [
+      {
+        "action": "Hỗ trợ ôn tập phần thi điểm thấp",
+        "color": "#fadb14",
+        "kind": "examScore",
+        "label": "HK TL 55",
+        "levelId": "early",
+        "levelIndex": 3,
+        "levelName": "Sắp vượt ngưỡng",
+        "threshold": "< 60 điểm",
+        "title": "Điểm bài thi",
+        "value": "HK TL 55",
+      },
+    ],
+    "email": "user5@example.com",
+    "essay": 55,
+    "essayPhase": "hk",
+    "exam": 60.099999999999994,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 39.900000000000006,
+    "hk": 60.099999999999994,
+    "hkTL": 55,
+    "hkTLCell": 55,
+    "hkTN": 72,
+    "hkTNCell": 72,
+    "hw": 100,
+    "issues": [
+      {
+        "action": "Nhắc nhở chuyên cần, hỏi lý do nghỉ",
+        "color": "#fa8c16",
+        "kind": "absent",
+        "label": "Nghỉ 7.14%",
+        "levelId": "warning",
+        "levelIndex": 2,
+        "levelName": "Cảnh báo",
+        "threshold": "≥ 5%",
+        "title": "Nghỉ học",
+        "value": "7.14%",
+      },
+    ],
+    "key": "63:628",
+    "level": "medium",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 5",
+    "phone": "0900000000",
+    "reasons": [
+      "Nộp 100% BTVN, điểm tự luận Hackathon 55 dưới 65",
+    ],
+    "risk": "warning",
+    "riskIndex": 2,
+    "riskLevel": {
+      "color": "#fa8c16",
+      "id": "warning",
+      "name": "Cảnh báo",
+      "thresholds": {
+        "absent": 5,
+        "absentStreak": 2,
+        "elearning": 1,
+        "examScore": 50,
+        "homework": 5,
+      },
+      "violation": true,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 628,
+    "suspect": true,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 72,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P4.1] Nhận xét mẫu số 4",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv4/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 55,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": false,
+  },
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 3.571428571428571,
+    "actions": [
+      "Nhắc sớm: nghỉ học sắp chạm ngưỡng",
+    ],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0003",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [
+      {
+        "action": "Nhắc nhở chuyên cần, hỏi lý do nghỉ",
+        "color": "#fadb14",
+        "kind": "absent",
+        "label": "Nghỉ 3.57%",
+        "levelId": "early",
+        "levelIndex": 3,
+        "levelName": "Sắp vượt ngưỡng",
+        "threshold": "≥ 3%",
+        "title": "Nghỉ học",
+        "value": "3.57%",
+      },
+    ],
+    "email": "user3@example.com",
+    "essay": 82,
+    "essayPhase": "hk",
+    "exam": 87.4,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 12.599999999999994,
+    "hk": 87.4,
+    "hkTL": 82,
+    "hkTLCell": 82,
+    "hkTN": 100,
+    "hkTNCell": 100,
+    "hw": 100,
+    "issues": [],
+    "key": "63:637",
+    "level": "low",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 3",
+    "phone": "0900000000",
+    "reasons": [],
+    "risk": "early",
+    "riskIndex": 3,
+    "riskLevel": {
+      "color": "#fadb14",
+      "id": "early",
+      "name": "Sắp vượt ngưỡng",
+      "thresholds": {
+        "absent": 3,
+        "examScore": 60,
+        "homework": 3,
+      },
+      "violation": false,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 637,
+    "suspect": false,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 100,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P2.1] Nhận xét mẫu số 2",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv2/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 82,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": false,
+  },
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 0,
+    "actions": [
+      "Vấn đáp lại 1–2 bài tập đã nộp để xác minh",
+    ],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0004",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [],
+    "email": "user4@example.com",
+    "essay": 64,
+    "essayPhase": "hk",
+    "exam": 72.1,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 27.900000000000006,
+    "hk": 72.1,
+    "hkTL": 64,
+    "hkTLCell": 64,
+    "hkTN": 91,
+    "hkTNCell": 91,
+    "hw": 100,
+    "issues": [],
+    "key": "63:631",
+    "level": "medium",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 4",
+    "phone": "0900000000",
+    "reasons": [
+      "Nộp 100% BTVN, điểm tự luận Hackathon 64 dưới 65",
+    ],
+    "risk": "normal",
+    "riskIndex": 4,
+    "riskLevel": {
+      "color": "#d9d9d9",
+      "id": "normal",
+      "name": "Bình thường",
+      "thresholds": {},
+      "violation": false,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 631,
+    "suspect": true,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 91,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P3.1] Nhận xét mẫu số 3",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv3/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 64,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": false,
+  },
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 0,
+    "actions": [],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0001",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [],
+    "email": "user1@example.com",
+    "essay": 76,
+    "essayPhase": "hk",
+    "exam": 79.6,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 20.400000000000006,
+    "hk": 79.6,
+    "hkTL": 76,
+    "hkTLCell": 76,
+    "hkTN": 88,
+    "hkTNCell": 88,
+    "hw": 100,
+    "issues": [],
+    "key": "63:682",
+    "level": "low",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 1",
+    "phone": "0900000000",
+    "reasons": [],
+    "risk": "normal",
+    "riskIndex": 4,
+    "riskLevel": {
+      "color": "#d9d9d9",
+      "id": "normal",
+      "name": "Bình thường",
+      "thresholds": {},
+      "violation": false,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 682,
+    "suspect": false,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 88,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P1.1] Nhận xét mẫu số 1",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv1/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 76,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": true,
+  },
+]
+`;
+
+exports[`studentMonitor > evaluateMonitor — mẫu khắt khe > tổng quan 1`] = `
+{
+  "avgAbsent": 2.6785714285714284,
+  "avgMissingHomework": 0,
+  "byRisk": {
+    "alarm": 0,
+    "ban": 0,
+    "early": 1,
+    "normal": 2,
+    "warning": 1,
+  },
+  "examFailRate": 0,
+  "suspect": 2,
+  "topIssues": [
+    {
+      "count": 1,
+      "kind": "absent",
+      "label": "Nghỉ học",
+    },
+  ],
+  "total": 4,
+}
+`;
+
+exports[`studentMonitor > evaluateMonitor — mẫu mặc định > phân bố 1`] = `
+[
+  {
+    "bins": [
+      {
+        "color": "#bfbfbf",
+        "count": 2,
+        "keys": [
+          "63:631",
+          "63:682",
+        ],
+        "label": "0%",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 1,
+        "keys": [
+          "63:637",
+        ],
+        "label": "<7%",
+      },
+      {
+        "color": "#fadb14",
+        "count": 1,
+        "keys": [
+          "63:628",
+        ],
+        "label": "7–10%",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 0,
+        "keys": [],
+        "label": "10–15%",
+      },
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "15–20%",
+      },
+      {
+        "color": "#5c0011",
+        "count": 0,
+        "keys": [],
+        "label": "≥20%",
+      },
+    ],
+    "key": "absent",
+    "subtitle": "TB 2.68%",
+    "title": "Nghỉ học",
+  },
+  {
+    "bins": [
+      {
+        "color": "#bfbfbf",
+        "count": 4,
+        "keys": [
+          "63:628",
+          "63:631",
+          "63:682",
+          "63:637",
+        ],
+        "label": "0%",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 0,
+        "keys": [],
+        "label": "<7%",
+      },
+      {
+        "color": "#fadb14",
+        "count": 0,
+        "keys": [],
+        "label": "7–10%",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 0,
+        "keys": [],
+        "label": "10–15%",
+      },
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "15–20%",
+      },
+      {
+        "color": "#5c0011",
+        "count": 0,
+        "keys": [],
+        "label": "≥20%",
+      },
+    ],
+    "key": "homework",
+    "subtitle": "TB 0.00%",
+    "title": "Thiếu bài tập",
+  },
+  {
+    "bins": [
+      {
+        "color": "#bfbfbf",
+        "count": 4,
+        "keys": [
+          "63:628",
+          "63:631",
+          "63:682",
+          "63:637",
+        ],
+        "label": "Đúng hạn",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 0,
+        "keys": [],
+        "label": "1 bài",
+      },
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "2 bài",
+      },
+      {
+        "color": "#5c0011",
+        "count": 0,
+        "keys": [],
+        "label": "≥3 bài",
+      },
+    ],
+    "key": "elearning",
+    "subtitle": "0 SV chậm",
+    "title": "Chậm E-learning",
+  },
+  {
+    "bins": [
+      {
+        "color": "#cf1322",
+        "count": 0,
+        "keys": [],
+        "label": "Vắng",
+      },
+      {
+        "color": "#fa8c16",
+        "count": 0,
+        "keys": [],
+        "label": "<50",
+      },
+      {
+        "color": "#fadb14",
+        "count": 0,
+        "keys": [],
+        "label": "50–55",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 3,
+        "keys": [
+          "63:628",
+          "63:631",
+          "63:682",
+        ],
+        "label": "55–80",
+      },
+      {
+        "color": "#bfbfbf",
+        "count": 1,
+        "keys": [
+          "63:637",
+        ],
+        "label": "≥80",
+      },
+    ],
+    "key": "hk",
+    "subtitle": "TB 74.8",
+    "title": "Điểm Hackathon",
+  },
+]
+`;
+
+exports[`studentMonitor > evaluateMonitor — mẫu mặc định > rows 1`] = `
+[
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 7.142857142857142,
+    "actions": [
+      "Nhắc sớm: nghỉ học sắp chạm ngưỡng",
+      "Vấn đáp lại 1–2 bài tập đã nộp để xác minh",
+    ],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0005",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [
+      {
+        "action": "Nhắc nhở chuyên cần, hỏi lý do nghỉ",
+        "color": "#fadb14",
+        "kind": "absent",
+        "label": "Nghỉ 7.14%",
+        "levelId": "early",
+        "levelIndex": 3,
+        "levelName": "Sắp vượt ngưỡng",
+        "threshold": "≥ 7%",
+        "title": "Nghỉ học",
+        "value": "7.14%",
+      },
+    ],
+    "email": "user5@example.com",
+    "essay": 55,
+    "essayPhase": "hk",
+    "exam": 60.099999999999994,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 39.900000000000006,
+    "hk": 60.099999999999994,
+    "hkTL": 55,
+    "hkTLCell": 55,
+    "hkTN": 72,
+    "hkTNCell": 72,
+    "hw": 100,
+    "issues": [],
+    "key": "63:628",
+    "level": "medium",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 5",
+    "phone": "0900000000",
+    "reasons": [
+      "Nộp 100% BTVN, điểm tự luận Hackathon 55 dưới 65",
+    ],
+    "risk": "early",
+    "riskIndex": 3,
+    "riskLevel": {
+      "color": "#fadb14",
+      "id": "early",
+      "name": "Sắp vượt ngưỡng",
+      "thresholds": {
+        "absent": 7,
+        "examScore": 55,
+        "homework": 7,
+      },
+      "violation": false,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 628,
+    "suspect": true,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 72,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P4.1] Nhận xét mẫu số 4",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv4/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 55,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": false,
+  },
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 0,
+    "actions": [
+      "Vấn đáp lại 1–2 bài tập đã nộp để xác minh",
+    ],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0004",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [],
+    "email": "user4@example.com",
+    "essay": 64,
+    "essayPhase": "hk",
+    "exam": 72.1,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 27.900000000000006,
+    "hk": 72.1,
+    "hkTL": 64,
+    "hkTLCell": 64,
+    "hkTN": 91,
+    "hkTNCell": 91,
+    "hw": 100,
+    "issues": [],
+    "key": "63:631",
+    "level": "medium",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 4",
+    "phone": "0900000000",
+    "reasons": [
+      "Nộp 100% BTVN, điểm tự luận Hackathon 64 dưới 65",
+    ],
+    "risk": "normal",
+    "riskIndex": 4,
+    "riskLevel": {
+      "color": "#d9d9d9",
+      "id": "normal",
+      "name": "Bình thường",
+      "thresholds": {},
+      "violation": false,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 631,
+    "suspect": true,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 91,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P3.1] Nhận xét mẫu số 3",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv3/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 64,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": false,
+  },
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 0,
+    "actions": [],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0001",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [],
+    "email": "user1@example.com",
+    "essay": 76,
+    "essayPhase": "hk",
+    "exam": 79.6,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 20.400000000000006,
+    "hk": 79.6,
+    "hkTL": 76,
+    "hkTLCell": 76,
+    "hkTN": 88,
+    "hkTNCell": 88,
+    "hw": 100,
+    "issues": [],
+    "key": "63:682",
+    "level": "low",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 1",
+    "phone": "0900000000",
+    "reasons": [],
+    "risk": "normal",
+    "riskIndex": 4,
+    "riskLevel": {
+      "color": "#d9d9d9",
+      "id": "normal",
+      "name": "Bình thường",
+      "thresholds": {},
+      "violation": false,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 682,
+    "suspect": false,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 88,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P1.1] Nhận xét mẫu số 1",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv1/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 76,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": true,
+  },
+  {
+    "absence": null,
+    "absentPhases": [],
+    "absentRate": 3.571428571428571,
+    "actions": [],
+    "aiAvg": null,
+    "aiCount": 0,
+    "ck": null,
+    "ckTL": null,
+    "ckTLCell": null,
+    "ckTN": null,
+    "ckTNCell": null,
+    "classLabel": "Lớp A",
+    "code": "SV0003",
+    "dateOfBirth": "",
+    "dups": [],
+    "early": [],
+    "email": "user3@example.com",
+    "essay": 82,
+    "essayPhase": "hk",
+    "exam": 87.4,
+    "examType": "ESSAY",
+    "exercises": null,
+    "gap": 12.599999999999994,
+    "hk": 87.4,
+    "hkTL": 82,
+    "hkTLCell": 82,
+    "hkTN": 100,
+    "hkTNCell": 100,
+    "hw": 100,
+    "issues": [],
+    "key": "63:637",
+    "level": "low",
+    "makeupNotes": [],
+    "makeupPending": [],
+    "missingHomework": 0,
+    "name": "Sinh Viên 3",
+    "phone": "0900000000",
+    "reasons": [],
+    "risk": "normal",
+    "riskIndex": 4,
+    "riskLevel": {
+      "color": "#d9d9d9",
+      "id": "normal",
+      "name": "Bình thường",
+      "thresholds": {},
+      "violation": false,
+    },
+    "rpoints": null,
+    "status": "ĐANG HỌC",
+    "studentId": 637,
+    "suspect": false,
+    "tests": {
+      "1427|TN": {
+        "absent": false,
+        "comment": null,
+        "date": "2026-10-09T00:00:00.000Z",
+        "kind": "TN",
+        "link": null,
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi trắc nghiệm Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 100,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+      "1428|TL": {
+        "absent": false,
+        "comment": "• [-2đ] [P2.1] Nhận xét mẫu số 2",
+        "date": "2026-10-09T00:30:00.000Z",
+        "kind": "TL",
+        "link": "https://github.com/sv2/bai-tap",
+        "makeup": false,
+        "name": "[K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals",
+        "phase": "hk",
+        "point": 82,
+        "schedType": "THI HACKATHON",
+        "upcoming": false,
+      },
+    },
+    "unprepared": 0,
+    "watch": false,
+  },
+]
+`;
+
+exports[`studentMonitor > evaluateMonitor — mẫu mặc định > tổng quan 1`] = `
+{
+  "avgAbsent": 2.6785714285714284,
+  "avgMissingHomework": 0,
+  "byRisk": {
+    "alarm": 0,
+    "ban": 0,
+    "early": 1,
+    "normal": 3,
+    "warning": 0,
+  },
+  "examFailRate": 0,
+  "suspect": 2,
+  "topIssues": [],
+  "total": 4,
+}
+`;
+
+exports[`studentMonitor > prompt AI theo từng loại + từng sinh viên > absent 1`] = `
+"Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về tình hình VẮNG NGHỈ (chuyên cần) của lớp môn "Môn B", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), và mối liên hệ với chỉ số khác nếu thấy rõ. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. Chỉ dùng số liệu dưới đây, không bịa thêm. Không dùng markdown tiêu đề. Không kết luận gian lận; nghi vấn chỉ là dấu hiệu cần xác minh.
+
+SỐ LIỆU
+- Sĩ số: 4; tỉ lệ nghỉ học: TB 2.7, thấp nhất 0, cao nhất 7.1 (4 SV có dữ liệu) (%)
+- Theo mức: Cấm thi (≥ 20%): 0 SV; Báo động (≥ 15%): 0 SV; Cảnh báo (≥ 10%): 0 SV; Sắp vượt ngưỡng (≥ 7%): 1 SV
+
+SINH VIÊN CHẠM NGƯỠNG
+* Sinh Viên 5 [Sắp vượt ngưỡng]: 7.14% | nghi vấn BTVN"
+`;
+
+exports[`studentMonitor > prompt AI theo từng loại + từng sinh viên > elearning 1`] = `
+"Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về tình hình CHẬM E-LEARNING của lớp môn "Môn B", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), và mối liên hệ với chỉ số khác nếu thấy rõ. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. Chỉ dùng số liệu dưới đây, không bịa thêm. Không dùng markdown tiêu đề. Không kết luận gian lận; nghi vấn chỉ là dấu hiệu cần xác minh.
+
+SỐ LIỆU
+- Sĩ số: 4; số bài E-learning chậm: TB 0, thấp nhất 0, cao nhất 0 (4 SV có dữ liệu); 0 SV có chậm ít nhất 1 bài
+- Theo mức: Cấm thi (≥ 3 bài): 0 SV; Báo động (≥ 2 bài): 0 SV; Cảnh báo (≥ 1 bài): 0 SV
+
+SINH VIÊN CHẠM NGƯỠNG
+Không có sinh viên nào chạm ngưỡng."
+`;
+
+exports[`studentMonitor > prompt AI theo từng loại + từng sinh viên > exam 1`] = `
+"Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về kết quả ĐIỂM THI (Hackathon và cuối môn) của lớp môn "Môn B", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), và mối liên hệ với chỉ số khác nếu thấy rõ. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. Chỉ dùng số liệu dưới đây, không bịa thêm. Không dùng markdown tiêu đề. Không kết luận gian lận; nghi vấn chỉ là dấu hiệu cần xác minh.
+
+SỐ LIỆU
+- Sĩ số: 4; điểm Hackathon: TB 74.8, thấp nhất 60.1, cao nhất 87.4 (4 SV có dữ liệu); vắng Hackathon 0 SV
+- Điểm cuối môn: chưa có dữ liệu; vắng thi cuối môn 0 SV
+- Phần thi dưới ngưỡng theo mức: Cảnh báo (< 50 điểm): 0 SV; Sắp vượt ngưỡng (< 55 điểm): 0 SV
+- Nghi vấn BTVN (BTVN tốt nhưng thi thấp): 2 SV
+
+
+SINH VIÊN CẦN CHÚ Ý VỀ ĐIỂM THI (0)
+Không có."
+`;
+
+exports[`studentMonitor > prompt AI theo từng loại + từng sinh viên > homework 1`] = `
+"Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về tình hình THIẾU BÀI TẬP (BTVN) của lớp môn "Môn B", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), và mối liên hệ với chỉ số khác nếu thấy rõ. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. Chỉ dùng số liệu dưới đây, không bịa thêm. Không dùng markdown tiêu đề. Không kết luận gian lận; nghi vấn chỉ là dấu hiệu cần xác minh.
+
+SỐ LIỆU
+- Sĩ số: 4; tỉ lệ thiếu bài tập: TB 0, thấp nhất 0, cao nhất 0 (4 SV có dữ liệu) (%)
+- Theo mức: Cấm thi (≥ 20%): 0 SV; Báo động (≥ 15%): 0 SV; Cảnh báo (≥ 10%): 0 SV; Sắp vượt ngưỡng (≥ 7%): 0 SV
+- Nghi vấn BTVN (nộp BTVN tốt nhưng thi thấp / trùng link): 2 SV
+
+SINH VIÊN CHẠM NGƯỠNG
+Không có sinh viên nào chạm ngưỡng."
+`;
+
+exports[`studentMonitor > prompt AI theo từng loại + từng sinh viên > overall 1`] = `
+"Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về lớp học môn "Môn B" dựa trên số liệu dưới đây, gồm: tình hình chung và 2–3 vấn đề nổi bật nhất. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. Không bịa số liệu, chỉ dùng số liệu được cung cấp. Không dùng markdown tiêu đề.
+
+SỐ LIỆU LỚP
+- Sĩ số: 4; 0 cấm thi, 0 báo động, 0 cảnh báo, 1 sắp vượt ngưỡng; nghi vấn BTVN 2
+- Nghỉ học TB 2.68%; thiếu bài tập TB 0.00%; tỉ lệ SV có bài thi dưới ngưỡng 0%
+- Vấn đề theo số SV: không có
+
+SINH VIÊN CẦN CHÚ Ý (2)
+* Sinh Viên 5 [Sắp vượt ngưỡng]: không vi phạm | nghi vấn BTVN
+* Sinh Viên 4 [Bình thường]: không vi phạm | nghi vấn BTVN"
+`;
+
+exports[`studentMonitor > prompt AI theo từng loại + từng sinh viên > rpoints 1`] = `
+"Bạn là giáo vụ theo dõi tình hình học tập. Viết tổng quan ngắn gọn (tối đa 150 từ, tiếng Việt) về điểm R-POINT của lớp môn "Môn B", gồm: tình hình chung của chỉ số này, nhóm sinh viên đáng lo nhất (nêu tên tối đa 5), và mối liên hệ với chỉ số khác nếu thấy rõ. Chỉ nhận xét, KHÔNG đưa gợi ý hay danh sách việc cần làm. Chỉ dùng số liệu dưới đây, không bịa thêm. Không dùng markdown tiêu đề. Không kết luận gian lận; nghi vấn chỉ là dấu hiệu cần xác minh.
+
+SỐ LIỆU
+- Sĩ số: 4; R-Point: chưa có dữ liệu
+- Theo mức: Cấm thi (< 80 điểm): 0 SV
+
+SINH VIÊN CHẠM NGƯỠNG
+Không có sinh viên nào chạm ngưỡng."
+`;
+
+exports[`studentMonitor > prompt AI theo từng loại + từng sinh viên > sinh viên 1`] = `
+"Bạn là giảng viên chủ nhiệm. Viết nhận xét ngắn (3–4 câu, tiếng Việt, giọng khách quan) về tình hình học tập của sinh viên ở môn "Môn B". Chỉ nhận xét, KHÔNG đưa gợi ý hành động hay danh sách việc cần làm. Chỉ dùng thông tin dưới đây, không bịa thêm. Không kết luận gian lận; dấu hiệu nghi vấn chỉ là gợi ý cần xác minh.
+
+Nghỉ học 7.14%, thiếu bài tập 0.00%, chậm e-learning 0 bài
+Hackathon TN 72 / TL 55; cuối môn CK TN — / CK TL —
+Mức: Sắp vượt ngưỡng
+Không vi phạm
+Sắp vượt ngưỡng: Nghỉ 7.14%
+Dấu hiệu nghi vấn: Nộp 100% BTVN, điểm tự luận Hackathon 55 dưới 65
+Nhận xét của giảng viên chấm thi:
+- [K24-IT209] - Đề thi thực hành Hackathon môn DevOps Fundamentals: • [-2đ] [P4.1] Nhận xét mẫu số 4"
+`;

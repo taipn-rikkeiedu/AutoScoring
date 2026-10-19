@@ -1,0 +1,428 @@
+[
+ {
+  "id": 85538,
+  "date": "2026-10-14",
+  "note": "Ghi chú mẫu",
+  "reasonImage": "",
+  "rejectReason": null,
+  "period": 2,
+  "attendanceDetailId": 341598,
+  "status": "Phê duyệt",
+  "approverId": 81,
+  "createdAt": "2026-10-14T13:23:03.652Z",
+  "student": {
+   "id": 637,
+   "studentCode": "SV0003",
+   "fullName": "Sinh Viên 3",
+   "phone": "0900000000",
+   "email": "user3@example.com",
+   "dateOfBirth": "",
+   "gender": 0,
+   "status": "ĐANG HỌC",
+   "identityCard": "",
+   "address": null,
+   "hometown": null,
+   "languages": null,
+   "facebook_address": null,
+   "role": "student",
+   "location": "HCM",
+   "avatar": "",
+   "isLocked": false,
+   "lockedUntil": null,
+   "createdBy": null,
+   "createdAt": "2024-09-25T02:01:49.000Z",
+   "updatedAt": null,
+   "updatedBy": null
+  },
+  "course": {
+   "id": 221,
+   "position": 4,
+   "name": "[IT-209] Devops Fundamentals",
+   "courseCode": "IT-209",
+   "hour": 14,
+   "courseCover": null,
+   "description": null,
+   "created_at": "2026-07-15T07:54:13.000Z",
+   "updated_at": "2026-09-25T22:13:47.000Z",
+   "isVisible": 1,
+   "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+   "examType": "PROJECT",
+   "whitelist": false,
+   "scoringFormula": {
+    "weights": {
+     "attendance": 0.1,
+     "quiz": 0.1,
+     "hackathon": 0.2,
+     "finalExam": 0.6
+    },
+    "hackathon": {
+     "multipleChoice": 0.3,
+     "essay": 0.7
+    },
+    "finalExam": {
+     "type": "ESSAY",
+     "essay": {
+      "written": 0.7,
+      "multipleChoice": 0.3
+     }
+    }
+   }
+  },
+  "approver": null
+ },
+ {
+  "id": 85446,
+  "date": "2026-10-12",
+  "note": "Ghi chú mẫu",
+  "reasonImage": "",
+  "rejectReason": null,
+  "period": 2,
+  "attendanceDetailId": 340222,
+  "status": "Phê duyệt",
+  "approverId": 201,
+  "createdAt": "2026-10-12T04:32:04.060Z",
+  "student": {
+   "id": 628,
+   "studentCode": "SV0005",
+   "fullName": "Sinh Viên 5",
+   "phone": "0900000000",
+   "email": "user5@example.com",
+   "dateOfBirth": "",
+   "gender": 0,
+   "status": "ĐANG HỌC",
+   "identityCard": "",
+   "address": null,
+   "hometown": null,
+   "languages": null,
+   "facebook_address": null,
+   "role": "student",
+   "location": "HCM",
+   "avatar": "",
+   "isLocked": false,
+   "lockedUntil": null,
+   "createdBy": null,
+   "createdAt": "2024-09-25T02:01:49.000Z",
+   "updatedAt": null,
+   "updatedBy": null
+  },
+  "course": {
+   "id": 221,
+   "position": 4,
+   "name": "[IT-209] Devops Fundamentals",
+   "courseCode": "IT-209",
+   "hour": 14,
+   "courseCover": null,
+   "description": null,
+   "created_at": "2026-07-15T07:54:13.000Z",
+   "updated_at": "2026-09-25T22:13:47.000Z",
+   "isVisible": 1,
+   "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+   "examType": "PROJECT",
+   "whitelist": false,
+   "scoringFormula": {
+    "weights": {
+     "attendance": 0.1,
+     "quiz": 0.1,
+     "hackathon": 0.2,
+     "finalExam": 0.6
+    },
+    "hackathon": {
+     "multipleChoice": 0.3,
+     "essay": 0.7
+    },
+    "finalExam": {
+     "type": "ESSAY",
+     "essay": {
+      "written": 0.7,
+      "multipleChoice": 0.3
+     }
+    }
+   }
+  },
+  "approver": null
+ },
+ {
+  "id": 85152,
+  "date": "2026-10-01",
+  "note": "Ghi chú mẫu",
+  "reasonImage": "",
+  "rejectReason": null,
+  "period": 1,
+  "attendanceDetailId": 335381,
+  "status": "Phê duyệt",
+  "approverId": 81,
+  "createdAt": "2026-10-01T15:28:07.851Z",
+  "student": {
+   "id": 628,
+   "studentCode": "SV0005",
+   "fullName": "Sinh Viên 5",
+   "phone": "0900000000",
+   "email": "user5@example.com",
+   "dateOfBirth": "",
+   "gender": 0,
+   "status": "ĐANG HỌC",
+   "identityCard": "",
+   "address": null,
+   "hometown": null,
+   "languages": null,
+   "facebook_address": null,
+   "role": "student",
+   "location": "HCM",
+   "avatar": "",
+   "isLocked": false,
+   "lockedUntil": null,
+   "createdBy": null,
+   "createdAt": "2024-09-25T02:01:49.000Z",
+   "updatedAt": null,
+   "updatedBy": null
+  },
+  "course": {
+   "id": 221,
+   "position": 4,
+   "name": "[IT-209] Devops Fundamentals",
+   "courseCode": "IT-209",
+   "hour": 14,
+   "courseCover": null,
+   "description": null,
+   "created_at": "2026-07-15T07:54:13.000Z",
+   "updated_at": "2026-09-25T22:13:47.000Z",
+   "isVisible": 1,
+   "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+   "examType": "PROJECT",
+   "whitelist": false,
+   "scoringFormula": {
+    "weights": {
+     "attendance": 0.1,
+     "quiz": 0.1,
+     "hackathon": 0.2,
+     "finalExam": 0.6
+    },
+    "hackathon": {
+     "multipleChoice": 0.3,
+     "essay": 0.7
+    },
+    "finalExam": {
+     "type": "ESSAY",
+     "essay": {
+      "written": 0.7,
+      "multipleChoice": 0.3
+     }
+    }
+   }
+  },
+  "approver": null
+ },
+ {
+  "id": 84794,
+  "date": "2026-09-18",
+  "note": "Ghi chú mẫu",
+  "reasonImage": "",
+  "rejectReason": null,
+  "period": 1,
+  "attendanceDetailId": 328354,
+  "status": "Phê duyệt",
+  "approverId": 197,
+  "createdAt": "2026-09-18T02:46:47.686Z",
+  "student": {
+   "id": 682,
+   "studentCode": "SV0001",
+   "fullName": "Sinh Viên 1",
+   "phone": "0900000000",
+   "email": "user1@example.com",
+   "dateOfBirth": "",
+   "gender": 0,
+   "status": "ĐANG HỌC",
+   "identityCard": "",
+   "address": null,
+   "hometown": null,
+   "languages": null,
+   "facebook_address": null,
+   "role": "student",
+   "location": "HCM",
+   "avatar": "",
+   "isLocked": false,
+   "lockedUntil": null,
+   "createdBy": null,
+   "createdAt": "2024-09-25T04:11:14.000Z",
+   "updatedAt": null,
+   "updatedBy": null
+  },
+  "course": {
+   "id": 216,
+   "position": 0,
+   "name": "[IT-214] Microservices System Design",
+   "courseCode": "IT214-K24",
+   "hour": 20,
+   "courseCover": null,
+   "description": null,
+   "created_at": "2026-06-15T09:08:23.000Z",
+   "updated_at": "2026-09-02T02:31:56.000Z",
+   "isVisible": 1,
+   "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+   "examType": "PROJECT",
+   "whitelist": false,
+   "scoringFormula": {
+    "weights": {
+     "attendance": 0.1,
+     "quiz": 0.1,
+     "hackathon": 0.2,
+     "finalExam": 0.6
+    },
+    "hackathon": {
+     "multipleChoice": 0.3,
+     "essay": 0.7
+    },
+    "finalExam": {
+     "type": "ESSAY",
+     "essay": {
+      "written": 0.7,
+      "multipleChoice": 0.3
+     }
+    }
+   }
+  },
+  "approver": null
+ },
+ {
+  "id": 84446,
+  "date": "2026-09-10",
+  "note": "Ghi chú mẫu",
+  "reasonImage": "",
+  "rejectReason": null,
+  "period": 1,
+  "attendanceDetailId": null,
+  "status": "Đang chờ",
+  "approverId": null,
+  "createdAt": "2026-09-10T08:18:19.533Z",
+  "student": {
+   "id": 628,
+   "studentCode": "SV0005",
+   "fullName": "Sinh Viên 5",
+   "phone": "0900000000",
+   "email": "user5@example.com",
+   "dateOfBirth": "",
+   "gender": 0,
+   "status": "ĐANG HỌC",
+   "identityCard": "",
+   "address": null,
+   "hometown": null,
+   "languages": null,
+   "facebook_address": null,
+   "role": "student",
+   "location": "HCM",
+   "avatar": "",
+   "isLocked": false,
+   "lockedUntil": null,
+   "createdBy": null,
+   "createdAt": "2024-09-25T02:01:49.000Z",
+   "updatedAt": null,
+   "updatedBy": null
+  },
+  "course": {
+   "id": 216,
+   "position": 0,
+   "name": "[IT-214] Microservices System Design",
+   "courseCode": "IT214-K24",
+   "hour": 20,
+   "courseCover": null,
+   "description": null,
+   "created_at": "2026-06-15T09:08:23.000Z",
+   "updated_at": "2026-09-02T02:31:56.000Z",
+   "isVisible": 1,
+   "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+   "examType": "PROJECT",
+   "whitelist": false,
+   "scoringFormula": {
+    "weights": {
+     "attendance": 0.1,
+     "quiz": 0.1,
+     "hackathon": 0.2,
+     "finalExam": 0.6
+    },
+    "hackathon": {
+     "multipleChoice": 0.3,
+     "essay": 0.7
+    },
+    "finalExam": {
+     "type": "ESSAY",
+     "essay": {
+      "written": 0.7,
+      "multipleChoice": 0.3
+     }
+    }
+   }
+  },
+  "approver": null
+ },
+ {
+  "id": 84380,
+  "date": "2026-09-09",
+  "note": "Ghi chú mẫu",
+  "reasonImage": "",
+  "rejectReason": null,
+  "period": 1,
+  "attendanceDetailId": null,
+  "status": "Đang chờ",
+  "approverId": null,
+  "createdAt": "2026-09-09T02:58:31.221Z",
+  "student": {
+   "id": 628,
+   "studentCode": "SV0005",
+   "fullName": "Sinh Viên 5",
+   "phone": "0900000000",
+   "email": "user5@example.com",
+   "dateOfBirth": "",
+   "gender": 0,
+   "status": "ĐANG HỌC",
+   "identityCard": "",
+   "address": null,
+   "hometown": null,
+   "languages": null,
+   "facebook_address": null,
+   "role": "student",
+   "location": "HCM",
+   "avatar": "",
+   "isLocked": false,
+   "lockedUntil": null,
+   "createdBy": null,
+   "createdAt": "2024-09-25T02:01:49.000Z",
+   "updatedAt": null,
+   "updatedBy": null
+  },
+  "course": {
+   "id": 216,
+   "position": 0,
+   "name": "[IT-214] Microservices System Design",
+   "courseCode": "IT214-K24",
+   "hour": 20,
+   "courseCover": null,
+   "description": null,
+   "created_at": "2026-06-15T09:08:23.000Z",
+   "updated_at": "2026-09-02T02:31:56.000Z",
+   "isVisible": 1,
+   "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+   "examType": "PROJECT",
+   "whitelist": false,
+   "scoringFormula": {
+    "weights": {
+     "attendance": 0.1,
+     "quiz": 0.1,
+     "hackathon": 0.2,
+     "finalExam": 0.6
+    },
+    "hackathon": {
+     "multipleChoice": 0.3,
+     "essay": 0.7
+    },
+    "finalExam": {
+     "type": "ESSAY",
+     "essay": {
+      "written": 0.7,
+      "multipleChoice": 0.3
+     }
+    }
+   }
+  },
+  "approver": null
+ }
+]

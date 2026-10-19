@@ -1,5 +1,5 @@
-import { GitHubService } from '~/src/services/githubService';
-import { buildGradingPrompt, compressCode, callAiWithRateLimitRetry } from '~/src/services/aiService';
+import { GitHubService } from '~/src/services/github/githubClient';
+import { buildGradingPrompt, compressCode, callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
 import { analyzeCode, ASTMetrics } from '~/src/services/codeAnalysis';
 import { proxyFetchText } from '~/src/services/github/backgroundFetch';
 import { DEFAULT_CRITERIA, parseScore } from '~/src/core/utils';

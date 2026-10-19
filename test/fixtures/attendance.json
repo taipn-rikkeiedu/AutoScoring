@@ -1,0 +1,1225 @@
+{
+ "2026-10-01": [
+  {
+   "id": 64004,
+   "date": "2026-10-01",
+   "period": 1,
+   "sessionType": "NORMAL",
+   "type": "OFFLINE",
+   "attendanceDetail": [
+    {
+     "id": 335339,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 682,
+      "studentCode": "SV0001",
+      "fullName": "Sinh Viên 1",
+      "phone": "0900000000",
+      "email": "user1@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T04:11:14.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335340,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 637,
+      "studentCode": "SV0003",
+      "fullName": "Sinh Viên 3",
+      "phone": "0900000000",
+      "email": "user3@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335342,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 631,
+      "studentCode": "SV0004",
+      "fullName": "Sinh Viên 4",
+      "phone": "0900000000",
+      "email": "user4@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335381,
+     "note": "Ghi chú mẫu",
+     "status": "1",
+     "student": {
+      "id": 628,
+      "studentCode": "SV0005",
+      "fullName": "Sinh Viên 5",
+      "phone": "0900000000",
+      "email": "user5@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    }
+   ],
+   "courses": {
+    "id": 221,
+    "position": 4,
+    "name": "[IT-209] Devops Fundamentals",
+    "courseCode": "IT-209",
+    "hour": 14,
+    "courseCover": null,
+    "description": null,
+    "created_at": "2026-07-15T07:54:13.000Z",
+    "updated_at": "2026-09-25T22:13:47.000Z",
+    "isVisible": 1,
+    "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+    "examType": "PROJECT",
+    "whitelist": false,
+    "scoringFormula": {
+     "weights": {
+      "attendance": 0.1,
+      "quiz": 0.1,
+      "hackathon": 0.2,
+      "finalExam": 0.6
+     },
+     "hackathon": {
+      "multipleChoice": 0.3,
+      "essay": 0.7
+     },
+     "finalExam": {
+      "type": "ESSAY",
+      "essay": {
+       "written": 0.7,
+       "multipleChoice": 0.3
+      }
+     }
+    }
+   },
+   "users": {
+    "id": 197,
+    "fullName": "Giảng Viên 6"
+   },
+   "classes": {
+    "id": 63,
+    "name": "HCM-KS24-CNTT1",
+    "classCode": "HCM-KS24-CNTT1",
+    "type": "REGULAR",
+    "createdBy": null,
+    "createdAt": "2025-06-25T08:29:44.000Z",
+    "updatedAt": null,
+    "updatedBy": null
+   }
+  }
+ ],
+ "2026-10-02": [
+  {
+   "id": 64016,
+   "date": "2026-10-02",
+   "period": 1,
+   "sessionType": "NORMAL",
+   "type": "OFFLINE",
+   "attendanceDetail": [
+    {
+     "id": 335814,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 682,
+      "studentCode": "SV0001",
+      "fullName": "Sinh Viên 1",
+      "phone": "0900000000",
+      "email": "user1@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T04:11:14.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335815,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 631,
+      "studentCode": "SV0004",
+      "fullName": "Sinh Viên 4",
+      "phone": "0900000000",
+      "email": "user4@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335816,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 637,
+      "studentCode": "SV0003",
+      "fullName": "Sinh Viên 3",
+      "phone": "0900000000",
+      "email": "user3@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335856,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 628,
+      "studentCode": "SV0005",
+      "fullName": "Sinh Viên 5",
+      "phone": "0900000000",
+      "email": "user5@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    }
+   ],
+   "courses": {
+    "id": 221,
+    "position": 4,
+    "name": "[IT-209] Devops Fundamentals",
+    "courseCode": "IT-209",
+    "hour": 14,
+    "courseCover": null,
+    "description": null,
+    "created_at": "2026-07-15T07:54:13.000Z",
+    "updated_at": "2026-09-25T22:13:47.000Z",
+    "isVisible": 1,
+    "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+    "examType": "PROJECT",
+    "whitelist": false,
+    "scoringFormula": {
+     "weights": {
+      "attendance": 0.1,
+      "quiz": 0.1,
+      "hackathon": 0.2,
+      "finalExam": 0.6
+     },
+     "hackathon": {
+      "multipleChoice": 0.3,
+      "essay": 0.7
+     },
+     "finalExam": {
+      "type": "ESSAY",
+      "essay": {
+       "written": 0.7,
+       "multipleChoice": 0.3
+      }
+     }
+    }
+   },
+   "users": {
+    "id": 81,
+    "fullName": "Giảng Viên 2"
+   },
+   "classes": {
+    "id": 63,
+    "name": "HCM-KS24-CNTT1",
+    "classCode": "HCM-KS24-CNTT1",
+    "type": "REGULAR",
+    "createdBy": null,
+    "createdAt": "2025-06-25T08:29:44.000Z",
+    "updatedAt": null,
+    "updatedBy": null
+   }
+  },
+  {
+   "id": 64017,
+   "date": "2026-10-02",
+   "period": 2,
+   "sessionType": "NORMAL",
+   "type": "OFFLINE",
+   "attendanceDetail": [
+    {
+     "id": 335857,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 682,
+      "studentCode": "SV0001",
+      "fullName": "Sinh Viên 1",
+      "phone": "0900000000",
+      "email": "user1@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T04:11:14.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335858,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 637,
+      "studentCode": "SV0003",
+      "fullName": "Sinh Viên 3",
+      "phone": "0900000000",
+      "email": "user3@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335859,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 631,
+      "studentCode": "SV0004",
+      "fullName": "Sinh Viên 4",
+      "phone": "0900000000",
+      "email": "user4@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 335899,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 628,
+      "studentCode": "SV0005",
+      "fullName": "Sinh Viên 5",
+      "phone": "0900000000",
+      "email": "user5@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    }
+   ],
+   "courses": {
+    "id": 221,
+    "position": 4,
+    "name": "[IT-209] Devops Fundamentals",
+    "courseCode": "IT-209",
+    "hour": 14,
+    "courseCover": null,
+    "description": null,
+    "created_at": "2026-07-15T07:54:13.000Z",
+    "updated_at": "2026-09-25T22:13:47.000Z",
+    "isVisible": 1,
+    "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+    "examType": "PROJECT",
+    "whitelist": false,
+    "scoringFormula": {
+     "weights": {
+      "attendance": 0.1,
+      "quiz": 0.1,
+      "hackathon": 0.2,
+      "finalExam": 0.6
+     },
+     "hackathon": {
+      "multipleChoice": 0.3,
+      "essay": 0.7
+     },
+     "finalExam": {
+      "type": "ESSAY",
+      "essay": {
+       "written": 0.7,
+       "multipleChoice": 0.3
+      }
+     }
+    }
+   },
+   "users": {
+    "id": 81,
+    "fullName": "Giảng Viên 2"
+   },
+   "classes": {
+    "id": 63,
+    "name": "HCM-KS24-CNTT1",
+    "classCode": "HCM-KS24-CNTT1",
+    "type": "REGULAR",
+    "createdBy": null,
+    "createdAt": "2025-06-25T08:29:44.000Z",
+    "updatedAt": null,
+    "updatedBy": null
+   }
+  }
+ ],
+ "2026-10-05": [
+  {
+   "id": 64039,
+   "date": "2026-10-05",
+   "period": 2,
+   "sessionType": "NORMAL",
+   "type": "OFFLINE",
+   "attendanceDetail": [
+    {
+     "id": 336757,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 682,
+      "studentCode": "SV0001",
+      "fullName": "Sinh Viên 1",
+      "phone": "0900000000",
+      "email": "user1@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T04:11:14.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 336758,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 637,
+      "studentCode": "SV0003",
+      "fullName": "Sinh Viên 3",
+      "phone": "0900000000",
+      "email": "user3@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 336759,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 631,
+      "studentCode": "SV0004",
+      "fullName": "Sinh Viên 4",
+      "phone": "0900000000",
+      "email": "user4@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 336799,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 628,
+      "studentCode": "SV0005",
+      "fullName": "Sinh Viên 5",
+      "phone": "0900000000",
+      "email": "user5@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    }
+   ],
+   "courses": {
+    "id": 221,
+    "position": 4,
+    "name": "[IT-209] Devops Fundamentals",
+    "courseCode": "IT-209",
+    "hour": 14,
+    "courseCover": null,
+    "description": null,
+    "created_at": "2026-07-15T07:54:13.000Z",
+    "updated_at": "2026-09-25T22:13:47.000Z",
+    "isVisible": 1,
+    "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+    "examType": "PROJECT",
+    "whitelist": false,
+    "scoringFormula": {
+     "weights": {
+      "attendance": 0.1,
+      "quiz": 0.1,
+      "hackathon": 0.2,
+      "finalExam": 0.6
+     },
+     "hackathon": {
+      "multipleChoice": 0.3,
+      "essay": 0.7
+     },
+     "finalExam": {
+      "type": "ESSAY",
+      "essay": {
+       "written": 0.7,
+       "multipleChoice": 0.3
+      }
+     }
+    }
+   },
+   "users": {
+    "id": 197,
+    "fullName": "Giảng Viên 6"
+   },
+   "classes": {
+    "id": 63,
+    "name": "HCM-KS24-CNTT1",
+    "classCode": "HCM-KS24-CNTT1",
+    "type": "REGULAR",
+    "createdBy": null,
+    "createdAt": "2025-06-25T08:29:44.000Z",
+    "updatedAt": null,
+    "updatedBy": null
+   }
+  }
+ ],
+ "2026-10-06": [
+  {
+   "id": 64063,
+   "date": "2026-10-06",
+   "period": 2,
+   "sessionType": "NORMAL",
+   "type": "OFFLINE",
+   "attendanceDetail": [
+    {
+     "id": 337596,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 682,
+      "studentCode": "SV0001",
+      "fullName": "Sinh Viên 1",
+      "phone": "0900000000",
+      "email": "user1@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T04:11:14.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 337597,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 631,
+      "studentCode": "SV0004",
+      "fullName": "Sinh Viên 4",
+      "phone": "0900000000",
+      "email": "user4@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 337598,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 637,
+      "studentCode": "SV0003",
+      "fullName": "Sinh Viên 3",
+      "phone": "0900000000",
+      "email": "user3@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 337638,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 628,
+      "studentCode": "SV0005",
+      "fullName": "Sinh Viên 5",
+      "phone": "0900000000",
+      "email": "user5@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    }
+   ],
+   "courses": {
+    "id": 221,
+    "position": 4,
+    "name": "[IT-209] Devops Fundamentals",
+    "courseCode": "IT-209",
+    "hour": 14,
+    "courseCover": null,
+    "description": null,
+    "created_at": "2026-07-15T07:54:13.000Z",
+    "updated_at": "2026-09-25T22:13:47.000Z",
+    "isVisible": 1,
+    "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+    "examType": "PROJECT",
+    "whitelist": false,
+    "scoringFormula": {
+     "weights": {
+      "attendance": 0.1,
+      "quiz": 0.1,
+      "hackathon": 0.2,
+      "finalExam": 0.6
+     },
+     "hackathon": {
+      "multipleChoice": 0.3,
+      "essay": 0.7
+     },
+     "finalExam": {
+      "type": "ESSAY",
+      "essay": {
+       "written": 0.7,
+       "multipleChoice": 0.3
+      }
+     }
+    }
+   },
+   "users": {
+    "id": 197,
+    "fullName": "Giảng Viên 6"
+   },
+   "classes": {
+    "id": 63,
+    "name": "HCM-KS24-CNTT1",
+    "classCode": "HCM-KS24-CNTT1",
+    "type": "REGULAR",
+    "createdBy": null,
+    "createdAt": "2025-06-25T08:29:44.000Z",
+    "updatedAt": null,
+    "updatedBy": null
+   }
+  }
+ ],
+ "2026-10-07": [
+  {
+   "id": 64079,
+   "date": "2026-10-07",
+   "period": 2,
+   "sessionType": "NORMAL",
+   "type": "OFFLINE",
+   "attendanceDetail": [
+    {
+     "id": 338159,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 682,
+      "studentCode": "SV0001",
+      "fullName": "Sinh Viên 1",
+      "phone": "0900000000",
+      "email": "user1@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T04:11:14.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 338160,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 637,
+      "studentCode": "SV0003",
+      "fullName": "Sinh Viên 3",
+      "phone": "0900000000",
+      "email": "user3@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 338162,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 631,
+      "studentCode": "SV0004",
+      "fullName": "Sinh Viên 4",
+      "phone": "0900000000",
+      "email": "user4@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 338199,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 628,
+      "studentCode": "SV0005",
+      "fullName": "Sinh Viên 5",
+      "phone": "0900000000",
+      "email": "user5@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    }
+   ],
+   "courses": {
+    "id": 221,
+    "position": 4,
+    "name": "[IT-209] Devops Fundamentals",
+    "courseCode": "IT-209",
+    "hour": 14,
+    "courseCover": null,
+    "description": null,
+    "created_at": "2026-07-15T07:54:13.000Z",
+    "updated_at": "2026-09-25T22:13:47.000Z",
+    "isVisible": 1,
+    "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+    "examType": "PROJECT",
+    "whitelist": false,
+    "scoringFormula": {
+     "weights": {
+      "attendance": 0.1,
+      "quiz": 0.1,
+      "hackathon": 0.2,
+      "finalExam": 0.6
+     },
+     "hackathon": {
+      "multipleChoice": 0.3,
+      "essay": 0.7
+     },
+     "finalExam": {
+      "type": "ESSAY",
+      "essay": {
+       "written": 0.7,
+       "multipleChoice": 0.3
+      }
+     }
+    }
+   },
+   "users": {
+    "id": 81,
+    "fullName": "Giảng Viên 2"
+   },
+   "classes": {
+    "id": 63,
+    "name": "HCM-KS24-CNTT1",
+    "classCode": "HCM-KS24-CNTT1",
+    "type": "REGULAR",
+    "createdBy": null,
+    "createdAt": "2025-06-25T08:29:44.000Z",
+    "updatedAt": null,
+    "updatedBy": null
+   }
+  }
+ ],
+ "2026-10-08": [
+  {
+   "id": 64089,
+   "date": "2026-10-08",
+   "period": 1,
+   "sessionType": "NORMAL",
+   "type": "OFFLINE",
+   "attendanceDetail": [
+    {
+     "id": 338461,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 682,
+      "studentCode": "SV0001",
+      "fullName": "Sinh Viên 1",
+      "phone": "0900000000",
+      "email": "user1@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T04:11:14.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 338462,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 631,
+      "studentCode": "SV0004",
+      "fullName": "Sinh Viên 4",
+      "phone": "0900000000",
+      "email": "user4@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 338463,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 637,
+      "studentCode": "SV0003",
+      "fullName": "Sinh Viên 3",
+      "phone": "0900000000",
+      "email": "user3@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    },
+    {
+     "id": 338502,
+     "note": null,
+     "status": "4",
+     "student": {
+      "id": 628,
+      "studentCode": "SV0005",
+      "fullName": "Sinh Viên 5",
+      "phone": "0900000000",
+      "email": "user5@example.com",
+      "dateOfBirth": "",
+      "gender": 0,
+      "status": "ĐANG HỌC",
+      "identityCard": "",
+      "address": null,
+      "hometown": null,
+      "languages": null,
+      "facebook_address": null,
+      "role": "student",
+      "location": "HCM",
+      "avatar": "",
+      "isLocked": false,
+      "lockedUntil": null,
+      "createdBy": null,
+      "createdAt": "2024-09-25T02:01:49.000Z",
+      "updatedAt": null,
+      "updatedBy": null
+     }
+    }
+   ],
+   "courses": {
+    "id": 221,
+    "position": 4,
+    "name": "[IT-209] Devops Fundamentals",
+    "courseCode": "IT-209",
+    "hour": 14,
+    "courseCover": null,
+    "description": null,
+    "created_at": "2026-07-15T07:54:13.000Z",
+    "updated_at": "2026-09-25T22:13:47.000Z",
+    "isVisible": 1,
+    "scoringMethod": "ATTENDANCE_QUIZ_HACKATHON_TEST",
+    "examType": "PROJECT",
+    "whitelist": false,
+    "scoringFormula": {
+     "weights": {
+      "attendance": 0.1,
+      "quiz": 0.1,
+      "hackathon": 0.2,
+      "finalExam": 0.6
+     },
+     "hackathon": {
+      "multipleChoice": 0.3,
+      "essay": 0.7
+     },
+     "finalExam": {
+      "type": "ESSAY",
+      "essay": {
+       "written": 0.7,
+       "multipleChoice": 0.3
+      }
+     }
+    }
+   },
+   "users": {
+    "id": 197,
+    "fullName": "Giảng Viên 6"
+   },
+   "classes": {
+    "id": 63,
+    "name": "HCM-KS24-CNTT1",
+    "classCode": "HCM-KS24-CNTT1",
+    "type": "REGULAR",
+    "createdBy": null,
+    "createdAt": "2025-06-25T08:29:44.000Z",
+    "updatedAt": null,
+    "updatedBy": null
+   }
+  }
+ ]
+}
