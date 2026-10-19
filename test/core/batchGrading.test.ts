@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import {
-  BatchStudent, buildSessionAiPrompt, buildStudentItems, itemFeedback, parseSessionHomework, parseSessionStudents,
+  BatchStudent, buildSessionAiPrompt, buildStudentItems, effectiveScore, itemFeedback, parseSessionHomework, parseSessionStudents,
+  scoreSourceCounts,
   pickResult, studentAverage, submittedCount
 } from '~/src/core/batchGrading';
 
@@ -43,6 +44,7 @@ describe('buildStudentItems', () => {
       ['12', '', '', ''],
       ['99', 'https://github.com/a/x', 'Lỗi AI', '']
     ]);
+    expect(items.map(i => i.sysAiRatio)).toEqual([0.85, null, null]);
     expect(items[0]).toMatchSnapshot();
   });
 
@@ -56,11 +58,13 @@ describe('buildStudentItems', () => {
 });
 
 describe('buildSessionAiPrompt', () => {
-  const mk = (name: string, rows: [string, string | null, string][]): BatchStudent => ({
+  /** Mỗi dòng: [link, điểm extension chấm, nhận xét AI, điểm AI QLĐT (tỉ lệ 0–1)?]. */
+  const mk = (name: string, rows: [string, string | null, string, number?][]): BatchStudent => ({
     studentId: name, name, code: 'SV', status: rows.every(r => r[0]) ? 'HOÀN THÀNH' : 'CHƯA HOÀN THÀNH', completed: null,
-    items: rows.map(([link, score, report], n) => ({
+    items: rows.map(([link, score, report, sysAiRatio], n) => ({
       key: `${name}:${n}`, studentId: name, studentName: name, homeworkId: `h${n}`, title: `[Bài tập] Đề ${n + 1}`,
-      assignment: '', criteria: '', images: [], link, sysAi: '', comment: '',
+      assignment: '', criteria: '', images: [], link, comment: '',
+      sysAi: sysAiRatio != null ? `${sysAiRatio * 100}/100` : '', sysAiRatio: sysAiRatio ?? null,
       status: score ? 'success' : 'pending', score, report: report ? `${report}\n<score>${score}</score>` : undefined
     }))
   });
@@ -79,6 +83,28 @@ describe('buildSessionAiPrompt', () => {
   it('báo cáo: có tên, nhóm cần chú ý, nhóm làm tốt', () => {
     expect(buildSessionAiPrompt('report', students, ctx)).toMatchSnapshot();
   });
+  it('chưa chấm bằng extension → dùng điểm AI QLĐT (quy về thang), ghi rõ nguồn', () => {
+    const qldtOnly = [
+      mk('Phạm Dũng', [['g/5', null, '', 0.85], ['g/6', null, '', 0.4]]),
+      mk('Võ Em', [['g/7', '9', 'Tốt.', 0.5], ['', null, '']]) // đã chấm bằng extension → ưu tiên điểm đó (9), không dùng 5
+    ];
+    const p = buildSessionAiPrompt('report', qldtOnly, ctx);
+    expect(p).toContain('có điểm 2 bài (1 giảng viên chấm AI, 1 AI QLĐT), điểm TB 8.8');
+    expect(p).toContain('có điểm 1 bài (0 giảng viên chấm AI, 1 AI QLĐT), điểm TB 4');
+    expect(p).toContain('Nguồn điểm: bài giảng viên đã chấm bằng AI dùng điểm đó; bài chưa chấm dùng điểm AI tự chấm của QLĐT');
+    expect(p).toContain('* Võ Em: nộp 1/2, điểm TB 9');   // nộp thiếu → cần chú ý
+    expect(p).toContain('* Phạm Dũng: điểm TB 6.3');       // nộp đủ, TB (8.5 + 4) / 2 → nhóm điểm cao
+    expect(p).not.toContain('chưa có điểm bài nào');
+    expect(scoreSourceCounts(qldtOnly.flatMap(s => s.items), 10)).toEqual({ scored: 3, ai: 1, qldt: 2 });
+    expect(p).toMatchSnapshot();
+  });
+
+  it('effectiveScore: bài chưa nộp / chưa có điểm nào → null', () => {
+    const [noLink, none] = mk('X', [['', null, '', 0.9], ['g/1', null, '']]).items;
+    expect(effectiveScore(noLink, 10)).toBeNull();
+    expect(effectiveScore(none, 10)).toBeNull();
+  });
+
   it('itemFeedback: ưu tiên nhận xét AI, rút gọn khoảng trắng', () => {
     expect(itemFeedback(students[0].items[0])).toBe('Làm tốt, thiếu validate input.');
     expect(itemFeedback({ ...students[2].items[0], comment: '  Nhận xét\n\ntrên QLĐT ' })).toBe('Nhận xét trên QLĐT');

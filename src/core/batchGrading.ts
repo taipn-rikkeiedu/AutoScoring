@@ -34,7 +34,8 @@ export interface BatchItem extends BatchResult {
   criteria: string;       // tiêu chí trên QLĐT, '' nếu chưa nhập
   images: string[];       // ảnh trong đề, khớp nhãn [Ảnh n]
   link: string;           // '' = chưa nộp
-  sysAi: string;          // điểm AI của hệ thống QLĐT (chỉ để tham khảo)
+  sysAi: string;          // điểm AI của hệ thống QLĐT dạng chữ ("85/100", "Lỗi AI", "")
+  sysAiRatio: number | null; // điểm AI QLĐT / điểm tối đa (0–1); null = chưa có
   comment: string;        // nhận xét đang có trên QLĐT
 }
 
@@ -66,13 +67,20 @@ export function parseSessionStudents(list: any[], sessionId: string): Omit<Batch
 
 export const parseSessionHomework = (list: any[]): BankHomework[] => list.map(toBankHomework);
 
-/** Lần chấm AI mới nhất của hệ thống (đã xong). */
-function systemAiText(ex: any): string {
+/** Lần chấm AI mới nhất của hệ thống QLĐT (đã xong): dạng chữ để hiển thị + tỉ lệ để tính điểm. */
+function systemAiReview(ex: any): { text: string; ratio: number | null } {
   const done = (ex.aiReviews || []).filter((r: any) => r && r.status === 'COMPLETED' && r.score != null)
     .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const r = done[done.length - 1];
-  if (r) return `${r.score}/${r.maxScore || 100}`;
-  return (ex.aiReviews || []).length ? 'Lỗi AI' : '';
+  if (r) {
+    const score = Number(r.score);
+    const max = Number(r.maxScore) || 100;
+    return {
+      text: `${r.score}/${r.maxScore || 100}`,
+      ratio: Number.isFinite(score) ? Math.min(Math.max(score / max, 0), 1) : null
+    };
+  }
+  return { text: (ex.aiReviews || []).length ? 'Lỗi AI' : '', ratio: null };
 }
 
 /** Mỗi đề của buổi là 1 dòng; đề SV chưa nộp vẫn hiện (link rỗng). */
@@ -93,6 +101,7 @@ export function buildStudentItems(
     .map(id => toBankHomework(latest.get(id).homework));
   return [...homework, ...extra].map(h => {
     const ex = latest.get(h.id);
+    const review = ex ? systemAiReview(ex) : { text: '', ratio: null };
     return {
       key: `${stu.studentId}:${h.id}`,
       studentId: stu.studentId,
@@ -103,7 +112,8 @@ export function buildStudentItems(
       criteria: h.criteria,
       images: h.images || [],
       link: String(ex?.link_git || '').trim(),
-      sysAi: ex ? systemAiText(ex) : '',
+      sysAi: review.text,
+      sysAiRatio: review.ratio,
       comment: String(ex?.comment || '').trim(),
       status: 'pending'
     };
@@ -150,11 +160,33 @@ export function itemFeedback(i: BatchItem): string {
   return text.length > MAX_FEEDBACK_CHARS ? `${text.slice(0, MAX_FEEDBACK_CHARS)}…` : text;
 }
 
-const scoreOf = (i: BatchItem) => {
-  const n = i.status === 'success' && i.score != null ? parseFloat(i.score) : NaN;
-  return isNaN(n) ? null : n;
-};
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+export type ScoreSource = 'ai' | 'qldt';
+
+/**
+ * Điểm dùng để nhận xét 1 bài (theo thang `scale`): ưu tiên điểm giảng viên chấm bằng AI của extension;
+ * chưa chấm thì dùng điểm AI tự chấm của QLĐT (quy đổi về thang). Chưa nộp / chưa có điểm → null.
+ */
+export function effectiveScore(i: BatchItem, scale: number): { value: number; source: ScoreSource } | null {
+  if (!i.link) return null;
+  const own = i.status === 'success' && i.score != null ? parseFloat(i.score) : NaN;
+  if (!isNaN(own)) return { value: own, source: 'ai' };
+  if (i.sysAiRatio != null) return { value: round1(i.sysAiRatio * scale), source: 'qldt' };
+  return null;
+}
+
+/** Điểm TB của 1 SV theo điểm hiệu lực (gồm điểm AI QLĐT). */
+function effectiveAverage(s: BatchStudent, scale: number): number | null {
+  const v = s.items.map(i => effectiveScore(i, scale)?.value).filter((x): x is number => x != null);
+  return v.length ? round1(v.reduce((a, b) => a + b, 0) / v.length) : null;
+}
+
+/** Số bài có điểm theo nguồn (hiển thị "dựa trên …"). */
+export function scoreSourceCounts(items: BatchItem[], scale: number): { scored: number; ai: number; qldt: number } {
+  const sources = items.map(i => effectiveScore(i, scale)?.source).filter(Boolean);
+  return { scored: sources.length, ai: sources.filter(x => x === 'ai').length, qldt: sources.filter(x => x === 'qldt').length };
+}
 
 export interface SessionAiContext { className: string; courseName: string; sessionName: string; scale: string }
 
@@ -175,10 +207,13 @@ export function buildSessionAiPrompt(kind: SessionAiKind, students: BatchStudent
   const hwLines = hwIds.map((hid, n) => {
     const items = itemsOf(hid);
     const sub = items.filter(i => i.link);
-    const scores = sub.map(scoreOf).filter((x): x is number => x != null);
+    const eff = sub.map(i => effectiveScore(i, scale)).filter((x): x is { value: number; source: ScoreSource } => x != null);
+    const scores = eff.map(x => x.value);
+    const fromQldt = eff.filter(x => x.source === 'qldt').length;
+    const origin = fromQldt ? ` (${scores.length - fromQldt} giảng viên chấm AI, ${fromQldt} AI QLĐT)` : '';
     const scoreText = scores.length
-      ? `đã chấm ${scores.length}, điểm TB ${round1(scores.reduce((a, b) => a + b, 0) / scores.length)}, thấp nhất ${Math.min(...scores)}, cao nhất ${Math.max(...scores)}, dưới ${low}: ${scores.filter(x => x < low).length} bài`
-      : 'chưa chấm bài nào';
+      ? `có điểm ${scores.length} bài${origin}, điểm TB ${round1(scores.reduce((a, b) => a + b, 0) / scores.length)}, thấp nhất ${Math.min(...scores)}, cao nhất ${Math.max(...scores)}, dưới ${low}: ${scores.filter(x => x < low).length} bài`
+      : 'chưa có điểm bài nào';
     return `- Bài ${n + 1} "${titles.get(hid)}": nộp ${sub.length}/${items.length}; ${scoreText}`;
   });
 
@@ -190,9 +225,10 @@ export function buildSessionAiPrompt(kind: SessionAiKind, students: BatchStudent
     for (const i of itemsOf(hid)) {
       const fb = i.link ? itemFeedback(i) : '';
       if (!fb || budget <= 0) continue;
-      const score = scoreOf(i);
+      const score = effectiveScore(i, scale);
       const who = kind === 'report' ? `${i.studentName}, ` : '';
-      const line = `* (${who}${score != null ? `${score}/${ctx.scale}` : 'chưa chấm'}) ${fb}`;
+      const scoreLabel = score ? `${score.value}/${ctx.scale}${score.source === 'qldt' ? ' · AI QLĐT' : ''}` : 'chưa có điểm';
+      const line = `* (${who}${scoreLabel}) ${fb}`;
       budget -= line.length;
       feedbackCount++;
       lines.push(line);
@@ -200,11 +236,15 @@ export function buildSessionAiPrompt(kind: SessionAiKind, students: BatchStudent
     return lines.length ? `Bài ${n + 1}:\n${lines.join('\n')}` : '';
   }).filter(Boolean);
 
+  const anyQldt = students.some(s => s.items.some(i => effectiveScore(i, scale)?.source === 'qldt'));
+  const sourceNote = anyQldt
+    ? `\n- Nguồn điểm: bài giảng viên đã chấm bằng AI dùng điểm đó; bài chưa chấm dùng điểm AI tự chấm của QLĐT (quy về thang ${ctx.scale})`
+    : '';
   const data = `BUỔI: ${ctx.sessionName} — môn "${ctx.courseName}" — lớp ${ctx.className}; thang điểm ${ctx.scale}
 
 SỐ LIỆU
 - Sĩ số ${total}; nộp đủ ${full} SV; nộp thiếu ${total - full - none} SV; chưa nộp bài nào ${none} SV
-- Trạng thái buổi trên QLĐT: ${[...statusCounts].map(([k, v]) => `${k} ${v}`).join('; ')}
+- Trạng thái buổi trên QLĐT: ${[...statusCounts].map(([k, v]) => `${k} ${v}`).join('; ')}${sourceNote}
 ${hwLines.join('\n')}
 
 NHẬN XÉT TỪNG BÀI (${feedbackCount} bài có nhận xét)
@@ -218,12 +258,12 @@ ${feedbackBlocks.join('\n\n') || 'Chưa có nhận xét nào — chỉ nhận x�
 ${data}`;
   }
 
-  const behind = students.filter(s => submittedCount(s) < s.items.length || ((studentAverage(s) ?? scale) < low));
+  const behind = students.filter(s => submittedCount(s) < s.items.length || ((effectiveAverage(s, scale) ?? scale) < low));
   const behindLines = behind.slice(0, MAX_LISTED_STUDENTS).map(s => {
-    const avg = studentAverage(s);
+    const avg = effectiveAverage(s, scale);
     return `* ${s.name}: nộp ${submittedCount(s)}/${s.items.length}${avg != null ? `, điểm TB ${avg}` : ''}`;
   });
-  const top = students.map(s => ({ s, avg: studentAverage(s) }))
+  const top = students.map(s => ({ s, avg: effectiveAverage(s, scale) }))
     .filter((x): x is { s: BatchStudent; avg: number } => x.avg != null && submittedCount(x.s) === x.s.items.length)
     .sort((a, b) => b.avg - a.avg).slice(0, 5)
     .map(x => `* ${x.s.name}: điểm TB ${x.avg}`);

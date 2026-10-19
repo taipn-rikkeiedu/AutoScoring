@@ -13,7 +13,7 @@ import { useSettings } from '~/src/hooks/settings/useSettings';
 import { QldtDiagnoseButton } from './QldtDiagnoseButton';
 import { extractComment } from '~/src/core/utils';
 import {
-  BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, SESSION_AI_KINDS, SessionAiKind, criteriaOf, itemFeedback, studentAverage
+  BatchItem, BatchStudent, NOT_SUBMITTED_FILTER, SESSION_AI_KINDS, SessionAiKind, criteriaOf, itemFeedback, scoreSourceCounts, studentAverage
 } from '~/src/core/batchGrading';
 
 const { Text, Paragraph } = Typography;
@@ -374,7 +374,7 @@ export const AutoGraderTab: React.FC = () => {
         </ConfigProvider>
       </div>
 
-      <SessionAiModal open={aiOpen} onClose={() => setAiOpen(false)} g={g} graded={stats.graded} submitted={stats.submitted} />
+      <SessionAiModal open={aiOpen} onClose={() => setAiOpen(false)} g={g} submitted={stats.submitted} />
 
       <StudentGradeDrawer
         student={openStudent}
@@ -391,16 +391,19 @@ export const AutoGraderTab: React.FC = () => {
 };
 
 /* ---------- AI nhận xét tổng quan buổi: gửi lớp / báo cáo ---------- */
-const SessionAiModal: React.FC<{ open: boolean; onClose: () => void; g: Grader; graded: number; submitted: number }> = ({
-  open, onClose, g, graded, submitted
+const SessionAiModal: React.FC<{ open: boolean; onClose: () => void; g: Grader; submitted: number }> = ({
+  open, onClose, g, submitted
 }) => {
   const [kind, setKind] = useState<SessionAiKind>('class');
   const current = g.sessionAi[kind];
   const meta = SESSION_AI_KINDS.find(k => k.key === kind)!;
-  const withFeedback = useMemo(
-    () => (open ? g.students.flatMap(s => s.items).filter(i => i.link && itemFeedback(i)).length : 0),
-    [open, g.students]
-  );
+  // Điểm dùng để nhận xét: điểm extension chấm, chưa chấm thì điểm AI QLĐT
+  const basis = useMemo(() => {
+    if (!open) return { scored: 0, ai: 0, qldt: 0, withFeedback: 0 };
+    const items = g.students.flatMap(s => s.items);
+    return { ...scoreSourceCounts(items, parseFloat(g.scale) || 10), withFeedback: items.filter(i => i.link && itemFeedback(i)).length };
+  }, [open, g.students, g.scale]);
+  const sourceText = basis.qldt ? ` (${basis.ai} AI chấm, ${basis.qldt} AI QLĐT)` : '';
   const session = g.sessions.find(x => x.value === g.sessionId)?.label || '';
 
   return (
@@ -411,7 +414,9 @@ const SessionAiModal: React.FC<{ open: boolean; onClose: () => void; g: Grader; 
       width={560}
       footer={(
         <Flex justify="space-between" align="center">
-          <Text type="secondary" style={{ fontSize: 12 }}>Dựa trên {graded}/{submitted} bài đã chấm · {withFeedback} bài có nhận xét</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Dựa trên {basis.scored}/{submitted} bài có điểm{sourceText} · {basis.withFeedback} bài có nhận xét
+          </Text>
           <Space>
             <Button icon={<CopyOutlined />} disabled={!current?.text || current.loading} onClick={() => g.copySessionAi(kind)}>Sao chép</Button>
             <Tooltip title={g.aiStatus !== 'success' ? 'Chưa kết nối được AI — kiểm tra tab Cài đặt' : undefined}>
@@ -437,8 +442,14 @@ const SessionAiModal: React.FC<{ open: boolean; onClose: () => void; g: Grader; 
           options={SESSION_AI_KINDS.map(k => ({ value: k.key, label: k.label }))}
         />
         <Text type="secondary">{meta.hint}</Text>
-        {!withFeedback && (
-          <Alert type="info" showIcon title="Chưa có bài nào có nhận xét — AI chỉ nhận xét theo tình hình nộp bài. Chấm bài trước để có lỗi phổ biến." />
+        {!basis.withFeedback && (
+          <Alert
+            type="info"
+            showIcon
+            title={basis.scored
+              ? 'Chưa có nhận xét chi tiết — AI nhận xét theo tình hình nộp bài và điểm (gồm điểm AI QLĐT). Chấm bài để có thêm lỗi phổ biến.'
+              : 'Chưa có điểm hay nhận xét — AI chỉ nhận xét theo tình hình nộp bài. Chấm bài trước để có lỗi phổ biến.'}
+          />
         )}
         {current?.error && <Alert type="error" showIcon title={current.error} />}
         {current?.loading && <Text type="secondary">Đang viết nhận xét…</Text>}

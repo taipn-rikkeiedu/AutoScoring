@@ -4,6 +4,14 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.26.5] - 2026-10-19
+
+### 🐛 Sửa lỗi
+- **Nhận xét buổi bỏ qua điểm AI của QLĐT**: trước chỉ tính bài đã chấm bằng AI của extension, nên buổi QLĐT đã tự chấm AI vẫn bị coi là "chưa chấm bài nào". Nay mỗi bài dùng điểm hiệu lực: điểm giảng viên chấm bằng AI (extension) nếu có, chưa chấm thì dùng điểm AI tự chấm của QLĐT quy về thang điểm đang chọn (vd 85/100 → 8.5/10). Áp dụng cho thống kê từng bài, danh sách sinh viên cần chú ý / làm tốt; prompt ghi rõ nguồn điểm (… giảng viên chấm AI, … AI QLĐT).
+- Hộp thoại Nhận xét buổi hiện "Dựa trên X bài có điểm (a AI chấm, b AI QLĐT)"; khi chỉ có điểm mà chưa có nhận xét chi tiết thì báo đúng tình trạng thay vì "chưa có gì".
+
+---
+
 ## [5.26.4] - 2026-10-19
 
 ### 🐛 Sửa lỗi
