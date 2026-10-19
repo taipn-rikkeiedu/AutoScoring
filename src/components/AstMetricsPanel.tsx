@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ASTMetrics } from '~/src/services/codeAnalysis';
+import { ASTMetrics } from '~/src/core/codeAnalysis';
 
 interface AstMetricsPanelProps {
   language?: string;

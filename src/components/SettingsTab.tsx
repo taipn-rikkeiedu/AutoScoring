@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useSettings } from '~/src/hooks/settings/useSettings';
+import { useServices } from '~/src/services/ServicesContext';
 import { GRADER_IGNORE_DEFAULTS } from '~/src/core/constants';
 import { Tabs, Card, Select, Input, Button, Switch, Space, Typography, Tag, Badge, Popconfirm } from 'antd';
 import {
@@ -7,7 +8,7 @@ import {
   DocumentTextIcon,
   ArchiveBoxIcon
 } from '~/src/components/Icons';
-import { EyeOutlined, EyeInvisibleOutlined, SyncOutlined, CheckOutlined, DeleteOutlined, DownloadOutlined, GoogleOutlined, RobotOutlined, ThunderboltOutlined, RocketOutlined, GlobalOutlined, LaptopOutlined, SettingOutlined, ApiOutlined } from '@ant-design/icons';
+import { EyeOutlined, EyeInvisibleOutlined, SyncOutlined, CheckOutlined, DeleteOutlined, DownloadOutlined, GoogleOutlined, ThunderboltOutlined, RocketOutlined, GlobalOutlined, LaptopOutlined, SettingOutlined, ApiOutlined } from '@ant-design/icons';
 
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -63,11 +64,16 @@ export const SettingsTab: React.FC = () => {
     isMigrating,
     handleMigrateDatabase
   } = useSettings();
+  const { ai } = useServices();
+  const apiKeyUrl = ai.describe(aiProvider)?.apiKeyUrl;
 
+  // Nạp nhật ký + thống kê cache 1 lần khi mở tab. Hai hàm được tạo mới mỗi lần render, nên KHÔNG đưa vào
+  // danh sách phụ thuộc — trước đây làm effect chạy lại sau mỗi render → vòng lặp render vô hạn, đọc toàn bộ storage liên tục.
   useEffect(() => {
     loadSystemLogs();
     loadCacheStats();
-  }, [loadSystemLogs, loadCacheStats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const aiTabContent = (
     <Space direction="vertical" size="middle" style={{ width: '100%', maxWidth: 700, margin: '0 auto', display: 'flex' }}>
@@ -82,7 +88,6 @@ export const SettingsTab: React.FC = () => {
           style={{ width: '100%', marginBottom: 12 }}
           options={[
             { value: 'gemini', label: <span><GoogleOutlined style={{ color: '#1677ff', marginRight: 8 }} />Google Gemini (GenAI API Direct)</span> },
-            { value: 'claude', label: <span><RobotOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Anthropic Claude (Direct API)</span> },
             { value: 'openai', label: <span><ThunderboltOutlined style={{ color: '#52c41a', marginRight: 8 }} />OpenAI (GPT-4o, o1 Direct)</span> },
             { value: 'deepseek', label: <span><RocketOutlined style={{ color: '#722ed1', marginRight: 8 }} />DeepSeek (DeepSeek-V3 Direct)</span> },
             { value: 'groq', label: <span><ThunderboltOutlined style={{ color: '#f5222d', marginRight: 8 }} />Groq (Fast Llama, Mixtral)</span> },
@@ -97,26 +102,11 @@ export const SettingsTab: React.FC = () => {
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, display: 'block' }}>API KEY</Text>
-              {(() => {
-                const links: Record<string, string> = {
-                  gemini: 'https://aistudio.google.com/app/apikey',
-                  claude: 'https://console.anthropic.com/settings/keys',
-                  openai: 'https://platform.openai.com/api-keys',
-                  deepseek: 'https://platform.deepseek.com/api_keys',
-                  groq: 'https://console.groq.com/keys',
-                  grok: 'https://console.x.ai/',
-                  openrouter: 'https://openrouter.ai/keys'
-                };
-                const link = links[aiProvider];
-                if (link) {
-                  return (
-                    <a href={link} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#1677ff' }}>
-                      Lấy API Key tại đây
-                    </a>
-                  );
-                }
-                return null;
-              })()}
+              {apiKeyUrl && (
+                <a href={apiKeyUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#1677ff' }}>
+                  Lấy API Key tại đây
+                </a>
+              )}
             </div>
             <Input.Password
               value={aiApiKey}

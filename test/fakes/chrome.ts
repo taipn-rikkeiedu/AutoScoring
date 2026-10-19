@@ -63,7 +63,14 @@ export function installChrome(): ChromeFake {
         return Promise.resolve(res);
       }
     },
-    tabs: { query: async () => fake.tabs },
+    tabs: { query: async () => fake.tabs, create: async () => ({}), sendMessage: (_id: number, _m: unknown, cb?: (r: unknown) => void) => { cb?.(undefined); return Promise.resolve(undefined); } },
+    windows: {
+      getAll: (_opts: unknown, cb?: (w: unknown[]) => void) => {
+        const wins = [{ focused: true, tabs: fake.tabs.map((t, i) => ({ ...t, active: i === 0 })) }];
+        if (cb) cb(wins);
+        return Promise.resolve(wins);
+      }
+    },
     scripting: {
       executeScript: () => {
         fake.tabReads++;

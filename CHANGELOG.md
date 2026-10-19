@@ -4,6 +4,25 @@ Tất cả các thay đổi của tiện ích mở rộng **REduX AutoScoring Ex
 
 ---
 
+## [5.26.4] - 2026-10-19
+
+### 🐛 Sửa lỗi
+- **Groq và xAI Grok bị khoá nút chấm**: chấm được nhưng "Kiểm tra kết nối" luôn báo "Không hỗ trợ" → trạng thái AI đỏ, nút Chấm bị vô hiệu. Nay kiểm tra kết nối qua `/models` như các nhà cung cấp tương thích OpenAI khác.
+- Grok tải được danh sách model (trước luôn rỗng); OpenAI tải model đúng từ URL của OpenAI (trước dùng URL tuỳ chỉnh còn sót lại nếu từng chọn "Custom").
+- **Tab Cài đặt render lặp vô hạn**: effect nạp nhật ký / thống kê cache chạy lại sau mỗi lần render → tab liên tục đọc toàn bộ storage, tốn CPU suốt lúc mở. Nay chỉ nạp 1 lần khi mở tab (phát hiện nhờ smoke test giao diện mới).
+
+### 🗑 Gỡ bỏ
+- Ẩn **Anthropic Claude** khỏi danh sách nhà cung cấp AI: chưa từng gọi được API để chấm (chỉ tải được danh sách model). Ai đang chọn Claude cần đổi sang nhà cung cấp khác.
+
+### 🧹 Refactor giai đoạn 3 — tầng AI
+- Mỗi nhà cung cấp là 1 class theo interface `AiProvider` (Strategy): `GeminiProvider`, `OpenAiCompatibleProvider` (OpenAI, DeepSeek, Groq, Grok, OpenRouter, tự nhập URL), `OllamaProvider` — thay class tĩnh `AiClient` và 6 chuỗi `if` theo nhà cung cấp rải ở nhiều file.
+- `AiProviderRegistry`: một chỗ duy nhất chứa thông tin nhà cung cấp (cách kết nối, model gợi ý, link lấy key, cần key / URL) — thêm nhà cung cấp = đăng ký 1 mô tả, không sửa nơi dùng.
+- `AiService` (sinh nội dung, kiểm tra kết nối, tải model) + `RateLimitRetryPolicy` (chờ 6s → 12s → 24s khi bị giới hạn, như cũ) + `RateLimitError`; `credentialsFrom(config)` thay 4 chỗ dựng lặp. Lấy qua `useServices().ai`.
+- Prompt chấm bài chuyển về `src/core/prompts/gradingPrompt.ts`, phân tích mã về `src/core/codeAnalysis.ts` (logic thuần, không nằm ở tầng service).
+- Test: 26 test đặc tả tầng AI viết và chạy xanh trên code cũ TRƯỚC khi refactor (URL, header, body từng nhà cung cấp, thử lại, kiểm tra kết nối, tải model, prompt), giữ nguyên kỳ vọng sau refactor — chỉ đổi có chủ đích các ca lỗi đã sửa ở trên; thêm smoke test giao diện render cả popup và chuyển qua mọi tab. Tổng 91 test.
+
+---
+
 ## [5.26.3] - 2026-10-19
 
 ### 🧹 Refactor giai đoạn 2 — tầng QLĐT (không đổi hành vi)

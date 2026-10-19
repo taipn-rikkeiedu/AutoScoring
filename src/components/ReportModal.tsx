@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { AstMetricsPanel } from '~/src/components/AstMetricsPanel';
 import { useSettings } from '~/src/hooks/settings/useSettings';
-import { ASTMetrics } from '~/src/services/codeAnalysis';
+import { ASTMetrics } from '~/src/core/codeAnalysis';
 import { Modal, Button, Tag, Space, Alert } from 'antd';
 import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
 import { useClipboard } from '~/src/hooks/common/useClipboard';

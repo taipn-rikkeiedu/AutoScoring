@@ -4,7 +4,7 @@
  */
 import { BankHomework, toBankHomework } from './exerciseBank';
 import { DEFAULT_CRITERIA, extractComment } from './utils';
-import type { ASTMetrics } from '~/src/services/codeAnalysis';
+import type { ASTMetrics } from '~/src/core/codeAnalysis';
 
 export type BatchItemStatus = 'pending' | 'downloading' | 'grading' | 'success' | 'error';
 

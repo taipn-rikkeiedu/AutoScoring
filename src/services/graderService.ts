@@ -1,6 +1,8 @@
 import { GitHubService } from '~/src/services/github/githubClient';
-import { buildGradingPrompt, compressCode, callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
-import { analyzeCode, ASTMetrics } from '~/src/services/codeAnalysis';
+import { buildGradingPrompt, compressCode } from '~/src/core/prompts/gradingPrompt';
+import { credentialsFrom } from '~/src/services/ai/aiService';
+import { services } from '~/src/services/container';
+import { analyzeCode, ASTMetrics } from '~/src/core/codeAnalysis';
 import { proxyFetchText } from '~/src/services/github/backgroundFetch';
 import { DEFAULT_CRITERIA, parseScore } from '~/src/core/utils';
 import { AppConfig } from '~/src/types';
@@ -65,12 +67,7 @@ export async function gradeSubmission(
   const assignmentImgs = options.assignmentImages?.length
     ? await loadAssignmentImages(options.assignmentImages)
     : { images: [], numbers: [], failed: [] };
-  const credentials = {
-    provider: config.aiProvider,
-    modelName: config.aiModelName,
-    apiKey: config.aiApiKey,
-    apiUrl: config.aiApiUrl
-  };
+  const credentials = credentialsFrom(config);
   const callAi = (withAssignmentImages: boolean) => {
     const sent = withAssignmentImages ? assignmentImgs.numbers : [];
     const missing = withAssignmentImages ? assignmentImgs.failed : [...assignmentImgs.numbers, ...assignmentImgs.failed].sort((a, b) => a - b);
@@ -85,7 +82,7 @@ export async function gradeSubmission(
       { sent, missing }
     );
     const images = withAssignmentImages ? [...assignmentImgs.images, ...repoData.images] : repoData.images;
-    return { sent, missing, run: () => callAiWithRateLimitRetry(prompt, credentials, onStatusUpdate, 3, 6000, images) };
+    return { sent, missing, run: () => services.ai.generate(prompt, credentials, { onStatus: onStatusUpdate, images }) };
   };
 
   onStatusUpdate?.(`Đang gửi bài nộp tới ${config.aiProvider.toUpperCase()} để chấm điểm...`);

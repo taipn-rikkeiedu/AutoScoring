@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { AppConfig, Submission } from '~/src/types';
 import { ExerciseBank, bankToTemplates } from '../exerciseBank';
 import { SupabaseService } from '~/src/services/supabase/supabaseService';
-import { testConnection } from '~/src/services/connectionTester';
+import { credentialsFrom } from '~/src/services/ai/aiService';
+import { useServices } from '~/src/services/ServicesContext';
 import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS, STORAGE_KEYS, UI_MESSAGES } from '../constants';
 import { logger } from '../logger';
 import { queryActiveLmsTab } from '../utils';
@@ -28,6 +29,7 @@ export const defaultConfig: AppConfig = {
 };
 
 export function useAppInitializer() {
+  const { ai } = useServices();
   const [config, setConfig] = useState<AppConfig>(defaultConfig);
   const [exerciseTemplates, setExerciseTemplates] = useState<any>({});
   const [exerciseBank, setExerciseBank] = useState<ExerciseBank>({});
@@ -127,7 +129,7 @@ export function useAppInitializer() {
     if (!silent) setAiStatus("testing");
     logger.info("AI_SERVICE", `Bắt đầu kiểm tra kết nối tới AI Provider: ${cfg.aiProvider}`);
     try {
-      await testConnection(cfg);
+      await ai.testConnection(credentialsFrom(cfg));
       setAiStatus("success");
       chrome.storage.local.set({ [STORAGE_KEYS.cachedAiStatus]: "success" });
       logger.success("AI_SERVICE", `Kết nối AI Provider [${cfg.aiProvider}] thành công.`);

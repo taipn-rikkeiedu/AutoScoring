@@ -10,7 +10,7 @@ import {
   SessionAiKind, buildSessionAiPrompt
 } from '~/src/core/batchGrading';
 import { gradeSubmission } from '~/src/services/graderService';
-import { callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
+import { credentialsFrom } from '~/src/services/ai/aiService';
 import type { QldtOption } from '~/src/services/qldt/types';
 import { useServices } from '~/src/services/ServicesContext';
 import { localStore } from '~/src/infra/storage';
@@ -39,7 +39,7 @@ const readSaved = async (): Promise<SavedSessions> => (await localStore.get<Save
 export function useBatchGrader() {
   const { config, aiStatus } = useApp();
   const { showToast } = useToast();
-  const { catalog, homework: homeworkService } = useServices().qldt;
+  const { ai, qldt: { catalog, homework: homeworkService } } = useServices();
   const [classes, setClasses] = useState<QldtOption[]>([]);
   const [classesTried, setClassesTried] = useState(false);
   const [classId, setClassId] = useState('');
@@ -294,8 +294,7 @@ export function useBatchGrader() {
         sessionName: sessions.find(x => x.value === sessionId)?.label || '',
         scale: config.gradingScale || '10'
       });
-      const text = await callAiWithRateLimitRetry(prompt,
-        { provider: config.aiProvider, modelName: config.aiModelName, apiKey: config.aiApiKey, apiUrl: config.aiApiUrl });
+      const text = await ai.generate(prompt, credentialsFrom(config));
       setSessionAi(prev => ({ ...prev, [kind]: { loading: false, text: text.trim() } }));
     } catch (e: any) {
       setSessionAi(prev => ({ ...prev, [kind]: { loading: false, error: e.message } }));

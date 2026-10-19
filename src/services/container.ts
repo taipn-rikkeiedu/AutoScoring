@@ -10,6 +10,8 @@ import { MonitorService } from './qldt/monitorService';
 import { CareService } from './qldt/careService';
 import { QldtApiCrawler } from './qldt/apiCrawler';
 import { QldtDiagnostics } from './qldt/diagnostics';
+import { AiService } from './ai/aiService';
+import { createDefaultAiRegistry } from './ai/registry';
 
 /**
  * Composition root: nơi DUY NHẤT ghép các lớp với nhau (chọn cài đặt cụ thể cho từng interface).
@@ -23,6 +25,7 @@ export function createServices() {
   const catalogClient = new CachedQldtClient(client, auth, sessionStore);
 
   return {
+    ai: new AiService(createDefaultAiRegistry()),
     qldt: {
       auth,
       client,

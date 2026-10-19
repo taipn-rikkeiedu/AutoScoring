@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '~/src/core/AppContext';
 import { useToast } from '~/src/core/ToastContext';
 import { DEFAULT_SYSTEM_PROMPT } from '~/src/core/utils';
-import { testConnection } from '~/src/services/connectionTester';
-import { AI_DEFAULTS, GRADER_IGNORE_DEFAULTS } from '~/src/core/constants';
+import { GRADER_IGNORE_DEFAULTS } from '~/src/core/constants';
 import { logger, LogEntry } from '~/src/core/logger';
 import JSZip from 'jszip';
-import { AiClient } from '~/src/services/api';
+import { credentialsFrom } from '~/src/services/ai/aiService';
+import { useServices } from '~/src/services/ServicesContext';
 import { SupabaseService } from '~/src/services/supabase/supabaseService';
 
 const defaultGraderIgnoreOptions = [...GRADER_IGNORE_DEFAULTS];
@@ -14,6 +14,7 @@ const defaultGraderIgnoreOptions = [...GRADER_IGNORE_DEFAULTS];
 export function useSettings() {
   const { config, updateConfig, supabaseStatus } = useApp();
   const { showToast } = useToast();
+  const { ai } = useServices();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     ai: true,
@@ -65,7 +66,7 @@ export function useSettings() {
     const key = (aiApiKey || "").trim();
     setIsLoadingModels(true);
     try {
-      const models = await AiClient.fetchModelsForProvider(aiProvider, key, aiApiUrl);
+      const models = await ai.listModels({ provider: aiProvider, apiKey: key, apiUrl: aiApiUrl, modelName: aiModelName });
       // Bỏ qua kết quả của provider cũ nếu người dùng đã đổi provider trong lúc đang tải
       if (isStale()) return;
       // Luôn ghi đè (kể cả rỗng) để không giữ lại danh sách model của provider trước đó
@@ -239,14 +240,12 @@ export function useSettings() {
   const handleTestAiConnection = async () => {
     setIsTestingAi(true);
     try {
-      await testConnection({
-        ...config,
+      await ai.testConnection(credentialsFrom({
         aiProvider,
         aiApiKey: aiApiKey.trim(),
         aiApiUrl: aiApiUrl.trim(),
-        aiModelName: aiModelName.trim(),
-        googleApiKey: googleApiKey.trim()
-      });
+        aiModelName: aiModelName.trim()
+      }));
       showToast("Kết nối tới AI Provider thành công!", "success");
     } catch (err: any) {
       showToast(`Kết nối thất bại: ${err.message}`, "error");
@@ -294,23 +293,9 @@ export function useSettings() {
     setAiProvider(provider);
     setAiApiKey(nextKey);
 
-    let defaultModel = aiModelName;
+    // Model gợi ý của nhà cung cấp mới (registry); nhà cung cấp không có gợi ý (vd tự nhập URL) → giữ model đang nhập
+    const defaultModel = ai.describe(provider)?.defaultModel ?? aiModelName;
     const nextApiUrl = aiApiUrl;
-    if (provider === "gemini") {
-      defaultModel = AI_DEFAULTS.geminiModel;
-    } else if (provider === "openai") {
-      defaultModel = AI_DEFAULTS.openAiModel;
-    } else if (provider === "deepseek") {
-      defaultModel = AI_DEFAULTS.deepSeekModel;
-    } else if (provider === "groq") {
-      defaultModel = AI_DEFAULTS.groqModel;
-    } else if (provider === "openrouter") {
-      defaultModel = AI_DEFAULTS.openRouterModel;
-    } else if (provider === "grok") {
-      defaultModel = AI_DEFAULTS.grokModel;
-    } else if (provider === "local") {
-      defaultModel = AI_DEFAULTS.localModel;
-    }
     setAiModelName(defaultModel);
 
     updateConfig({

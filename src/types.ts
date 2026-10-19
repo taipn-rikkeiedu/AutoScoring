@@ -25,7 +25,7 @@ export interface Submission {
   status?: string;
   fileList?: string[];
   language?: string;
-  astMetrics?: import('./services/codeAnalysis').ASTMetrics;
+  astMetrics?: import('./core/codeAnalysis').ASTMetrics;
   imagesAttached?: number;
   imagesSkipped?: number;
   checked?: boolean;

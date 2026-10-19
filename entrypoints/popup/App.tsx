@@ -43,7 +43,7 @@ const AppContent: React.FC = () => {
     score: string | null;
     report: string;
     language?: string;
-    astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics;
+    astMetrics?: import('~/src/core/codeAnalysis').ASTMetrics;
     imagesAttached?: number;
     imagesSkipped?: number;
   }>({
@@ -54,7 +54,7 @@ const AppContent: React.FC = () => {
   });
 
   useEffect(() => {
-    (window as any).showReportModal = (data: { title: string; score: string | null; report: string; language?: string; astMetrics?: import('~/src/services/codeAnalysis').ASTMetrics; imagesAttached?: number; imagesSkipped?: number }) => {
+    (window as any).showReportModal = (data: { title: string; score: string | null; report: string; language?: string; astMetrics?: import('~/src/core/codeAnalysis').ASTMetrics; imagesAttached?: number; imagesSkipped?: number }) => {
       setReportModalData({
         isOpen: true,
         title: data.title,

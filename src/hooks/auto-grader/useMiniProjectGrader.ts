@@ -6,8 +6,10 @@ import { STORAGE_KEYS } from '~/src/core/constants';
 import { Submission } from '~/src/types';
 import { gradeSubmission } from '~/src/services/graderService';
 import { GitHubService } from '~/src/services/github/githubClient';
-import { AIService, compressCode } from '~/src/services/ai/aiService';
-import { analyzeCode } from '~/src/services/codeAnalysis';
+import { buildGradingPrompt, compressCode } from '~/src/core/prompts/gradingPrompt';
+import { credentialsFrom } from '~/src/services/ai/aiService';
+import { useServices } from '~/src/services/ServicesContext';
+import { analyzeCode } from '~/src/core/codeAnalysis';
 import { localStore } from '~/src/infra/storage';
 import { useClipboard } from '~/src/hooks/common/useClipboard';
 
@@ -41,6 +43,7 @@ export function useMiniProjectGrader() {
   const { config, exerciseTemplates, aiStatus } = useApp();
   const { showToast } = useToast();
   const copy = useClipboard();
+  const { ai } = useServices();
 
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -286,7 +289,6 @@ export function useMiniProjectGrader() {
         });
 
         setBulkProgressText(`Đang chấm ${items.length} bài tập (lần lượt từng bài)...`);
-        const ai = new AIService(config);
         // Cùng repo cho cả nhóm nên chỉ cần phân tích AST một lần, dùng chung cho mọi bài trong nhóm.
         const { language: repoLanguage, metrics: repoAstMetrics } = analyzeCode(compressCode(repoData.content));
 
@@ -299,15 +301,11 @@ export function useMiniProjectGrader() {
           const template = exerciseTemplates?.[chapter]?.[session]?.[assignmentName];
           if (!template?.assignment) throw new Error("Thiếu đề bài.");
 
-          const report = await ai.generateGradingReport(
-            template.assignment,
-            template.criteria || "",
-            repoData.content,
-            null,
-            3,
-            6000,
-            repoData.images
+          const prompt = buildGradingPrompt(
+            config.systemPrompt, template.assignment, template.criteria || "", repoData.content,
+            repoData.images.length, config.gradingScale, config.strictnessLevel
           );
+          const report = await ai.generate(prompt, credentialsFrom(config), { images: repoData.images });
 
           const score = parseScore(report);
           if (!score) throw new Error("Không bóc tách được điểm.");

@@ -19,7 +19,7 @@ import {
   TemplateSource, loadMonitorTemplates, saveMonitorTemplate, removeMonitorTemplate, writeLocalTemplates
 } from '~/src/services/monitorTemplateStore';
 import { SupabaseService } from '~/src/services/supabase/supabaseService';
-import { callAiWithRateLimitRetry } from '~/src/services/ai/aiService';
+import { credentialsFrom } from '~/src/services/ai/aiService';
 import type { QldtOption } from '~/src/services/qldt/types';
 import { useServices } from '~/src/services/ServicesContext';
 import { ClassAttendance, StudentAttendance, parseClassAttendance } from '~/src/core/attendance';
@@ -45,7 +45,7 @@ let templateErrorLogged = false;
 
 export function useStudentMonitor() {
   const { config } = useApp();
-  const { auth: qldtAuth, catalog, monitor, homework } = useServices().qldt;
+  const { ai, qldt: { auth: qldtAuth, catalog, monitor, homework } } = useServices();
   const [classes, setClasses] = useState<QldtOption[]>([]);
   const [classError, setClassError] = useState('');
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
@@ -347,13 +347,13 @@ export function useStudentMonitor() {
   });
 
   /* ---------- AI viết nhận xét (chỉ chạy khi bấm) ---------- */
-  const aiCredentials = { provider: config.aiProvider, modelName: config.aiModelName, apiKey: config.aiApiKey, apiUrl: config.aiApiUrl };
+  const aiCredentials = credentialsFrom(config);
 
   const handleClassAi = async (kind: ClassAiKind) => {
     if (!rows.length || classAi[kind]?.loading) return;
     setClassAi(prev => ({ ...prev, [kind]: { loading: true } }));
     try {
-      const text = await callAiWithRateLimitRetry(buildClassAiPrompt(kind, rows, courseName, levels), aiCredentials);
+      const text = await ai.generate(buildClassAiPrompt(kind, rows, courseName, levels), aiCredentials);
       setClassAi(prev => ({ ...prev, [kind]: { loading: false, text: text.trim() } }));
     } catch (e: any) {
       setClassAi(prev => ({ ...prev, [kind]: { loading: false, error: e.message } }));
@@ -364,7 +364,7 @@ export function useStudentMonitor() {
     if (studentAi[r.key]?.loading) return;
     setStudentAi(prev => ({ ...prev, [r.key]: { loading: true } }));
     try {
-      const text = await callAiWithRateLimitRetry(buildStudentPrompt(r, courseName), aiCredentials);
+      const text = await ai.generate(buildStudentPrompt(r, courseName), aiCredentials);
       setStudentAi(prev => ({ ...prev, [r.key]: { loading: false, text: text.trim() } }));
     } catch (e: any) {
       setStudentAi(prev => ({ ...prev, [r.key]: { loading: false, error: e.message } }));

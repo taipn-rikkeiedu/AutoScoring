@@ -1,174 +1,57 @@
-import { GRADING_TEXT } from '~/src/core/constants';
-import { AppConfig } from '~/src/types';
-import { AiClient, API_BASE_URLS } from '~/src/services/api';
-import type { ImageAttachment } from '~/src/services/api';
-import { analyzeCode, buildAstSummary } from '~/src/services/codeAnalysis';
+import { UI_MESSAGES } from '~/src/core/constants';
+import type { AppConfig } from '~/src/types';
+import type { AiProviderDescriptor, AiProviderRegistry } from './registry';
+import { RateLimitRetryPolicy, RetryOptions } from './retryPolicy';
+import type { AiCredentials, ImageAttachment, ModelOption } from './types';
 
-export type { ImageAttachment } from '~/src/services/api';
+export type { AiCredentials, ImageAttachment, ModelOption } from './types';
 
-/** Nén code trước khi đưa vào prompt: gộp các dòng trắng liên tiếp thành 1 dòng. */
-export function compressCode(codeContent: string): string {
-  const lines = codeContent.split('\n');
-  const compressed: string[] = [];
-  let prevBlank = false;
+/** Thông tin kết nối AI từ cấu hình (một chỗ duy nhất, trước dựng lặp ở 4 nơi). */
+export const credentialsFrom = (config: Pick<AppConfig, 'aiProvider' | 'aiModelName' | 'aiApiKey' | 'aiApiUrl'>): AiCredentials => ({
+  provider: config.aiProvider, modelName: config.aiModelName, apiKey: config.aiApiKey, apiUrl: config.aiApiUrl
+});
 
-  for (const line of lines) {
-    const stripped = line.trim();
-    if (!stripped) {
-      if (!prevBlank) compressed.push("");
-      prevBlank = true;
-    } else {
-      prevBlank = false;
-      compressed.push(line.trimEnd());
-    }
-  }
-  return compressed.join('\n');
+export interface AiGenerateOptions extends RetryOptions {
+  images?: ImageAttachment[];
+  onStatus?: ((status: string) => void) | null;
 }
 
-/** Build prompt chấm điểm dùng chung cho mọi luồng BYOK (single/bulk grading). */
-export function buildGradingPrompt(
-  systemPrompt: string,
-  assignment: string,
-  criteria: string,
-  codeContent: string,
-  imageCount: number = 0,
-  gradingScale: string = "10",
-  strictness: string = "Bình thường",
-  /** Ảnh trong đề gửi kèm (đứng trước ảnh bài nộp): số thứ tự [Ảnh n] đã gửi / không gửi được. */
-  assignmentImages: { sent: number[]; missing: number[] } = { sent: [], missing: [] }
-): string {
-  const compressed = compressCode(codeContent);
-  const { language, metrics } = analyzeCode(compressed);
-  const astSummary = buildAstSummary(language, metrics);
+/**
+ * Cổng gọi AI cho toàn ứng dụng: chọn nhà cung cấp theo cấu hình (registry), áp chính sách thử lại khi bị giới hạn.
+ * Nơi dùng không biết / không rẽ nhánh theo nhà cung cấp cụ thể.
+ */
+export class AiService {
+  constructor(
+    private readonly registry: AiProviderRegistry,
+    private readonly retry: RateLimitRetryPolicy = new RateLimitRetryPolicy()
+  ) {}
 
-  const template = systemPrompt && systemPrompt.trim().length > 0
-    ? systemPrompt
-    : GRADING_TEXT.defaultSystemPrompt;
-
-  // Thay bằng hàm để "$&", "$'"… trong code mẫu / bài nộp không bị hiểu là mẫu thay thế
-  let prompt = template
-    .replace(/{{assignment}}/g, () => assignment)
-    .replace(/{{criteria}}/g, () => criteria)
-    .replace(/{{ast_summary}}/g, () => astSummary)
-    .replace(/{{code}}/g, () => compressed)
-    .replace(/{{grading_scale}}/g, () => gradingScale)
-    .replace(/{{strictness}}/g, () => strictness);
-
-  const { sent, missing } = assignmentImages;
-  if (sent.length > 0) {
-    prompt += `\n\nẢNH TRONG ĐỀ BÀI: ${sent.length} ảnh đính kèm đầu tiên là ảnh minh hoạ của đề, lần lượt là ${sent.map(n => `[Ảnh ${n}]`).join(', ')} (đúng nhãn trong đề). Đây là yêu cầu / mẫu cần làm theo (giao diện, sơ đồ, kết quả mong đợi…), KHÔNG phải bài làm của sinh viên — hãy đối chiếu bài nộp với các ảnh này.`;
-  }
-  if (missing.length > 0) {
-    prompt += `\n\nKhông gửi kèm được ${missing.map(n => `[Ảnh ${n}]`).join(', ')} của đề — chấm theo phần chữ của đề, không trừ điểm vì thiếu thông tin trong các ảnh đó.`;
-  }
-  if (imageCount > 0) {
-    prompt += sent.length
-      ? `\n\nLưu ý: ${imageCount} ảnh đính kèm còn lại (sau ảnh của đề) thuộc bài nộp (ảnh nộp trực tiếp hoặc trích từ file .docx, gồm sơ đồ UML/ERD/kiến trúc) — hãy phân tích khi đánh giá phần thiết kế/sơ đồ nếu tiêu chí có yêu cầu.`
-      : `\n\nLưu ý: bài nộp có đính kèm ${imageCount} ảnh sơ đồ (có thể là ảnh nộp trực tiếp hoặc trích từ file .docx, bao gồm sơ đồ UML/ERD/kiến trúc) — hãy phân tích các ảnh này khi đánh giá phần thiết kế/sơ đồ nếu tiêu chí có yêu cầu.`;
+  /** Mô tả nhà cung cấp (model gợi ý, link lấy key…); không có → undefined. */
+  describe(providerId: string): AiProviderDescriptor | undefined {
+    return this.registry.get(providerId);
   }
 
-  return prompt;
-}
-
-export interface AiCredentials {
-  provider: string;
-  modelName: string;
-  apiKey: string;
-  apiUrl: string;
-}
-
-/** Resolve base URL của các provider tương thích OpenAI (openai/deepseek/openrouter/grok dùng URL cố định, custom dùng URL người dùng nhập). */
-export function resolveOpenAiCompatibleBaseUrl(provider: string, configuredUrl: string): string {
-  if (provider === "openai") return API_BASE_URLS.openAi;
-  if (provider === "deepseek") return API_BASE_URLS.deepSeek;
-  if (provider === "openrouter") return API_BASE_URLS.openRouter;
-  if (provider === "grok") return API_BASE_URLS.grok;
-  if (provider === "groq") return API_BASE_URLS.groq;
-  return configuredUrl;
-}
-
-function isRateLimitError(message: string): boolean {
-  const lower = message.toLowerCase();
-  return message === "RATE_LIMIT" || lower.includes("quota") || lower.includes("rate limit") || lower.includes("429") || lower.includes("exhausted") || lower.includes("too many requests");
-}
-
-/** Gọi thẳng AI Provider (BYOK) theo config.aiProvider, không retry. Dùng chung cho mọi luồng chấm điểm. */
-async function callAiProvider(prompt: string, { provider, modelName, apiKey, apiUrl }: AiCredentials, images?: ImageAttachment[]): Promise<string> {
-  if (provider === "gemini") {
-    return await AiClient.generateGemini(prompt, modelName, apiKey, 0.0, images);
-  }
-  if (provider === "openai" || provider === "deepseek" || provider === "openrouter" || provider === "grok" || provider === "custom" || provider === "groq") {
-    const baseUrl = resolveOpenAiCompatibleBaseUrl(provider, apiUrl);
-    return await AiClient.generateOpenAiCompatible(prompt, modelName, baseUrl, apiKey, 0.0, images);
-  }
-  if (provider === "local") {
-    const url = apiUrl && apiUrl.trim() ? apiUrl.trim() : API_BASE_URLS.ollama;
-    return await AiClient.generateOllama(prompt, modelName, url, 0.0, images);
-  }
-  throw new Error("Không hỗ trợ AI Provider đã chọn.");
-}
-
-/** Gọi AI Provider với retry tự động khi bị rate limit (exponential backoff). Dùng chung cho single/bulk grading. */
-export async function callAiWithRateLimitRetry(
-  prompt: string,
-  credentials: AiCredentials,
-  onStatusUpdate: ((status: string) => void) | null = null,
-  maxRetries = 3,
-  initialDelayMs = 6000,
-  images?: ImageAttachment[]
-): Promise<string> {
-  let attempt = 0;
-
-  while (attempt <= maxRetries) {
-    try {
-      return await callAiProvider(prompt, credentials, images);
-    } catch (err: any) {
-      if (!isRateLimitError(err.message || "")) throw err;
-
-      attempt++;
-      if (attempt > maxRetries) {
-        throw new Error(`Bị giới hạn lưu lượng (Rate Limit) và đã thử lại ${maxRetries} lần thất bại. Vui lòng đợi và thử lại.`);
-      }
-
-      // Giữ nguyên model người dùng đã chọn, chỉ chờ rồi thử lại (không tự đổi sang model khác).
-      const delay = initialDelayMs * Math.pow(2, attempt - 1);
-      onStatusUpdate?.(`Đợi ${Math.round(delay / 1000)}s do hết hạn mức AI (${attempt}/${maxRetries})...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error("Không thể tạo báo cáo chấm điểm.");
-}
-
-export class AIService {
-  private readonly credentials: AiCredentials;
-  private readonly systemPrompt: string;
-  private readonly config: AppConfig;
-
-  constructor(config: AppConfig) {
-    this.credentials = {
-      provider: config.aiProvider,
-      modelName: config.aiModelName,
-      apiKey: config.aiApiKey,
-      apiUrl: config.aiApiUrl
-    };
-    this.systemPrompt = config.systemPrompt;
-    this.config = config;
+  async generate(prompt: string, creds: AiCredentials, opts: AiGenerateOptions = {}): Promise<string> {
+    const d = this.registry.get(creds.provider);
+    if (!d) throw new Error('Không hỗ trợ AI Provider đã chọn.');
+    const provider = d.create(creds);
+    return this.retry.run(() => provider.generate(prompt, creds.modelName, { temperature: 0, images: opts.images }), opts.onStatus, opts);
   }
 
-  private buildPrompt(assignment: string, criteria: string, codeContent: string, imageCount: number): string {
-    return buildGradingPrompt(this.systemPrompt, assignment, criteria, codeContent, imageCount, this.config.gradingScale, this.config.strictnessLevel);
+  /** Kiểm tra cấu hình đủ (key / URL) rồi thử kết nối; lỗi → ném kèm lý do. */
+  async testConnection(creds: AiCredentials): Promise<void> {
+    const d = this.registry.get(creds.provider);
+    if (!d) throw new Error(UI_MESSAGES.common.unsupportedAiProvider);
+    if (d.requiresApiKey && !creds.apiKey) throw new Error(UI_MESSAGES.common.missingApiKey);
+    if (d.requiresBaseUrl && !creds.apiUrl) throw new Error(UI_MESSAGES.common.missingBaseUrl);
+    await d.create(creds).testConnection(creds.modelName);
   }
 
-  async generateGradingReport(
-    assignment: string,
-    criteria: string,
-    codeContent: string,
-    onStatusUpdate: ((status: string) => void) | null = null,
-    maxRetries = 3,
-    initialDelayMs = 6000,
-    images?: ImageAttachment[]
-  ): Promise<string> {
-    const prompt = this.buildPrompt(assignment, criteria, codeContent, images?.length || 0);
-    return callAiWithRateLimitRetry(prompt, this.credentials, onStatusUpdate, maxRetries, initialDelayMs, images);
+  /** Danh sách model của nhà cung cấp; thiếu key (với nhà cung cấp cần key) hoặc lỗi → rỗng. */
+  async listModels(creds: AiCredentials): Promise<ModelOption[]> {
+    const d = this.registry.get(creds.provider);
+    if (!d) return [];
+    if (d.requiresApiKey && !creds.apiKey?.trim()) return [];
+    return d.create(creds).listModels();
   }
 }

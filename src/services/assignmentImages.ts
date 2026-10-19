@@ -1,4 +1,4 @@
-import type { ImageAttachment } from '~/src/services/api/aiClient';
+import type { ImageAttachment } from '~/src/services/ai/types';
 import { services } from '~/src/services/container';
 
 /**

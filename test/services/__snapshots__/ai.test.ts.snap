@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`prompt chấm bài > thay biến mẫu (kể cả chuỗi $& trong code), thêm ghi chú ảnh 1`] = `
+"Đề|TC|100|Khắt khe|x = "$&"
+
+ẢNH TRONG ĐỀ BÀI: 1 ảnh đính kèm đầu tiên là ảnh minh hoạ của đề, lần lượt là [Ảnh 1] (đúng nhãn trong đề). Đây là yêu cầu / mẫu cần làm theo (giao diện, sơ đồ, kết quả mong đợi…), KHÔNG phải bài làm của sinh viên — hãy đối chiếu bài nộp với các ảnh này.
+
+Không gửi kèm được [Ảnh 2] của đề — chấm theo phần chữ của đề, không trừ điểm vì thiếu thông tin trong các ảnh đó.
+
+Lưu ý: 2 ảnh đính kèm còn lại (sau ảnh của đề) thuộc bài nộp (ảnh nộp trực tiếp hoặc trích từ file .docx, gồm sơ đồ UML/ERD/kiến trúc) — hãy phân tích khi đánh giá phần thiết kế/sơ đồ nếu tiêu chí có yêu cầu."
+`;
